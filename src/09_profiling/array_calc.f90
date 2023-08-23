@@ -21,7 +21,7 @@ program matrix_multi_test
     integer, parameter :: timesteps = maxsize/step 
     integer :: count, rate
     real(wp)    :: timeAtStart, timeAtEnd
-    real(wp)    :: time(6,timesteps)
+    real(wp)    :: time(8,timesteps)
 
 
     do index3 = step,maxsize,step
@@ -54,6 +54,12 @@ program matrix_multi_test
 
         ! Matmul_gpu_acc_loop--------------------------------------
         call time_matmul_calc(6,time(6,index3/step))
+
+        !gpu dotmix-------------------------------------------------
+        call time_matmul_calc(7,time(7,index3/step))
+
+        !gpu intrinsic ---------------------------------------------
+        call time_matmul_calc(8,time(8,index3/step))
 
         ! Deallocate x,y,z
         deallocate(x)
@@ -103,6 +109,10 @@ program matrix_multi_test
             call matmul_cpu_acc_kernels(x,y,z)
         case (6) !gpu acc loop
             call matmul_cpu_acc_loop(x,y,z)
+        case (7) !gpu dotmix
+            call matmul_gpu_dotmix(x,y,z)
+        case (8) !gpu intrinsic
+            call matmul_gpu_intrinsic(x,y,z)
         end select
 
         ! Clock Stop:

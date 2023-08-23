@@ -36,7 +36,7 @@ contains
         do j=1,n
             do i=1,m
                 do k=1,size(x_mat,dim=2)
-                    z_mat(i,j)= x_mat(i,k)*y_mat(k,j)
+                    z_mat(i,j)=z_mat(i,j)+ x_mat(i,k)*y_mat(k,j)
                 end do      
             end do
         end do
@@ -62,7 +62,7 @@ contains
         do j=1,n
             do i=1,m
                 do k=1,size(x_mat,dim=2)
-                    z_mat(i,j)= x_mat(i,k)*y_mat(k,j)
+                    z_mat(i,j)= z_mat(i,j) + x_mat(i,k)*y_mat(k,j)
                 end do      
             end do
         end do
@@ -87,12 +87,13 @@ contains
 
         !$acc parallel loop
         do j=1,n
-            !asdfasdfafdacc parallel loop
+            !$acc parallel loop
             do i=1,m
                 do k=1,size(x_mat,dim=2)
-                    z_mat(i,j)= x_mat(i,k)*y_mat(k,j)
+                    z_mat(i,j)= z_mat(i,j)+x_mat(i,k)*y_mat(k,j)
                 end do      
             end do
+            !$acc end parallel loop
         end do
         !$acc end parallel loop
 
@@ -121,6 +122,33 @@ contains
 
     end subroutine matmul_cpu_dotmix
 
+    subroutine matmul_gpu_dotmix(x_mat, y_mat, z_mat)
+        real(wp), dimension(:,:),intent(in)  :: x_mat
+        real(wp), dimension(:,:),intent(in)  :: y_mat
+        real(wp), dimension(:,:),intent(out) :: z_mat
+        integer :: n, m, i, j
+
+        ! Check if shapes match:
+        call check_shapes(x_mat, y_mat, z_mat)
+        ! Set values in z_mat to zero:
+        ! z_mat = 0.
+
+        ! Matrix multiplication
+        n=size(y_mat,dim=2)
+        m=size(x_mat,dim=1)
+
+        !$acc parallel loop
+        do j=1,n
+            !$acc parallel loop
+            do i=1,m
+                    z_mat(i,j)=dot_product(x_mat(i,:),y_mat(:,j))
+            end do
+            !$acc end parallel loop
+        end do
+        !$acc end parallel loop
+
+    end subroutine matmul_gpu_dotmix
+
     subroutine matmul_cpu_intrinsic(x_mat, y_mat, z_mat)
         real(wp), dimension(:,:),intent(in)  :: x_mat
         real(wp), dimension(:,:),intent(in)  :: y_mat
@@ -134,5 +162,22 @@ contains
         z_mat = matmul(x_mat,y_mat)
 
     end subroutine matmul_cpu_intrinsic
+
+    subroutine matmul_gpu_intrinsic(x_mat, y_mat, z_mat)
+        real(wp), dimension(:,:),intent(in)  :: x_mat
+        real(wp), dimension(:,:),intent(in)  :: y_mat
+        real(wp), dimension(:,:),intent(out) :: z_mat
+
+        ! Check if shapes match:
+        call check_shapes(x_mat, y_mat, z_mat)
+        ! Set values in z_mat to zero:
+        ! z_mat = 0.
+        ! Matrix multiplication
+
+        !$acc kernels
+        z_mat = matmul(x_mat,y_mat)
+        !$acc end kernels
+
+    end subroutine matmul_gpu_intrinsic
 
 end module
