@@ -1,6 +1,6 @@
-export file_path_09='/home/m/m300912/tlab_coding/tlab_Tutorial/src/09_profiling/'
-export executable_path='/home/m/m300912/tlab_coding/tlab_Tutorial/executable_matcalc/'
-export output_path=$executable_path/'output/'
+export ${file_path_09:='/home/m/m300912/tlab_coding/tlab_Tutorial/src/09_profiling/'}
+export ${executable_path:='/home/m/m300912/tlab_coding/tlab_Tutorial/executable_matcalc/'}
+export ${output_path:=$executable_path/'output/'}
 
 
 mkdir -p $executable_path
@@ -13,10 +13,3 @@ nvfortran $file_path_09/tlab_constants.f90 $file_path_09/tlab_arrays.f90 $file_p
 cd ..
 
 mkdir -p $output_path
-
-#cd $output_path
-
-#../$executable_path/profile_matrices.x
-
-#python ../src/python_scripts/plot_time.py
-
