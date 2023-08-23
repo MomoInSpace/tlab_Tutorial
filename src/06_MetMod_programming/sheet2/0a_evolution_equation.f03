@@ -9,15 +9,20 @@ program evol_equ_analytic
     real(dp), parameter :: Lzb = 300
 
     ! Parameters delta(x,z)
-    real(dp), parameter :: U = 10
+    real(dp), parameter :: U = 40
     real(dp), parameter :: g = 9.81
     real(dp), parameter :: theta0 = 290
     real(dp), parameter :: N = sqrt(g/theta0 * 0.005)
+
+    ! Parameter Array
+    real(dp), parameter :: param_array(6) = [Lxb,Lzb,U,g,theta0, N]
 
     ! Stromlinienverschiebung
     real(dp), allocatable :: zs(:)
     real(dp), allocatable :: delta_xz(:,:)
     real(dp), allocatable :: theta_xz(:,:)
+    real(dp), allocatable :: u_xz(:,:)
+    real(dp), allocatable :: w_xz(:,:)
 
 
     ! write(*,*) Lxb, Lzb, U, g, theta0, N
@@ -28,6 +33,8 @@ program evol_equ_analytic
     allocate(zs(steps_x))
     allocate(delta_xz(steps_x,steps_z))
     allocate(theta_xz(steps_x,steps_z))
+    allocate(u_xz(steps_x,steps_z))
+    allocate(w_xz(steps_x,steps_z))
 
     do n_value = 1, steps_x
         zs(n_value) = zs_mountain_height(x(n_value))
@@ -39,16 +46,24 @@ program evol_equ_analytic
                                             z(k_value))
             theta_xz(n_value,k_value) = & 
                 theta_func(delta_xz(n_value,k_value),z(k_value))         
+            u_xz(n_value,k_value) = & 
+                u_wind_func(x(n_value),zs(n_value),z(k_value))         
+            w_xz(n_value,k_value) = & 
+                w_wind_func(x(n_value),zs(n_value),z(k_value))         
+            
         end do
     end do
 
     ! call write_out_matrixform(delta_xz)
 
+    call save_array(param_array,"data/params.csv")
     call save_array(x,"data/x.csv")
     call save_array(z,"data/z.csv")
     call save_array(zs,"data/zs.csv")
     call save_matrix(delta_xz,"data/delta.csv")
     call save_matrix(theta_xz,"data/theta.csv")
+    call save_matrix(u_xz,"data/u_wind.csv")
+    call save_matrix(w_xz,"data/w_wind.csv")
     ! call write_out_matrixform(zs)
 
 
@@ -100,6 +115,39 @@ program evol_equ_analytic
             theta_func = &
                 theta0*(1+ N**2*(z_val-delta_val)/g)
             end function theta_func
+
+        function dddz_func(x_val,zs_val,z_val) result(dddz_val)
+            real(dp), intent(in) :: x_val,zs_val,z_val
+            real(dp) :: dddz_val
+        
+            dddz_val = -zs_val * sin( N/U * (z_val-zs_val) ) * N/U - x_val/Lxb * zs_val * cos( N/U * (z_val-zs_val) ) * N/U
+        end function dddz_func
+
+        function dddx_func(x_val,zs_val,z_val) result(dddx_val)
+            real(dp), intent(in) :: x_val,zs_val,z_val
+            real(dp) :: dddx_val
+        
+            dddx_val = &
+                    - ( 2 * Lxb**3 * Lzb**2 * N * x_val**2 * cos(N/U*(z_val-zs_val)) ) / ( U * (Lxb**2+x_val**2)**3 ) &
+                    - ( 2 * Lxb**2 * Lzb        * x_val    * cos(N/U*(z_val-zs_val)) ) /       (Lxb**2+x_val**2)**2   &
+                    - ( 2 * Lxb**4 * Lzb**2 * N * x_val    * sin(N/U*(z_val-zs_val)) ) / ( U * (Lxb**2+x_val**2)**3 ) &
+                    + ( 2 * Lxb   *  Lzb        * x_val**2 * sin(N/U*(z_val-zs_val)) ) /       (Lxb**2+x_val**2)**2   &
+                    - (     Lxb   *  Lzb                   * sin(N/U*(z_val-zs_val)) ) /       (Lxb**2+x_val**2)
+        end function dddx_func
+
+        function u_wind_func(x_val,zs_val,z_val) result(u_wind_val)
+            real(dp), intent(in) :: x_val,zs_val,z_val
+            real(dp) :: u_wind_val
+        
+            u_wind_val = U*(1-dddz_func(x_val,zs_val,z_val))
+        end function u_wind_func
+
+        function w_wind_func(x_val,zs_val,z_val) result(w_wind_val)
+            real(dp), intent(in) :: x_val,zs_val,z_val
+            real(dp) :: w_wind_val
+        
+            w_wind_val = U*dddx_func(x_val,zs_val,z_val)
+        end function w_wind_func
 
 
     end program evol_equ_analytic
