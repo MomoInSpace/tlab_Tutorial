@@ -27,7 +27,7 @@ contains
         ! Check if shapes match:
         call check_shapes(x_mat, y_mat, z_mat)
         ! Set values in z_mat to zero:
-        z_mat = 0.
+        ! z_mat = 0.
 
         ! Matrix Multiplication:
         n=size(y_mat,dim=2)
@@ -52,14 +52,14 @@ contains
         ! Check if shapes match:
         call check_shapes(x_mat, y_mat, z_mat)
         ! Set values in z_mat to zero:
-        z_mat = 0.
+        ! z_mat = 0.
 
         ! Matrix multiplication
         n=size(y_mat,dim=2)
         m=size(x_mat,dim=1)
 
-        do i=1,m
-            do j=1,n
+        do j=1,n
+            do i=1,m
                     z_mat(i,j)=dot_product(x_mat(i,:),y_mat(:,j))
             end do
         end do
@@ -74,7 +74,7 @@ contains
         ! Check if shapes match:
         call check_shapes(x_mat, y_mat, z_mat)
         ! Set values in z_mat to zero:
-        z_mat = 0.
+        ! z_mat = 0.
         ! Matrix multiplication
         z_mat = matmul(x_mat,y_mat)
 

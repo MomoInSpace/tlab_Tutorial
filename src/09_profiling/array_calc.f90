@@ -8,14 +8,26 @@ program matrix_multi_test
     use TLAB_ARRAYS 
     use MATRIX_OUTPUT
     use MATRIX_MULTIPLY_MOD, only: matmul_cpu_slow,matmul_cpu_dotmix,matmul_cpu_intrinsic
+    use EXPORT_ARRAYS
     implicit none 
+
+    ! Matrix Definition:
     integer :: dim1, dim2
     integer :: index1, index2, index3
 
+    ! Time measurement:
+    integer :: maxsize = 1000
+    integer :: step    = 100
+    integer, parameter:: timesteps = 1000/100
+    integer :: count, rate
+    real(wp)    :: timeAtStart, timeAtEnd
+    real(wp)    :: time(4,timesteps)
 
-    do index3 = 100,1000,100
+
+    do index3 = 100,maxsize,step
         dim1 = index3
         dim2 = index3
+        time(1,index3/step)= index3
 
         ! Allocate x,y,z and fill x and y with values
         allocate(x(dim1,dim2))
@@ -27,20 +39,65 @@ program matrix_multi_test
         ! call write_out_matrixform(x)
         ! call write_out_matrixform(y)
 
+        ! Matmul_cpu_slow--------------------------------------
+        ! Clock Start:
+        call system_clock(count = count, count_rate = rate)
+        timeAtStart = count / real(rate)
+
+        ! Function:
         call matmul_cpu_slow(x,y,z)
-        ! call write_out_matrixform(z)
 
+        ! Clock Stop:
+        call system_clock(count = count, count_rate = rate)
+        timeAtEnd = count / real(rate)
+        
+        ! Save Time:
+        time(2,index3/step)=timeAtEnd-timeAtStart
+        ! call write_out_matrixform(z)
+        !------------------------------------------------------
+
+        ! Matmul_cpu_dotmix--------------------------------------
+        ! Clock Start:
+        call system_clock(count = count, count_rate = rate)
+        timeAtStart = count / real(rate)
+
+        ! Function:
         call matmul_cpu_dotmix(x,y,z)
-        ! call write_out_matrixform(z)
 
-        call matmul_cpu_intrinsic(x,y,z)
+        ! Clock Stop:
+        call system_clock(count = count, count_rate = rate)
+        timeAtEnd = count / real(rate)
+        
+        ! Save Time:
+        time(3,index3/step)=timeAtEnd-timeAtStart
         ! call write_out_matrixform(z)
+        !------------------------------------------------------
+
+        ! Matmul_cpu_intrinsic--------------------------------------
+        ! Clock Start:
+        call system_clock(count = count, count_rate = rate)
+        timeAtStart = count / real(rate)
+
+        ! Function:
+        call matmul_cpu_intrinsic(x,y,z)
+
+        ! Clock Stop:
+        call system_clock(count = count, count_rate = rate)
+        timeAtEnd = count / real(rate)
+        
+        ! Save Time:
+        time(4,index3/step)=timeAtEnd-timeAtStart
+        ! call write_out_matrixform(z)
+        !------------------------------------------------------
 
         ! Deallocate x,y,z
         deallocate(x)
         deallocate(y)
         deallocate(z)
     end do
+
+    ! Save time:
+    call save_matrix(time,"time.csv")
 
     contains
 
@@ -60,56 +117,3 @@ program matrix_multi_test
     end subroutine fill_xy_values
 
 end program matrix_multi_test
-
-
-
-
-! program main
-! use MatrixMultiplyModule
-! implicit none
-
-! real,allocatable        ::  a(:,:),b(:,:)
-! real,allocatable    ::  c1(:,:),c2(:,:),c3(:,:)
-! integer ::  n
-! integer ::  count, rate
-! real    ::  timeAtStart, timeAtEnd
-! real    ::  time(3,10)
-! do n=100,1000,100
-!     allocate(a(n,n),b(n,n))
-
-!     call random_number(a)
-!     call random_number(b)
-
-!     call system_clock(count = count, count_rate = rate)
-!     timeAtStart = count / real(rate)
-!     call LoopMatrixMultiply(a,b,c1)
-!     call system_clock(count = count, count_rate = rate)
-!     timeAtEnd = count / real(rate)
-!     time(1,n/100)=timeAtEnd-timeAtStart
-
-!     call system_clock(count = count, count_rate = rate)
-!     timeAtStart = count / real(rate)
-!     call IntrinsicMatrixMultiply(a,b,c2)
-!     call system_clock(count = count, count_rate = rate)
-!     timeAtEnd = count / real(rate)
-!     time(2,n/100)=timeAtEnd-timeAtStart
-
-!     call system_clock(count = count, count_rate = rate)
-!     timeAtStart = count / real(rate)
-!     call MixMatrixMultiply(a,b,c3)
-!     call system_clock(count = count, count_rate = rate)
-!     timeAtEnd = count / real(rate)
-!     time(3,n/100)=timeAtEnd-timeAtStart
-
-
-!     deallocate(a,b)
-
-! end do
-
-! open(1,file="time.txt")
-! do n=1,10
-!     write(1,*) time(:,n)
-! end do
-! close(1)
-! deallocate(c1,c2,c3)
-! end program
