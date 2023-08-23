@@ -40,6 +40,7 @@ program matrix_multi_test
         ! call write_out_matrixform(x)
         ! call write_out_matrixform(y)
 
+        !$acc data
         ! Matmul_cpu_slow--------------------------------------
         call time_matmul_calc(2,time(2,index3/step))
 
@@ -57,6 +58,7 @@ program matrix_multi_test
 
         !gpu dotmix-------------------------------------------------
         call time_matmul_calc(7,time(7,index3/step))
+        !$acc end data
 
         !gpu intrinsic ---------------------------------------------
         ! call time_matmul_calc(8,time(8,index3/step))
@@ -68,7 +70,7 @@ program matrix_multi_test
     end do
 
     ! Save time:
-    call write_out_matrixform(time)
+    !call write_out_matrixform(time)
     call save_matrix(time,"time.csv")
 
     contains

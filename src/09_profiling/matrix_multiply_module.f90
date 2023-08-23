@@ -47,6 +47,7 @@ contains
         real(wp), dimension(:,:),intent(in)  :: x_mat
         real(wp), dimension(:,:),intent(in)  :: y_mat
         real(wp), dimension(:,:),intent(out) :: z_mat
+        real(wp) :: sum_value
         integer :: n, m, k, i, j
 
         ! Check if shapes match:
@@ -61,9 +62,11 @@ contains
         !$acc kernels
         do j=1,n
             do i=1,m
+                sum_value = 0
                 do k=1,size(x_mat,dim=2)
-                    z_mat(i,j)= z_mat(i,j) + x_mat(i,k)*y_mat(k,j)
+                    sum_value = sum_value + x_mat(i,k)*y_mat(k,j)
                 end do      
+                z_mat(i,j)= sum_value 
             end do
         end do
         !$acc end kernels
