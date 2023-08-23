@@ -16,8 +16,8 @@ program matrix_multi_test
     integer :: index1, index2, index3
 
     ! Time measurement:
-    integer, parameter :: maxsize = 10000
-    integer, parameter :: step    = 1000
+    integer, parameter :: maxsize = 1000
+    integer, parameter :: step    = 100
     integer, parameter :: timesteps = maxsize/step 
     integer :: count, rate
     real(wp)    :: timeAtStart, timeAtEnd

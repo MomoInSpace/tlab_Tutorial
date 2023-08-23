@@ -8,9 +8,15 @@ if ( ${BUILD_TYPE} STREQUAL "PARALLEL" ) # compiler for parallel build
   set(ENV{FC} mpif90)
   set(CMAKE_Fortran_COMPILER mpif90)
   set(USER_Fortran_FLAGS "-cpp -ffree-form -ffree-line-length-none -fno-automatic")
-  set(USER_Fortran_FLAGS_RELEASE "-fconvert=little-endian -fallow-argument-mismatch -O3 -ffast-math -mtune=native -march=native")
+  #set(USER_Fortran_FLAGS_RELEASE "-fconvert=little-endian -fallow-argument-mismatch -O3 -ffast-math -mtune=native -march=native")
   add_definitions(-DUSE_FFTW -DUSE_MPI -DUSE_MPI_IO)
   set(CMAKE_BUILD_TYPE RELEASE)
+  elseif(${BUILD_TYPE} STREQUAL "GPU" ) # Compiler for gpu acceleration
+    set(ENV{FC} nvfortran)
+    set(CMAKE_Fortran_FLAGS "-acc=verystrict -ta=nvidia:cc80 -Minfo=accel,inline ")
+    add_definitions(-D_DEBUG)
+    set(CMKAE_BUILD_TYPE DEBUG)
+
 
 else() # compiler for serial build
   set(ENV{FC} gfortran)
@@ -19,17 +25,17 @@ else() # compiler for serial build
   add_definitions(-DUSE_FFTW)
 
   if    ( ${BUILD_TYPE} STREQUAL "BIG" )
-	  set(USER_Fortran_FLAGS_RELEASE "-fconvert=big-endian -fallow-argument-mismatch -ffpe-summary=none -O3 -ffast-math -mtune=native -march=native")
+	  #set(USER_Fortran_FLAGS_RELEASE "-fconvert=big-endian -fallow-argument-mismatch -ffpe-summary=none -O3 -ffast-math -mtune=native -march=native")
     set(CMAKE_BUILD_TYPE RELEASE)
 
   elseif( ${BUILD_TYPE} STREQUAL "LITTLE" )
-	  set(USER_Fortran_FLAGS_RELEASE "-fconvert=little-endian -fallow-argument-mismatch -ffpe-summary=none -O3 -ffast-math -mtune=native -march=native")
+	  #set(USER_Fortran_FLAGS_RELEASE "-fconvert=little-endian -fallow-argument-mismatch -ffpe-summary=none -O3 -ffast-math -mtune=native -march=native")
     set(CMAKE_BUILD_TYPE RELEASE)
 
   else()
-    # set(USER_Fortran_FLAGS_DEBUG "-O0 -p -ggdb -Wall -fbacktrace -ffpe-trap=invalid,zero,overflow,underflow,precision,denormal")
+    set(USER_Fortran_FLAGS_DEBUG "-O0 -p -ggdb -Wall -fbacktrace -ffpe-trap=invalid,zero,overflow,underflow,precision,denormal")
     set(USER_Fortran_FLAGS_DEBUG "-O0 -p -ggdb -Wall -fbacktrace -ffpe-trap=invalid")
-    # set(USER_Fortran_FLAGS_DEBUG "-O0 -ggdb -Wall -fbacktrace -fconvert=little-endian -fallow-argument-mismatch -ffpe-trap=invalid,zero,overflow")
+    #set(USER_Fortran_FLAGS_DEBUG "-O0 -ggdb -Wall -fbacktrace -fconvert=little-endian -fallow-argument-mismatch -ffpe-trap=invalid,zero,overflow")
     add_definitions(-D_DEBUG)
     set(CMAKE_BUILD_TYPE DEBUG)
 

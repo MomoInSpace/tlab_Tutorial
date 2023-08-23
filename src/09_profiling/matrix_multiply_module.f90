@@ -87,13 +87,14 @@ contains
 
         !$acc parallel loop
         do j=1,n
-            !!$acc parallel loop
+            !asdfasdfafdacc parallel loop
             do k=1,size(x_mat,dim=2)
                 do i=1,m
                     z_mat(i,j)=z_mat(i,j) + x_mat(i,k)*y_mat(k,j)
                 end do      
             end do
         end do
+        !$acc end parallel loop
 
     end subroutine matmul_cpu_acc_loop
 
