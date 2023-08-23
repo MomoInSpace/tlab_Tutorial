@@ -87,13 +87,13 @@ contains
 
         !$acc parallel loop
         do j=1,n
-            !$acc parallel loop
+            !$acc loop
             do i=1,m
                 do k=1,size(x_mat,dim=2)
                     z_mat(i,j)= z_mat(i,j)+x_mat(i,k)*y_mat(k,j)
                 end do      
             end do
-            !$acc end parallel loop
+            !No nested $acc end parallel loop
         end do
         !$acc end parallel loop
 
@@ -139,11 +139,11 @@ contains
 
         !$acc parallel loop
         do j=1,n
-            !$acc parallel loop
+            !$acc loop
             do i=1,m
                     z_mat(i,j)=dot_product(x_mat(i,:),y_mat(:,j))
             end do
-            !$acc end parallel loop
+            !lll $acc end parallel loop
         end do
         !$acc end parallel loop
 
