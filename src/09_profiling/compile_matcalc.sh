@@ -1,5 +1,5 @@
-export file_path_09=$PWD/'./'
-export executable_path=$PWD/../../'build_executable/'
+export file_path_09='/home/m/m300912/tlab_coding/tlab_Tutorial/src/09_profiling/'
+export executable_path='/home/m/m300912/tlab_coding/tlab_Tutorial/executable_matcalc/'
 export output_path=$executable_path/'output/'
 
 
