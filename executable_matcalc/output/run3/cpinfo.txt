@@ -1,0 +1,45 @@
+[m300912@l40360 output]$ bash ../../src/09_profiling/compile_matcalc.sh 
+/home/m/m300912/tlab_coding/tlab_Tutorial/src/09_profiling//tlab_constants.f90:
+/home/m/m300912/tlab_coding/tlab_Tutorial/src/09_profiling//tlab_arrays.f90:
+/home/m/m300912/tlab_coding/tlab_Tutorial/src/09_profiling//matrix_output.f90:
+/home/m/m300912/tlab_coding/tlab_Tutorial/src/09_profiling//export_values.f90:
+/home/m/m300912/tlab_coding/tlab_Tutorial/src/09_profiling//matrix_multiply_module.f90:
+matmul_cpu_acc_kernels:
+     61, Generating implicit copyin(x_mat(:m,:)) [if not already present]
+         Generating implicit copy(z_mat(:m,:n)) [if not already present]
+         Generating implicit copyin(y_mat(:,:n)) [if not already present]
+     62, Loop is parallelizable
+     63, Loop is parallelizable
+     64, Complex loop carried dependence of z_mat prevents parallelization
+         Loop carried dependence of z_mat prevents parallelization
+         Loop carried backward dependence of z_mat prevents vectorization
+         Inner sequential loop scheduled on accelerator
+         Generating NVIDIA GPU code
+         62, !$acc loop gang, vector(128) collapse(2) ! blockidx%x threadidx%x
+         63,   ! blockidx%x threadidx%x auto-collapsed
+         64, !$acc loop seq
+     64, Complex loop carried dependence of z_mat prevents parallelization
+matmul_cpu_acc_loop:
+     88, Generating NVIDIA GPU code
+         89, !$acc loop gang ! blockidx%x
+         91, !$acc loop vector(128) ! threadidx%x
+         92, !$acc loop seq
+     88, Generating implicit copyin(x_mat(:m,:)) [if not already present]
+         Generating implicit copy(z_mat(:m,:n)) [if not already present]
+         Generating implicit copyin(y_mat(:,:n)) [if not already present]
+     91, Loop is parallelizable
+     92, Complex loop carried dependence of z_mat prevents parallelization
+         Loop carried dependence of z_mat prevents parallelization
+         Loop carried backward dependence of z_mat prevents vectorization
+matmul_gpu_dotmix:
+    140, Generating NVIDIA GPU code
+        141, !$acc loop gang ! blockidx%x
+        143, !$acc loop seq
+        144, !$acc loop vector(128) ! threadidx%x
+             Generating implicit reduction(+:x_mat$r)
+    140, Generating implicit copyout(z_mat(:m,:n)) [if not already present]
+         Generating implicit copyin(y_mat(:x_mat$sd,:n),x_mat(:m,:)) [if not already present]
+    143, Loop is parallelizable
+    144, Loop is parallelizable
+/home/m/m300912/tlab_coding/tlab_Tutorial/src/09_profiling//array_calc.f90:
+
