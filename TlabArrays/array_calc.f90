@@ -1,5 +1,4 @@
 program matrix_multi_test
-    use TLAB_ARRAYS
     use TLAB_CONSTANTS, only: wp
     implicit none 
 
