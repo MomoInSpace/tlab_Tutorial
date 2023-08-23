@@ -1,5 +1,5 @@
 .SUFFIXES:
-FC=gfortran-11
+FC=gfortran
 COMPILE.f03 = $(FC) $(FCFLAGS) $(TARGET_ARCH) -c
 
 SOURCES1= tlab_constants.f90 matrix_output.f90  array_calc.f90

@@ -14,7 +14,7 @@ program matrix_multi_test
     ! case 4
     ! does x have to have at least 2 dims in each direction?
 
-    y = x
+    y = x ! No allocation. Works as pointer? Or just somewhere in the 
     z = matmul(x,y)
     call write_out_matrixform(z)
 
