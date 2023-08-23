@@ -11,11 +11,11 @@ if ( ${BUILD_TYPE} STREQUAL "PARALLEL" ) # compiler for parallel build
   #set(USER_Fortran_FLAGS_RELEASE "-fconvert=little-endian -fallow-argument-mismatch -O3 -ffast-math -mtune=native -march=native")
   add_definitions(-DUSE_FFTW -DUSE_MPI -DUSE_MPI_IO)
   set(CMAKE_BUILD_TYPE RELEASE)
-  elseif(${BUILD_TYPE} STREQUAL "GPU" ) # Compiler for gpu acceleration
-    set(ENV{FC} nvfortran)
-    set(CMAKE_Fortran_FLAGS "-acc=verystrict,gpu -target=gpu -Minfo=accel,inline -gpu=ccnative,lineinfo")
-    add_definitions(-D_DEBUG)
-    set(CMKAE_BUILD_TYPE DEBUG)
+elseif(${BUILD_TYPE} STREQUAL "GPU" ) # Compiler for gpu acceleration
+  set(ENV{FC} nvfortran)
+  set(CMAKE_Fortran_FLAGS "-acc=verystrict,gpu -target=gpu -Minfo=accel,inline -gpu=ccnative,lineinfo")
+  add_definitions(-D_DEBUG)
+  set(CMKAE_BUILD_TYPE DEBUG)
 
 
 else() # compiler for serial build
