@@ -34,8 +34,8 @@ contains
         m=size(x_mat,dim=1)
 
         do j=1,n
-            do k=1,size(x_mat,dim=2)
-                do i=1,m
+            do i=1,m
+                do k=1,size(x_mat,dim=2)
                     z_mat(i,j)= x_mat(i,k)*y_mat(k,j)
                 end do      
             end do
@@ -60,8 +60,8 @@ contains
 
         !$acc kernels
         do j=1,n
-            do k=1,size(x_mat,dim=2)
-                do i=1,m
+            do i=1,m
+                do k=1,size(x_mat,dim=2)
                     z_mat(i,j)= x_mat(i,k)*y_mat(k,j)
                 end do      
             end do
@@ -88,8 +88,8 @@ contains
         !$acc parallel loop
         do j=1,n
             !asdfasdfafdacc parallel loop
-            do k=1,size(x_mat,dim=2)
-                do i=1,m
+            do i=1,m
+                do k=1,size(x_mat,dim=2)
                     z_mat(i,j)= x_mat(i,k)*y_mat(k,j)
                 end do      
             end do
