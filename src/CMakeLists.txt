@@ -58,6 +58,7 @@ include_directories(${INCLUDE_DIRS})
 
 
 add_subdirectory(07_cmake)
+add_subdirectory(09_profiling)
 
 # produce mod files
 # add_subdirectory(modules)
