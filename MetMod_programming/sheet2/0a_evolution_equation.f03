@@ -5,8 +5,8 @@ program evol_equ_analytic
     implicit none
     
     ! Parameters of Mountain:
-    real(dp), parameter :: Lxb = 3000
-    real(dp), parameter :: Lzb = 300
+    real(dp), parameter :: Lxb = 2000
+    real(dp), parameter :: Lzb = 1000
 
     ! Parameters delta(x,z)
     real(dp), parameter :: U = 10
@@ -39,8 +39,13 @@ program evol_equ_analytic
         end do
     end do
 
-    call write_out_matrixform(delta_xz)
+    ! call write_out_matrixform(delta_xz)
+
+    call save_array(x,"data/x.csv")
+    call save_array(z,"data/z.csv")
+    call save_array(zs,"data/zs.csv")
     call save_matrix(delta_xz,"data/delta.csv")
+    call save_matrix(theta_xz,"data/theta.csv")
     ! call write_out_matrixform(zs)
 
 

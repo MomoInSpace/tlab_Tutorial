@@ -65,6 +65,28 @@ contains
 
         
     ! end subroutine write_out_matrixform   
+    subroutine save_array(matrix,filename)
+        use kind_parameter, only: dp
+        ! Matrix with information:
+        real(dp), dimension(:),intent(in)  :: matrix
+        ! Looping over matrix with shape:
+        integer :: i,j
+        integer, dimension(1) :: my_shape
+        integer :: n
+        ! Saving in file:
+        character(len=*), intent(in) :: filename
+
+        ! Code: ===============================================================
+
+        my_shape = shape(matrix)
+        n = my_shape(1)
+
+        open(unit=2,file=filename,status='replace')
+        write( 2 , "(*(g0.5))" ) ( matrix(i), new_line("A"), i=1,n ) 
+        close(2)
+
+    end subroutine save_array 
+
     subroutine save_matrix(matrix,filename)
         use kind_parameter, only: dp
         ! Matrix with information:
@@ -74,37 +96,18 @@ contains
         integer, dimension(2) :: my_shape
         integer :: n,k
         ! Saving in file:
-        character, dimension(:), intent(in) :: filename
+        character(len=*), intent(in) :: filename
 
         ! Code: ===============================================================
 
         my_shape = shape(matrix)
         n = my_shape(1)
         k = my_shape(2)
-        ! write( * , "(*(g0.3))" ) ( (matrix(i,j)," ",j=1,n), new_line("A"), i=1,n ) 
-        ! ! my_shape = shape(matrix)
-        ! n = my_shape(1)
-        ! write(*, *) n, "x",k
-        ! n =  shape(matrix)(1)
 
         open(unit=2,file=filename,status='replace')
         write( 2 , "(*(g0.5))" ) ( (matrix(i,j),",",j=1,k), new_line("A"), i=1,n ) 
         close(2)
 
-        ! write(2, '(A)') "time,values"
-    !     do i = 1, steps
-    !         out_array(1) = time_array(i)
-    !         out_array(2) = value_array(i)
-    !         write(2,"(*(G0,:,','))") out_array
-    !         ! write(2,'(2F3.3)') out_array
-    !         ! write(2,*) out_array
-    !     end do
-    !     ! write(2,*) "time_array, value_array"
-    !     ! write(2,1F10.3) time_array[i]
-    !     ! write(2,2F10.3) value_array[i]
-    !     ! write(2,2F10.3) out_array
-
-        
     end subroutine save_matrix 
 
     subroutine write_out_matrixform(matrix)
