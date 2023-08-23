@@ -1,3 +1,8 @@
+! In this program we want to explain 
+! - how to allocate a matrix
+! - pointers
+! - allocatable matrices
+
 program matrix_multi_test
     use TLAB_CONSTANTS, only: wp
     implicit none 
@@ -56,8 +61,9 @@ subroutine write_out_matrixform(matrix)
     use TLAB_ARRAYS
     use TLAB_CONSTANTS, only: wp
     implicit none 
-    integer, intent(in), dimension (2,2) :: matrix
+    integer, dimension (2,2), intent(in)  :: matrix
     integer :: i,j
+    ! integer, dimension(:,:),intent(in)  :: matrix
     integer, parameter :: n = 2
 
     ! Code: ===============================================================
