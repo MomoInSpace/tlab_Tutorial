@@ -1,6 +1,10 @@
-export ${file_path_09:='/home/m/m300912/tlab_coding/tlab_Tutorial/src/09_profiling/'}
-export ${executable_path:='/home/m/m300912/tlab_coding/tlab_Tutorial/executable_matcalc/'}
-export ${output_path:=$executable_path/'output/'}
+file_path_09=${file_path_09:='/home/m/m300912/tlab_coding/tlab_Tutorial/src/09_profiling/'}
+executable_path=${executable_path:='/home/m/m300912/tlab_coding/tlab_Tutorial/executable_matcalc/'}
+output_path=${output_path:=$executable_path/'output/'}
+
+export $file_path_09
+export $executable_path
+export $output_path
 
 
 mkdir -p $executable_path
