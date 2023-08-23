@@ -43,6 +43,33 @@ contains
 
     end subroutine matmul_cpu_slow
 
+    subroutine matmul_cpu_foracc(x_mat, y_mat, z_mat)
+        real(wp), dimension(:,:),intent(in)  :: x_mat
+        real(wp), dimension(:,:),intent(in)  :: y_mat
+        real(wp), dimension(:,:),intent(out) :: z_mat
+        integer :: n, m, k, i, j
+
+        ! Check if shapes match:
+        call check_shapes(x_mat, y_mat, z_mat)
+        ! Set values in z_mat to zero:
+        ! z_mat = 0.
+
+        ! Matrix Multiplication:
+        n=size(y_mat,dim=2)
+        m=size(x_mat,dim=1)
+
+        !$acc kernels
+        do j=1,n
+            do k=1,size(x_mat,dim=2)
+                do i=1,m
+                    z_mat(i,j)=z_mat(i,j) + x_mat(i,k)*y_mat(k,j)
+                end do      
+            end do
+        end do
+        !$acc end kernels
+
+    end subroutine matmul_cpu_foracc
+
     subroutine matmul_cpu_dotmix(x_mat, y_mat, z_mat)
         real(wp), dimension(:,:),intent(in)  :: x_mat
         real(wp), dimension(:,:),intent(in)  :: y_mat
