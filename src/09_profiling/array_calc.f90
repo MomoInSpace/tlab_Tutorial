@@ -6,8 +6,8 @@
 program matrix_multi_test
     use TLAB_CONSTANTS, only: wp
     use TLAB_ARRAYS 
-    use MATRIX_OUTPUT
-    use MATRIX_MULTIPLY_MOD, only: matmul_cpu_slow,matmul_cpu_dotmix,matmul_cpu_intrinsic
+    ! use MATRIX_OUTPUT
+    use MATRIX_MULTIPLY_MOD
     use EXPORT_ARRAYS
     implicit none 
 
@@ -21,7 +21,7 @@ program matrix_multi_test
     integer, parameter:: timesteps = 1000/100
     integer :: count, rate
     real(wp)    :: timeAtStart, timeAtEnd
-    real(wp)    :: time(5,timesteps)
+    real(wp)    :: time(6,timesteps)
 
 
     do index3 = 100,maxsize,step
@@ -90,13 +90,13 @@ program matrix_multi_test
         ! call write_out_matrixform(z)
         !------------------------------------------------------
 
-        ! Matmul_cpu_foracc--------------------------------------
+        ! Matmul_cpu_acc_kernels--------------------------------------
         ! Clock Start:
         call system_clock(count = count, count_rate = rate)
         timeAtStart = count / real(rate)
 
         ! Function:
-        call matmul_cpu_intrinsic(x,y,z)
+        call matmul_cpu_acc_kernels(x,y,z)
 
         ! Clock Stop:
         call system_clock(count = count, count_rate = rate)
@@ -104,6 +104,23 @@ program matrix_multi_test
         
         ! Save Time:
         time(5,index3/step)=timeAtEnd-timeAtStart
+        ! call write_out_matrixform(z)
+        !------------------------------------------------------
+
+        ! Matmul_cpu_acc_loop--------------------------------------
+        ! Clock Start:
+        call system_clock(count = count, count_rate = rate)
+        timeAtStart = count / real(rate)
+
+        ! Function:
+        call matmul_cpu_acc_loop(x,y,z)
+
+        ! Clock Stop:
+        call system_clock(count = count, count_rate = rate)
+        timeAtEnd = count / real(rate)
+        
+        ! Save Time:
+        time(6,index3/step)=timeAtEnd-timeAtStart
         ! call write_out_matrixform(z)
         !------------------------------------------------------
 
