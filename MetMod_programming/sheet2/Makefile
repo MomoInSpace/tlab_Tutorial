@@ -2,17 +2,22 @@
 FC=gfortran
 COMPILE.f03 = $(FC) $(FCFLAGS) $(TARGET_ARCH) -c
 
-SOURCES= all_kinds 0a_evolution_equation 0b_linear_adv_equation 
+SOURCES1= all_kinds.f03 parameters.f03 export_values.f03 0a_evolution_equation.f03 #tlab_constants.f90 matrix_output.f90  array_calc.f90
+# SOURCES2= tlab_constants.f90 tlab_arrays.f90 array_calc_tlab.f90
 
-objects = 0a_evolution_equation 0b_linear_adv_equation 
-all: $(objects)
+# objects = 0a_evolution_equation 0b_linear_adv_equation 
+# all: $(objects)
 
-$(objects): %: %.f03
-	$(FC) $(FCFLAGS) -o $@ $<
-.PHONY: clean
-# main: $(subst .f90,.o,$(SOURCES))
+# $(objects): %: %.f03
+# 	$(FC) $(FCFLAGS) -o $@ $<
+# .PHONY: clean
+# array_calc_tlab: $(subst .f03,.o,$(SOURCES2))
 # 	$(FC) -o $@ $+
 
 # .PHONY: clean
+array_calc: $(subst .f90,.o,$(SOURCES1))
+	$(FC) -o $@ $+
+
+.PHONY: clean
 clean:
 	-rm -f *.o *.mod *.smod main

@@ -7,8 +7,8 @@ module parameters
     integer(i8):: k_value
 
     ! Grid params:
-    integer(i8),parameter:: steps_x = 1000
-    integer(i8),parameter:: steps_z = 1000
+    integer(i8),parameter:: steps_x = 6
+    integer(i8),parameter:: steps_z = 8
 
     real(dp), allocatable :: x(:)
     real(dp), allocatable :: z(:)

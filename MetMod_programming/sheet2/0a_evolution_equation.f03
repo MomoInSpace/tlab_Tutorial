@@ -1,6 +1,7 @@
 program evol_equ_analytic
     use kind_parameter
     use parameters
+    use EXPORT_ARRAYS
     implicit none
     
     ! Parameters of Mountain:
@@ -38,7 +39,9 @@ program evol_equ_analytic
         end do
     end do
 
-
+    call write_out_matrixform(delta_xz)
+    call save_matrix(delta_xz,"data/delta.csv")
+    ! call write_out_matrixform(zs)
 
 
     ! Integrating pi_func numerically
