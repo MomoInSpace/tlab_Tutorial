@@ -22,6 +22,12 @@ plt.plot(times[0],times[3],label="cpu intrinsic")
 plt.plot(times[0],times[4],label="cpu kernels")
 plt.plot(times[0],times[5],label="cpu acc for")
 
+#plt.semilogy(times[0],times[1],label="cpu slow")
+#plt.semilogy(times[0],times[2],label="cpu dot")
+#plt.semilogy(times[0],times[3],label="cpu intrinsic")
+#plt.semilogy(times[0],times[4],label="cpu kernels")
+#plt.semilogy(times[0],times[5],label="cpu acc for")
+
 plt.legend()
 plt.savefig("times.png")
 plt.show()
