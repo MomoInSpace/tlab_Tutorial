@@ -16,15 +16,15 @@ program matrix_multi_test
     integer :: index1, index2, index3
 
     ! Time measurement:
-    integer :: maxsize = 1000
-    integer :: step    = 100
-    integer, parameter:: timesteps = 1000/100
+    integer, parameter :: maxsize = 10000
+    integer, parameter :: step    = 1000
+    integer, parameter :: timesteps = maxsize/step 
     integer :: count, rate
     real(wp)    :: timeAtStart, timeAtEnd
     real(wp)    :: time(6,timesteps)
 
 
-    do index3 = 100,maxsize,step
+    do index3 = step,maxsize,step
         dim1 = index3
         dim2 = index3
         time(1,index3/step)= index3
