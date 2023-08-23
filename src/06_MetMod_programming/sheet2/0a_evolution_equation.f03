@@ -5,8 +5,8 @@ program evol_equ_analytic
     implicit none
     
     ! Parameters of Mountain:
-    real(dp), parameter :: Lxb = 2000
-    real(dp), parameter :: Lzb = 1000
+    real(dp), parameter :: Lxb = 1000
+    real(dp), parameter :: Lzb = 300
 
     ! Parameters delta(x,z)
     real(dp), parameter :: U = 10
@@ -14,11 +14,14 @@ program evol_equ_analytic
     real(dp), parameter :: theta0 = 290
     real(dp), parameter :: N = sqrt(g/theta0 * 0.005)
 
-
     ! Stromlinienverschiebung
     real(dp), allocatable :: zs(:)
     real(dp), allocatable :: delta_xz(:,:)
     real(dp), allocatable :: theta_xz(:,:)
+
+
+    ! write(*,*) Lxb, Lzb, U, g, theta0, N
+    
 
     call init_grid()
     
