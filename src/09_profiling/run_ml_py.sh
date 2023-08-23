@@ -3,11 +3,13 @@
 #SBATCH --account=bb1153
 #SBATCH --nodes=4
 #SBATCH --ntasks-per-node=1
-#SBATCH --time=5:00:00
-#SBATCH --mem=8196
+#SBATCH --time=1:00:00
+#SBATCH --mem=4096
 #SBATCH --output=jobs/tlab/output-%j
 #SBATCH --error=jobs/tlab/error-%j
 
+module purge
+module load git nvhpc python3
 
 
 # Begin of section with executable commands
