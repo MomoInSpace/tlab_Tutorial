@@ -163,21 +163,22 @@ contains
 
     end subroutine matmul_cpu_intrinsic
 
-    subroutine matmul_gpu_intrinsic(x_mat, y_mat, z_mat)
-        real(wp), dimension(:,:),intent(in)  :: x_mat
-        real(wp), dimension(:,:),intent(in)  :: y_mat
-        real(wp), dimension(:,:),intent(out) :: z_mat
+    ! Not Supported:
+    ! subroutine matmul_gpu_intrinsic(x_mat, y_mat, z_mat)
+    !     real(wp), dimension(:,:),intent(in)  :: x_mat
+    !     real(wp), dimension(:,:),intent(in)  :: y_mat
+    !     real(wp), dimension(:,:),intent(out) :: z_mat
 
-        ! Check if shapes match:
-        call check_shapes(x_mat, y_mat, z_mat)
-        ! Set values in z_mat to zero:
-        ! z_mat = 0.
-        ! Matrix multiplication
+    !     ! Check if shapes match:
+    !     call check_shapes(x_mat, y_mat, z_mat)
+    !     ! Set values in z_mat to zero:
+    !     ! z_mat = 0.
+    !     ! Matrix multiplication
 
-        !$acc kernels
-        z_mat = matmul(x_mat,y_mat)
-        !$acc end kernels
+    !     !$acc kernels
+    !     z_mat = matmul(x_mat,y_mat)
+    !     !$acc end kernels
 
-    end subroutine matmul_gpu_intrinsic
+    ! end subroutine matmul_gpu_intrinsic
 
 end module

@@ -59,7 +59,7 @@ program matrix_multi_test
         call time_matmul_calc(7,time(7,index3/step))
 
         !gpu intrinsic ---------------------------------------------
-        call time_matmul_calc(8,time(8,index3/step))
+        ! call time_matmul_calc(8,time(8,index3/step))
 
         ! Deallocate x,y,z
         deallocate(x)
@@ -111,8 +111,8 @@ program matrix_multi_test
             call matmul_cpu_acc_loop(x,y,z)
         case (7) !gpu dotmix
             call matmul_gpu_dotmix(x,y,z)
-        case (8) !gpu intrinsic
-            call matmul_gpu_intrinsic(x,y,z)
+        ! case (8) !gpu intrinsic
+        !     call matmul_gpu_intrinsic(x,y,z)
         end select
 
         ! Clock Stop:
