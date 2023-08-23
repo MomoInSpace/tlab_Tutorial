@@ -68,6 +68,7 @@ program matrix_multi_test
     end do
 
     ! Save time:
+    call write_out_matrixform(time)
     call save_matrix(time,"time.csv")
 
     contains
