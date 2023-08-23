@@ -3,9 +3,9 @@ program matrix_multi_test
     use TLAB_CONSTANTS, only: wp
     implicit none 
     integer,target :: mat(3,3)
-    integer,pointer :: p(:,:)
-    integer :: x_dim = 3, y_dim = 3 
-    ! sf sdf   
+    ! integer,pointer :: p(:,:)
+    integer :: x_dim = 3, y_dim = 3
+    
     mat = reshape([1,2,3,0,4,0,0,0,5],shape(mat))
     allocate(x(x_dim,y_dim))
     allocate(y(x_dim,y_dim))
