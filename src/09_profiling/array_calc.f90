@@ -21,7 +21,7 @@ program matrix_multi_test
     integer, parameter :: timesteps = maxsize/step 
     integer :: count, rate
     real(wp)    :: timeAtStart, timeAtEnd
-    real(wp)    :: time(8,timesteps)
+    real(wp)    :: time(7,timesteps)
 
 
     do index3 = step,maxsize,step
