@@ -43,7 +43,7 @@ contains
         k = my_shape(2)
 
         open(unit=2,file=filename,status='replace')
-        write( 2 , "(*(g0.5))" ) ( (matrix(i,j),",",j=1,k), new_line("A"), i=1,n ) 
+        write( 2 , "(*(g10.5))" ) ( (matrix(i,j),",",j=1,k), new_line("A"), i=1,n )  
         close(2)
 
     end subroutine save_matrix 
