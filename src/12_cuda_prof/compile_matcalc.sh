@@ -13,7 +13,7 @@ mkdir -p $executable_path
 cd $executable_path
 
 #Old version with -ta
-nvfortran $file_path_09/tlab_constants.f90 $file_path_09/tlab_arrays.f90 $file_path_09/matrix_output.f90 $file_path_09/export_values.f90 $file_path_09/matrix_multiply_module.f90 $file_path_09/array_calc.f90 -acc=verystrict -ta=nvidia:cc80 -Minfo=accel,inline  -o profile_matrices.x #-ta=nvidia:cc80 
+nvfortran $file_path_09/tlab_constants.f90 $file_path_09/tlab_arrays.f90 $file_path_09/matrix_output.f90 $file_path_09/export_values.f90 $file_path_09/matrix_multiply_module.f90 $file_path_09/array_calc.f90 -Minfo=accel,inline -acc=gpu,verystrict -gpu=ccnative -Mfree -o profile_matrices.x #-ta=nvidia:cc80 
 
 #Version which doesn't find gpu and doesn't compile
 #nvfortran $file_path_09/tlab_constants.f90 $file_path_09/tlab_arrays.f90 $file_path_09/matrix_output.f90 $file_path_09/export_values.f90 $file_path_09/matrix_multiply_module.f90 $file_path_09/array_calc.f90 -acc=verystrict,gpu -target=gpu -Minfo=accel,inline -gpu=ccnative,lineinfo  -o profile_matrices.x #-ta=nvidia:cc80 
@@ -23,4 +23,4 @@ nvfortran $file_path_09/tlab_constants.f90 $file_path_09/tlab_arrays.f90 $file_p
 
 #cd ..
 
-mkdir -p $output_path
+# mkdir -p $output_path

@@ -1,0 +1,122 @@
+program BandwidthTest
+
+    use cudafor
+    implicit none
+
+    ! Params===================================================================
+    integer, parameter           :: nElements = 4*1024*1024
+    ! host arrays
+    real(4)                      :: a_pageable(nElements), &
+                                    b_pageable(nElements)
+    real(4), allocatable, pinned :: a_pinned(:), b_pinned(:)
+    ! device arrays
+    real(4), device              :: a_d(nElements)
+    ! events for timing
+    type(cudaEvent)              :: startEvent, stopEvent
+    ! misc
+    type(cudaDeviceProp)         :: prop
+    real(4)                      :: time
+    integer                      :: istat, i
+    logical                      :: pinnedFlag
+
+    ! Body ====================================================================
+
+    ! Allocate and initialize -------------------------------------------------
+    ! Pageable
+    b_pageable = 0.0
+    do i = 1, nElements, 1
+        a_pageable(i) = i
+    end do
+
+    ! Pinned
+    allocate(a_pinned(nElements), &
+             b_pinned(nElements), &
+             STAT=istat, PINNED=pinnedFlag)
+
+    ! Initialize
+    if(istat /= 0) then
+            write(*,*) 'Allocation of a_pinned or b_pinned failed'
+            pinnedFlag = .false.
+        else if(.not. pinnedFlag) then
+            write(*,*) 'Pinned allocation failed'
+        else if(pinnedFlag) then
+            a_pinned = a_pageable
+            b_pinned = 0.0
+    end if
+
+    ! Device Properties--------------------------------------------------------
+    istat = cudaEventCreate(startEvent)
+    istat = cudaEventCreate(stopEvent)
+    ! output device info and transfer size
+    istat = cudaGetDeviceProperties(prop,0)
+
+    write(*,*)
+    write(*,*) 'Device: ', trim(prop%name)
+    write(*,*) 'Transfer size (MB):', 4*nElements/1024./1024.
+
+    ! Pageable Data Transfer---------------------------------------------------
+    write(*,*)
+    write(*,*) 'Pageable transfers'
+
+    ! Host to Device
+    istat = cudaEventRecord(startEvent, 0)
+    a_d = a_pageable
+    istat = cudaEventRecord(stopEvent, 0)
+    istat = cudaEventSynchronize(stopEvent)
+
+    istat = cudaEventElapsedTime(time, startEvent, stopEvent)
+    write(*,*) 'Host to Device bandwidth (GB/s): ', &
+                nElements*4/time/1.e+6
+
+    ! Device to Host
+    istat = cudaEventRecord(startEvent, 0)
+    b_pageable = a_d
+    istat = cudaEventRecord(stopEvent, 0)
+    istat = cudaEventSynchronize(stopEvent)
+
+    istat = cudaEventElapsedTime(time, startEvent, stopEvent)
+    write(*,*) 'Device to Host bandwidth (GB/s): ', &
+                nElements*4/time/1.e+6
+
+    if(any(a_pageable /= b_pageable)) &
+        write(*,*) '*** Pageable transfer failed ***'
+
+    ! Pinned Data Transfer-----------------------------------------------------
+    if(pinnedFlag) then
+    write(*,*)
+    write(*,*) 'Pinned transfers'
+
+    ! Host to Device
+    istat = cudaEventRecord(startEvent, 0)
+    a_d = a_pinned
+    istat = cudaEventRecord(stopEvent, 0)
+    istat = cudaEventSynchronize(stopEvent)
+
+    istat = cudaEventElapsedTime(time, startEvent, stopEvent)
+    write(*,*) 'Host to Device bandwidth (GB/s): ', &
+                nElements*4/time/1.e+6
+
+    ! Device to Host
+    istat = cudaEventRecord(startEvent, 0)
+    b_pinned = a_d
+    istat = cudaEventRecord(stopEvent, 0)
+    istat = cudaEventSynchronize(stopEvent)
+
+    istat = cudaEventElapsedTime(time, startEvent, stopEvent)
+    write(*,*) 'Device to Host bandwidth (GB/s): ', &
+                nElements*4/time/1.e+6
+
+    if(any(a_pinned /= b_pinned)) &
+        write(*,*) '*** Pinned transfer failed ***'
+
+    end if !pinned flag safety
+    
+    ! Cleanup ----------------------------------------------------------------
+    if (allocated(a_pinned)) deallocate(a_pinned, stat=istat)
+    if (istat /= 0) print *, "a_pinned: Deallocation request denied"
+    if (allocated(b_pinned)) deallocate(b_pinned, stat=istat)
+    if (istat /= 0) print *, "a_pinned: Deallocation request denied"
+    istat = cudaEventDestroy(startEvent)
+    istat = cudaEventDestroy(stopEvent)
+
+end program BandwidthTest
