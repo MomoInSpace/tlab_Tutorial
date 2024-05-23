@@ -1,0 +1,102 @@
+program cudaAcc
+
+    use cudafor
+    use kernels_m
+    implicit none
+
+    ! Params===================================================================
+    integer, parameter             :: blockSize = 256, &
+                                      nStreams  = 4, &
+                                      n = 2**10*1024*blockSize*nStreams 
+    real, pinned, allocatable      :: a(:)
+    real, device                   :: a_d(n)
+    real, managed                  :: a_m(n)
+    integer(kind=cuda_stream_kind) :: stream(nStreams)
+    type(cudaEvent)                :: startEvent, stopEvent, dummyEvent
+    real                           :: time
+    integer                        :: i, istat, offset, &
+                                      streamSize = n/nStreams
+    logical                        :: pinnedFlag
+    type(cudaDeviceProp)           :: prop
+
+    ! Body ====================================================================
+    istat = cudaGetDeviceProperties(prop, 0)
+    write(*,"(' Device: ', a,/)") trim(prop%name)
+
+    ! allocate pinned host memory! --------------------------------------------
+    allocate(a(n), STAT=istat, PINNED=pinnedFlag)
+    ! Error Handling of Allocation:
+    if(istat /= 0) then; write(*,*) 'Allocation of "a" failed'; stop
+    else if(.not. pinnedFlag) then; write(*,*) 'Pinned allocation failed'
+    end if
+
+    ! create events and streams -----------------------------------------------
+    istat = cudaEventCreate(startEvent)
+    istat = cudaEventCreate(stopEvent)
+    istat = cudaEventCreate(dummyEvent)
+
+    do i = 1, nStreams
+        istat = cudaStreamCreate(stream(i))
+    end do 
+
+    ! no gpu -------------------------
+    a = 0
+
+    ! time the transfer and the kernel calc 
+    istat = cudaEventRecord(startEvent,0)
+    !a_d = a
+
+    do i=1,n
+        a(i) = a(i) + 1
+    end do
+
+    !a   = a_d
+    istat = cudaEventRecord(stopEvent, 0)
+
+    ! Calc time difference
+    istat = cudaEventSynchronize(stopEvent)
+    istat = cudaEventElapsedTime(time, startEvent, stopEvent)
+
+    ! Output the Result
+    write(*,*) 'Time for no gpu \n', &
+               '        transfer and execute (ms): ', time
+    write(*,*) '        max error; ', maxval(abs(a-1.0))
+
+    ! Managed acc memory and execute --------------------------------------------- 
+
+    ! time the transfer and the kernel calc 
+    istat = cudaEventRecord(startEvent,0)
+    a = 0
+    a_m = a
+    !$acc kernels deviceptr(a_m)
+    do i=1,n
+        a_m(i) = a_m(i) + 1
+    end do
+    !$acc end kernels
+
+    a = a_m
+
+    istat = cudaEventRecord(stopEvent, 0)
+
+    ! Calc time difference
+    istat = cudaEventSynchronize(stopEvent)
+    istat = cudaEventElapsedTime(time, startEvent, stopEvent)
+
+    ! Output the Result
+    write(*,*) 'Time for managed acc \n', &
+               '        transfer and execute (ms): ', time
+    write(*,*) '        max error; ', maxval(abs(a_m-1.0))
+
+    ! cleanup -----------------------------------------------------------------
+    istat = cudaEventDestroy(startEvent)
+    istat = cudaEventDestroy(stopEvent)
+    istat = cudaEventDestroy(dummyEvent)
+    
+    do i = 1, nStreams
+        istat = cudaStreamDestroy(stream(i))
+    end do 
+
+    deallocate(a)
+
+end program cudaAcc 
+
