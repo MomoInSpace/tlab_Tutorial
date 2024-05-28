@@ -3,116 +3,163 @@ module RING_TIMER_MODULE
     use TLAB_ARRAYS
     use cudafor
     use mpi_f08
-    use EXPORT_ARRAYS
     implicit none
 
 contains
 
-    !subroutine check_shapes(x_mat, y_mat, z_mat)
-    !    real(wp), dimension(:,:),intent(in)  :: x_mat
-    !    real(wp), dimension(:,:),intent(in)  :: y_mat
-    !    real(wp), dimension(:,:),intent(in)  :: z_mat
-    
-        ! Check size of input arrays
-    !    if(size(x_mat,dim=2) /= size(y_mat,dim=1)) stop "x and y input array size not match"
+    subroutine ring_cpu_slow(dim1,dim2)
+        ! Parameters============================================================
+        INTEGER, intent(in) ::  dim1, dim2
+        ! MPI Parameters
+        INTEGER             :: my_rank, size, &
+                               right, left
+        TYPE(MPI_Status)    :: status
+        TYPE(MPI_Request)   :: request
+        ! Others
+        real(wp)            :: sum_value = 0
+        INTEGER             :: i,j,k, ring_step
+        ! Debug
+        INTEGER, OPTIONAL   :: rank_printer = 1
 
-        ! Check if z_mat has the right size
-    !    if(size(x_mat,dim=1) /= size(z_mat,dim=1)) stop "x and z input array size not match"
-    !    if(size(y_mat,dim=2) /= size(z_mat,dim=2)) stop "y and z input array size not match"
-        
-    !end subroutine check_shapes
+        ! Body==================================================================
 
-    subroutine ring_cpu(dim1,dim2)
-        INTEGER :: my_rank, size, dim1, dim2
-        INTEGER :: right, left
-        INTEGER :: index1, index2, i,j,k
-        INTEGER :: rank_printer = 1
-        real(wp) :: sum
-        !INTEGER, ASYNCHRONOUS :: snd_buf
-        !INTEGER, managed :: snd_buf
-        !INTEGER :: rcv_buf
-        TYPE(MPI_Status)  :: status
-        TYPE(MPI_Request) :: request
-        real(wp) :: sum_value = 0
+        ! Initialisation -------------------------------------------------------
 
-        ! GPU Test:
-        !real , device :: x_dev(dim1, dim2), y_dev(dim1, dim2), z_dev(dim1, dim2)     ! Grid and associated arrays
-        !x_dev = x
-        !y_dev = y
-        !z_dev = z
-
-
-
-        ! MPI ------------------------------------------------------------------------------
-
+        ! MPI init
         CALL MPI_Comm_rank(MPI_COMM_WORLD, my_rank)
         CALL MPI_Comm_size(MPI_COMM_WORLD, size)
         right = mod(my_rank+1,      size)
         left  = mod(my_rank-1+size, size)
 
 
-        if (my_rank == size-1) then
-        do index1 = 1, dim1
-            do index2 = 1, dim2
-                if ( index1==index2 ) then
-                    y(index1,index2) = my_rank + 1
-                end if
-            end do
-        end do
-        end if
+        ! Setting the diagonal of y to 'my_rank'
+        DO j = 1, dim1
+            DO i = 1, dim2
+                    y(i,j) = my_rank
+            END DO
+        END DO
 
-        DO index1 = 1, size
+        ! Ring communication and calc of matrices-------------------------------
+        DO ring_step = 1, size
 
-        !if (my_rank == rank_printer) then
-        !    write(*,*) "Step", index1, " before calc"
-        !    write( * , " (*(g0.1))" )  x 
-        !    write( * , " (*(g0.1))" )  y 
-        !    write( * , " (*(g0.1))" )  z 
-        !end if
-
-
-            do j=1,dim2
-                do i=1,dim1
+            ! Matrix Multiplication, only for calc time
+            DO j=1,dim2
+                DO i=1,dim1
                     sum_value = 0
-                    do k=1, dim2
+                    DO k=1, dim2
                         sum_value = sum_value + x(i,k)*y(k,j)
-                    end do      
+                    END DO      
                     z(i,j)= sum_value 
-                end do
-            end do
+                END DO
+            END DO
 
+            ! Adding matrices x and y
+            DO j=1,dim2
+                DO i=1,dim1
+                    z(i,j)= x(i,j) + y(i,j)
+                END DO
+            END DO
 
-        !if (my_rank == rank_printer) then
-        !    write(*,*) "Step", index1, " after calc"
-        !    write( * , " (*(g0.1))" )  x 
-        !    write( * , " (*(g0.1))" )  y 
-        !    write( * , " (*(g0.1))" )  z 
-        !end if
-
-
+            ! Ring Communication. Sending my z to the x of the right.
             CALL MPI_Irecv  (x, dim1*dim2, MPI_DOUBLE, left,  17, MPI_COMM_WORLD, request)
             CALL MPI_Ssend(z, dim1*dim2, MPI_DOUBLE, right, 17, MPI_COMM_WORLD)
             CALL MPI_Wait(request, status)
             IF (.NOT.MPI_ASYNC_PROTECTS_NONBLOCKING) CALL MPI_F_sync_reg(x)
 
-        !if (my_rank == rank_printer) then
-        !    write(*,*) "Step", index1, " after send"
-        !    write( * , " (*(g0.1))" )  x 
-        !    write( * , " (*(g0.1))" )  y 
-        !    write( * , " (*(g0.1))" )  z 
-        !    write(*,*) " "
-        !end if
+        END DO
 
+        ! Wrap up, print value for check----------------------------------------
+        IF (my_rank == 0) THEN
+              sum_value = x(1,1)
+              WRITE(*,*) "PE", my_rank, ": sum_value =", sum_value
+        END IF
+
+    end subroutine ring_cpu_slow 
+
+    subroutine ring_gpu_device(dim1,dim2)
+        ! Parameters============================================================
+        INTEGER, intent(in)  ::  dim1, dim2
+        ! MPI Parameters
+        INTEGER, MANAGED     :: my_rank
+        INTEGER              :: size, right, left
+        TYPE(MPI_Status)     :: status
+        TYPE(MPI_Request)    :: request
+        ! Others
+        REAL(wp), MANAGED    :: sum_value = 0
+        INTEGER              :: i,j,k, ring_step
+        ! GPU
+        real(wp), DEVICE, &
+        DIMENSION(dim1,dim2) :: x_dev, y_dev, z_dev
+        ! Debug
+        INTEGER, OPTIONAL    :: rank_printer = 1
+
+        ! Body==================================================================
+
+        ! Initialisation -------------------------------------------------------
+
+        ! MPI init
+        CALL MPI_Comm_rank(MPI_COMM_WORLD, my_rank)
+        CALL MPI_Comm_size(MPI_COMM_WORLD, size)
+        right = mod(my_rank+1,      size)
+        left  = mod(my_rank-1+size, size)
+
+        x_dev = x
+        y_dev = y
+        z_dev = z
+
+        ! Setting the diagonal of y to 'my_rank'
+        !$acc kernels deviceptr(x_dev, y_dev, z_dev, my_rank)
+        DO j = 1, dim1
+            DO i = 1, dim2
+                    y_dev(i,j) = my_rank
+            END DO
+        END DO
+        !$acc end kernels
+
+
+        ! Ring communication and calc of matrices-------------------------------
+        DO ring_step = 1, size
+
+            ! Matrix Multiplication, only for calc time
+            !$acc kernels deviceptr(x_dev, y_dev, z_dev, sum_value)
+            DO j=1,dim2
+                DO i=1,dim1
+                    sum_value = 0
+                    DO k=1, dim2
+                        sum_value = sum_value + x_dev(i,k)*y_dev(k,j)
+                    END DO      
+                    z_dev(i,j)= sum_value 
+                END DO
+            END DO
+            !$acc end kernels
+
+            ! Adding matrices x and y
+            !$acc kernels deviceptr(x_dev, y_dev, z_dev)
+            DO j=1,dim2
+                DO i=1,dim1
+                    z_dev(i,j)= x_dev(i,j) + y_dev(i,j)
+                END DO
+            END DO
+            !$acc end kernels
+
+            ! Ring Communication. Sending my z to the x of the right.
+            CALL MPI_Irecv  (x_dev, dim1*dim2, MPI_DOUBLE, left,  17, MPI_COMM_WORLD, request)
+            CALL MPI_Ssend(z_dev, dim1*dim2, MPI_DOUBLE, right, 17, MPI_COMM_WORLD)
+            CALL MPI_Wait(request, status)
+            IF (.NOT.MPI_ASYNC_PROTECTS_NONBLOCKING) CALL MPI_F_sync_reg(x)
 
         END DO
 
-        if (my_rank == rank_printer) then
+        ! Wrap up, print value for check----------------------------------------
+        x = x_dev
+        y = y_dev
+        z = z_dev
 
-              sum = x(1,1)
-              WRITE(*,*) "PE", my_rank, ": Sum =", sum
-        end if
+        IF (my_rank == 0) THEN
+              sum_value = x(1,1)
+              WRITE(*,*) "PE", my_rank, ": sum_value =", sum_value
+        END IF
 
-
-    end subroutine ring_cpu 
+    end subroutine ring_gpu_device 
 
 end module

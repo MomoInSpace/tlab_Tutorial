@@ -16,12 +16,12 @@ program matrix_multi_test
     integer :: index1, index2, index3
 
     ! Time measurement:
-    integer, parameter :: maxsize = 2
-    integer, parameter :: step    = 2
+    integer, parameter :: maxsize = 10000
+    integer, parameter :: step    = 500
     integer, parameter :: timesteps = maxsize/step 
     integer :: count, rate
     real(wp)    :: timeAtStart, timeAtEnd
-    real(wp)    :: time(7,timesteps)
+    real(wp)    :: time(3,timesteps)
     integer :: my_rank
 
 
@@ -48,28 +48,12 @@ program matrix_multi_test
         ! call write_out_matrixform(x)
         ! call write_out_matrixform(y)
 
-        !$acc data
-        ! Matmul_cpu_slow--------------------------------------
-        call time_matmul_calc(2,time(2,index3/step), dim1, dim2)
+        ! ring_cpu_slow
+        call time_ring(2,time(2,index3/step), dim1, dim2)
 
-        ! Matmul_cpu_dotmix--------------------------------------
-        !call time_matmul_calc(3,time(3,index3/step))
+        ! ring_gpu_device
+        call time_ring(3,time(3,index3/step), dim1, dim2)
 
-        ! Matmul_cpu_intrinsic--------------------------------------
-        !call time_matmul_calc(4,time(4,index3/step))
-
-        ! Matmul_gpu_acc_kernels--------------------------------------
-        !call time_matmul_calc(5,time(5,index3/step))
-
-        ! Matmul_gpu_acc_loop--------------------------------------
-        !call time_matmul_calc(6,time(6,index3/step))
-
-        !gpu dotmix-------------------------------------------------
-        !call time_matmul_calc(7,time(7,index3/step))
-        !$acc end data
-
-        !gpu intrinsic ---------------------------------------------
-        ! call time_matmul_calc(8,time(8,index3/step))
 
         ! Deallocate x,y,z
         deallocate(x)
@@ -77,11 +61,14 @@ program matrix_multi_test
         deallocate(z)
     end do
 
-    CALL MPI_Finalize()
 
     ! Save time:
     !call write_out_matrixform(time)
-    call save_matrix(time,"time.csv")
+    IF (my_rank == 0) THEN
+        call save_matrix(time,"time.csv")
+    END IF
+
+    CALL MPI_Finalize()
 
     contains
 
@@ -90,8 +77,8 @@ program matrix_multi_test
     use TLAB_ARRAYS 
     implicit none
     ! Fill x and y with values
-    do index1 = 1, dim1
-        do index2 = 1, dim2
+    do index2 = 1, dim1
+        do index1 = 1, dim2
             x(index1,index2) = 0
             y(index1,index2) = 0
             z(index1,index2) = 0
@@ -104,7 +91,7 @@ program matrix_multi_test
     end do
     end subroutine fill_xyz_values
 
-    subroutine time_matmul_calc(type, calc_time, dim1, dim2)
+    subroutine time_ring(type, calc_time, dim1, dim2)
         integer, intent(in) :: type
         real(wp), intent(out) :: calc_time
         integer, dim1, dim2
@@ -117,10 +104,10 @@ program matrix_multi_test
         select case (type)
         case default
             print *, "No Case Selected! ERROR!"
-        case (2) !matmul slow
-            call ring_cpu(dim1,dim2)
-        ! case (8) !gpu intrinsic
-        !     call matmul_gpu_intrinsic(x,y,z)
+        case (2) 
+            call ring_cpu_slow(dim1,dim2)
+        case (3)
+            call ring_gpu_device(dim1,dim2)
         end select
 
         ! Clock Stop:
@@ -130,6 +117,6 @@ program matrix_multi_test
         ! Calculate Time:
         calc_time = timeAtEnd-timeAtStart
         
-    end subroutine time_matmul_calc
+    end subroutine time_ring
 
 end program matrix_multi_test
