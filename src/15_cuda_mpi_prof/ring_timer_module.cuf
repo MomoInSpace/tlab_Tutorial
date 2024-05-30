@@ -1,13 +1,12 @@
 module RING_TIMER_MODULE
     use TLAB_CONSTANTS, only: wp
     use TLAB_ARRAYS
-    use cudafor
     use mpi_f08
     implicit none
 
 contains
 
-    subroutine ring_cpu_slow(dim1,dim2)
+    subroutine ring_cpu_slow(dim1,dim2, maxstep_ring)
         ! Parameters============================================================
         INTEGER, intent(in) ::  dim1, dim2
         ! MPI Parameters
@@ -17,9 +16,9 @@ contains
         TYPE(MPI_Request)   :: request
         ! Others
         real(wp)            :: sum_value = 0
-        INTEGER             :: i,j,k, ring_step
-        ! Debug
-        INTEGER, OPTIONAL   :: rank_printer = 1
+        INTEGER             :: i,j,k, ring_step, maxstep_ring
+        ! Debuggy
+        !INTEGER, OPTIONAL   :: rank_printer = 1
 
         ! Body==================================================================
 
@@ -33,16 +32,14 @@ contains
 
 
         ! Setting the diagonal of y to 'my_rank'
-        DO j = 1, dim1
-            DO i = 1, dim2
-                    y(i,j) = my_rank
-            END DO
+        DO i = 1, dim2
+            y(i,i) = my_rank
         END DO
 
         ! Ring communication and calc of matrices-------------------------------
-        DO ring_step = 1, size
+        DO ring_step = 1, maxstep_ring
 
-            ! Matrix Multiplication, only for calc time
+            ! Matriex Multiplication, only for calc time
             DO j=1,dim2
                 DO i=1,dim1
                     sum_value = 0
@@ -71,27 +68,168 @@ contains
         ! Wrap up, print value for check----------------------------------------
         IF (my_rank == 0) THEN
               sum_value = x(1,1)
-              WRITE(*,*) "PE", my_rank, ": sum_value =", sum_value
+              WRITE(*,*) "Ring cpu slow,   sum_value =", sum_value
         END IF
 
     end subroutine ring_cpu_slow 
 
-    subroutine ring_gpu_device(dim1,dim2)
+    subroutine ring_cpu_fast(dim1,dim2, maxstep_ring)
+        ! Parameters============================================================
+        INTEGER, intent(in) ::  dim1, dim2
+        ! MPI Parameters
+        INTEGER             :: my_rank, size, &
+                               right, left
+        TYPE(MPI_Status)    :: status
+        TYPE(MPI_Request)   :: request
+        ! Others
+        real(wp)            :: sum_value = 0
+        INTEGER             :: i,j,k, ring_step, maxstep_ring
+        ! Debuggy
+        !INTEGER, OPTIONAL   :: rank_printer = 1
+
+        ! Body==================================================================
+
+        ! Initialisation -------------------------------------------------------
+
+        ! MPI init
+        CALL MPI_Comm_rank(MPI_COMM_WORLD, my_rank)
+        CALL MPI_Comm_size(MPI_COMM_WORLD, size)
+        right = mod(my_rank+1,      size)
+        left  = mod(my_rank-1+size, size)
+
+
+        ! Setting the diagonal of y to 'my_rank'
+        DO i = 1, dim2
+            y(i,i) = my_rank
+        END DO
+
+        ! Ring communication and calc of matrices-------------------------------
+        DO ring_step = 1, maxstep_ring
+
+            ! Matriex Multiplication, only for calc time
+            z = matmul(x, y)
+
+            ! Adding matrices x and y
+            z = x + y
+
+            ! Ring Communication. Sending my z to the x of the right.
+            CALL MPI_Irecv  (x, dim1*dim2, MPI_DOUBLE, left,  17, MPI_COMM_WORLD, request)
+            CALL MPI_Ssend(z, dim1*dim2, MPI_DOUBLE, right, 17, MPI_COMM_WORLD)
+            CALL MPI_Wait(request, status)
+            IF (.NOT.MPI_ASYNC_PROTECTS_NONBLOCKING) CALL MPI_F_sync_reg(x)
+
+        END DO
+
+        ! Wrap up, print value for check----------------------------------------
+        IF (my_rank == 0) THEN
+              sum_value = x(1,1)
+              WRITE(*,*) "Ring cpu fast,  sum_value =", sum_value
+        END IF
+
+    end subroutine ring_cpu_fast
+
+    subroutine ring_gpu_acc(dim1,dim2, maxstep_ring)
         ! Parameters============================================================
         INTEGER, intent(in)  ::  dim1, dim2
         ! MPI Parameters
-        INTEGER, MANAGED     :: my_rank
+        INTEGER              :: my_rank
+        !INTEGER, DEVICE      :: my_rank_dev
         INTEGER              :: size, right, left
         TYPE(MPI_Status)     :: status
         TYPE(MPI_Request)    :: request
         ! Others
-        REAL(wp), MANAGED    :: sum_value = 0
-        INTEGER              :: i,j,k, ring_step
+        REAL(wp)             :: sum_value = 0
+        !REAL(wp), DEVICE     :: sum_value_dev = 0
+        INTEGER             :: i,j,k, ring_step, maxstep_ring
+        ! GPU
+        !real(wp), DEVICE, &
+        !DIMENSION(dim1,dim2) :: x_dev, y_dev, z_dev
+        ! Debuggy
+        !INTEGER, OPTIONAL    :: rank_printer = 1
+
+        ! Body==================================================================
+
+        ! Initialisation -------------------------------------------------------
+
+        ! MPI init
+        CALL MPI_Comm_rank(MPI_COMM_WORLD, my_rank)
+        CALL MPI_Comm_size(MPI_COMM_WORLD, size)
+        right = mod(my_rank+1,      size)
+        left  = mod(my_rank-1+size, size)
+
+        ! Setting the diagonal of y to 'my_rank'
+
+        !$acc data copyin(x,y,z)
+        !$acc kernels 
+        DO i = 1, dim2
+            y(i,i) = my_rank
+        END DO
+        !$acc end kernels
+
+
+        ! Ring communication and calc of matrices-------------------------------
+        DO ring_step = 1, maxstep_ring
+
+            ! Matrix Multiplication, only for calc time
+            !$acc kernels 
+            DO j=1,dim2
+                DO i=1,dim1
+                    sum_value = 0
+                    DO k=1, dim2
+                        sum_value = sum_value + x(i,k)*y(k,j)
+                    END DO      
+                    z(i,j)= sum_value
+                END DO
+            END DO
+            !$acc end kernels
+
+            ! Adding matrices x and y
+            !$acc kernels 
+            DO j=1,dim2
+                DO i=1,dim1
+                    z(i,j)= x(i,j) + y(i,j)
+                END DO
+            END DO
+            !$acc end kernels
+
+            ! Ring Communication. Sending my z to the x of the right.
+            !$acc update host(z)
+            CALL MPI_Irecv  (x, dim1*dim2, MPI_DOUBLE, left,  17, MPI_COMM_WORLD, request)
+            CALL MPI_Ssend(z, dim1*dim2, MPI_DOUBLE, right, 17, MPI_COMM_WORLD)
+            CALL MPI_Wait(request, status)
+            IF (.NOT.MPI_ASYNC_PROTECTS_NONBLOCKING) CALL MPI_F_sync_reg(x)
+            !$acc update device(x)
+
+        END DO
+
+        !$acc end data
+
+
+        IF (my_rank == 0) THEN
+              sum_value = x(1,1)
+              WRITE(*,*) "Ring gpu acc,   sum_value =", sum_value
+        END IF
+
+    end subroutine ring_gpu_acc
+
+    subroutine ring_gpu_device(dim1,dim2, maxstep_ring)
+        ! Parameters============================================================
+        INTEGER, intent(in)  ::  dim1, dim2
+        ! MPI Parameters
+        INTEGER              :: my_rank
+        INTEGER, DEVICE      :: my_rank_dev
+        INTEGER              :: size, right, left
+        TYPE(MPI_Status)     :: status
+        TYPE(MPI_Request)    :: request
+        ! Others
+        REAL(wp)             :: sum_value = 0
+        REAL(wp), DEVICE     :: sum_value_dev = 0
+        INTEGER             :: i,j,k, ring_step, maxstep_ring
         ! GPU
         real(wp), DEVICE, &
         DIMENSION(dim1,dim2) :: x_dev, y_dev, z_dev
-        ! Debug
-        INTEGER, OPTIONAL    :: rank_printer = 1
+        ! Debuggy
+        !INTEGER, OPTIONAL    :: rank_printer = 1
 
         ! Body==================================================================
 
@@ -106,35 +244,39 @@ contains
         x_dev = x
         y_dev = y
         z_dev = z
+        my_rank_dev = my_rank
 
         ! Setting the diagonal of y to 'my_rank'
-        !$acc kernels deviceptr(x_dev, y_dev, z_dev, my_rank)
+        !$acc data present(x_dev, y_dev, z_dev)
+
+        !$acc kernels 
+        !deviceptr(x_dev, y_dev, z_dev, my_rank_dev)
         DO j = 1, dim1
-            DO i = 1, dim2
-                    y_dev(i,j) = my_rank
-            END DO
+            y_dev(j,j) = my_rank_dev
         END DO
         !$acc end kernels
 
 
         ! Ring communication and calc of matrices-------------------------------
-        DO ring_step = 1, size
+        DO ring_step = 1, maxstep_ring
 
             ! Matrix Multiplication, only for calc time
-            !$acc kernels deviceptr(x_dev, y_dev, z_dev, sum_value)
+            !$acc kernels 
+            !deviceptr(x_dev, y_dev, z_dev, sum_value_dev)
             DO j=1,dim2
                 DO i=1,dim1
-                    sum_value = 0
+                    sum_value_dev = 0
                     DO k=1, dim2
-                        sum_value = sum_value + x_dev(i,k)*y_dev(k,j)
+                        sum_value_dev = sum_value_dev + x_dev(i,k)*y_dev(k,j)
                     END DO      
-                    z_dev(i,j)= sum_value 
+                    z_dev(i,j)= sum_value_dev
                 END DO
             END DO
             !$acc end kernels
 
             ! Adding matrices x and y
-            !$acc kernels deviceptr(x_dev, y_dev, z_dev)
+            !$acc kernels 
+            !deviceptr(x_dev, y_dev, z_dev)
             DO j=1,dim2
                 DO i=1,dim1
                     z_dev(i,j)= x_dev(i,j) + y_dev(i,j)
@@ -150,6 +292,8 @@ contains
 
         END DO
 
+        !$acc end data
+
         ! Wrap up, print value for check----------------------------------------
         x = x_dev
         y = y_dev
@@ -157,7 +301,7 @@ contains
 
         IF (my_rank == 0) THEN
               sum_value = x(1,1)
-              WRITE(*,*) "PE", my_rank, ": sum_value =", sum_value
+              WRITE(*,*) "Ring gpu device, sum_value =", sum_value
         END IF
 
     end subroutine ring_gpu_device 

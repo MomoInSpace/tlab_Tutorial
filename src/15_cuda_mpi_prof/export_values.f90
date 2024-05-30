@@ -10,18 +10,19 @@ contains
         ! Looping over matrix with shape:
         integer :: i,j
         integer, dimension(1) :: my_shape
-        integer :: n
+        integer :: n, io
         ! Saving in file:
         character(len=*), intent(in) :: filename
 
         ! Code: ===============================================================
 
-        my_shape = shape(matrix)
-        n = my_shape(1)
+        !my_shape = shape(matrix)
+        !print(my_shape)
+        n = size(matrix) !my_shape(1)
 
-        open(unit=2,file=filename,status='replace')
-        write( 2 , "(*(g0.5))" ) ( matrix(i), new_line("A"), i=1,n ) 
-        close(2)
+        open(newunit=io,file=filename,position='append', action='write')
+        write(io , "(*(g10.5))" ) ( matrix(i), ", ", i=1,n ) , new_line("A")
+        close(io)
 
     end subroutine save_array 
 
@@ -42,7 +43,7 @@ contains
         n = my_shape(1)
         k = my_shape(2)
 
-        open(unit=2,file=filename,status='replace')
+        open(unit=2,file=filename,status='append')
         write( 2 , "(*(g10.5))" ) ( (matrix(i,j),",",j=1,k), new_line("A"), i=1,n )  
         close(2)
 
