@@ -101,7 +101,7 @@ program matrix_multi_test
         !call fill_xyz_values()
         !call time_ring(4,time(2,index3/step), dim1, dim2)
 
-        ! ring_cpu_fast
+        !ring_cpu_fast
         call fill_xyz_values()
         call MPI_BARRIER(MPI_COMM_WORLD)
         call time_ring(5,time(3,index3/step), dim1, dim2)
@@ -129,6 +129,7 @@ program matrix_multi_test
     deallocate(time)
 
 
+    call MPI_BARRIER(MPI_COMM_WORLD)
     CALL MPI_Finalize()
 
     contains

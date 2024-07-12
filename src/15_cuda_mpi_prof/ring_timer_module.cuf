@@ -106,6 +106,10 @@ contains
         ! Ring communication and calc of matrices-------------------------------
         DO ring_step = 1, maxstep_ring
 
+            IF (my_rank == 0 .and. MOD(ring_step,100)==0) THEN
+                  WRITE(*,*) "Ring", ring_step, " of ", maxstep_ring
+            END IF
+
             ! Matriex Multiplication, only for calc time
             z = matmul(x, y)
 
@@ -259,6 +263,10 @@ contains
 
         ! Ring communication and calc of matrices-------------------------------
         DO ring_step = 1, maxstep_ring
+
+            IF (my_rank == 0 .and. MOD(ring_step,100)==0) THEN
+                  WRITE(*,*) "Ring", ring_step, " of ", maxstep_ring
+            END IF
 
             ! Matrix Multiplication, only for calc time
             !$acc kernels 
