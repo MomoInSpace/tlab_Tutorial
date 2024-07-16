@@ -45,8 +45,7 @@ contains
         if (any(factors_wsize == fac)) n_num = fac
     end do
     !             
-    if (n_num /= y_s) print *, "Note: world_size is not divisible by y_s. For flat grids this is adviced to reduce
-        communication delay! "
+    if (n_num /= y_s) print *, "Note: world_size is not divisible by y_s. For flat grids this is adviced to reduce communication delay! "
     if (n_num == 1) error stop "Fatal: world_size ist not divisible by facors of y_s, except 1"
 
     m_num = world_size/n_num
