@@ -29,44 +29,28 @@ contains
     integer, intent(in):: world_size, y_s
     ! task_dims are the dimensions of the cartesian tasks 
     integer, dimension(2), intent(out):: task_dims  
-    integer:: i, fac, m_num, my_factor
+    integer:: i, j, fac, m_num, n_num, factor_diff
     integer, allocatable:: m_arr(:), n_arr(:)
-    integer, allocatable:: factors(:)
-    integer:: n_fact
+    integer, allocatable:: factors_ys(:), factors_wsize(:)
 
     ! Body======================================================================
     ! Compute factors of y_s
-    factors = get_factors(y_s)
 
-    ! Arrays to store permissible m and n values
-    allocate(m_arr(0))
-    allocate(n_arr(0))
+    factors_ys = get_factors(y_s)
+    factors_wsize = get_factors(world_size)
 
-    ! Iterate over each factor
-    do i = 1, size(factors)
-        fac = factors(i)
-        m_num = world_size-fac
-        if (m_num > 0) then
-            n_arr = [n_arr, fac]
-            m_arr = [m_arr, m_num]
-        endif
-    enddo
+    n_num = 0 
+    do i = 1, size(factors_ys)
+        fac = factors_ys(i)
+        if (any(factors_wsize == fac)) n_num = fac
+    end do
+    !             
+    if (n_num /= y_s) print *, "Note: world_size is not divisible by y_s. For flat grids this is adviced to reduce
+        communication delay! "
+    if (n_num == 1) error stop "Fatal: world_size ist not divisible by facors of y_s, except 1"
 
-    ! Initialize my_factor and result variables
-    task_dims(1) = 0
-    task_dims(2) = 0
-    my_factor = abs(n_arr(1) - m_arr(1))
-
-    ! Find the closest pair of m, n
-    do i = 1, size(n_arr)
-        n_fact = n_arr(i)
-        m_num = m_arr(i)
-        if (abs(m_num-n_fact) <= my_factor) then
-            my_factor = abs(m_num-n_fact)
-            task_dims(1) = n_fact
-            task_dims(2) = m_num
-        endif
-    enddo
+    m_num = world_size/n_num
+    task_dims = [m_num, n_num]
 
     end subroutine get_nm_from_ys
 
@@ -146,8 +130,8 @@ end module grid_utils
 !     integer:: t_nn, y_s, t_node, n_fin, m_fin
 
 !     ! Example values
-!     t_nn = 2
-!     y_s = 2
+!     t_nn = 33
+!     y_s = 6
 !     t_node = 1
 
 !     call get_nm_from_ys(t_nn*t_node, y_s, task_dimss)
