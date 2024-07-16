@@ -38,62 +38,62 @@ program comm_test
 
     ! MPI Initialisation
     call MPI_Init()
-    ! call MPI_Comm_rank(MPI_COMM_WORLD, my_rank)
-    ! call MPI_Comm_size(MPI_COMM_WORLD, world_size)
+    call MPI_Comm_rank(MPI_COMM_WORLD, my_rank)
+    call MPI_Comm_size(MPI_COMM_WORLD, world_size)
 
 
-    ! ! Read Input Parameters from Terminal---------------------------------------
-    ! if (my_rank == 0) then
-    !     do i = 1, COMMAND_ARGUMENT_COUNT()  ! Should be 3
-    !         ! Get Arguments:
-    !         call getarg(i, arg)
-    !             READ(arg, '(I10)') sub_grid_y(i)
-    !         end do
-    ! end if
+     ! Read Input Parameters from Terminal---------------------------------------
+     if (my_rank == 0) then
+         do i = 1, COMMAND_ARGUMENT_COUNT()  ! Should be 3
+             ! Get Arguments:
+             call getarg(i, arg)
+                 READ(arg, '(I10)') sub_grid_y(i)
+             end do
+     end if
 
-    ! ! Broadcast Input Parameters and use pointers for better readability
-    ! call MPI_BCAST(sub_grid_y, 3, MPI_INTEGER, 0, MPI_COMM_WORLD)
-    ! x_cy_star = sub_grid_y(1)
-    ! y_s       = sub_grid_y(2)
-    ! z_cy_star = sub_grid_y(3)
+     ! Broadcast Input Parameters and use pointers for better readability
+     call MPI_BCAST(sub_grid_y, 3, MPI_INTEGER, 0, MPI_COMM_WORLD)
+     x_cy_star = sub_grid_y(1)
+     y_s       = sub_grid_y(2)
+     z_cy_star = sub_grid_y(3)
 
-    ! write(*,*) "Before Allocation Barrier", my_rank
-    ! call MPI_BARRIER(MPI_COMM_WORLD)
+    write(*,*) "Before Allocation Barrier", my_rank, sub_grid_y
+    call MPI_BARRIER(MPI_COMM_WORLD)
 
     ! Allocation----------------------------------------------------------------
     ! Error Handling:
-    ! ierr = 0
-    ! ! my_grid:
-    ! allocate(my_grid_al(&
-    !          x_cy_star*y_s*z_cy_star), stat = ierr(1))
-    ! my_grid(1:x_cy_star, 1:y_s, 1:z_cy_star) => my_grid_al  
+     ierr = 0
+     ! my_grid:
+     allocate(my_grid_al(&
+              x_cy_star*y_s*z_cy_star), stat = ierr(1))
+     my_grid(1:x_cy_star, 1:y_s, 1:z_cy_star) => my_grid_al  
 
-    ! ! test_grid: only for test. Can be removes later, with the call
-    ! call get_nm_from_ys(world_size, sub_grid_y(2), dims_tasks_2d)
-    ! if (dims_tasks_2d(1) <= 1 .or. dims_tasks_2d(2) <= 1) print *, &
-    !     "Grid has Prime Decomposition. Don't use Primes as task numbers!"
-    ! write(*,*) "My Task Dims", dims_tasks_2d, "of rank ", my_rank, "sub_grid:", sub_grid_y
-    ! write(*,*) "Before Allocation Barrier", my_rank
-    ! call MPI_BARRIER(MPI_COMM_WORLD)
+     ! test_grid: only for test. Can be removes later, with the call
+     call get_task_dims(world_size, sub_grid_y(2), dims_tasks_2d)
+     if (dims_tasks_2d(1) <= 1 .or. dims_tasks_2d(2) <= 1) print *, &
+         "Grid has Prime Decomposition. Don't use Primes as task numbers!"
 
-    ! allocate(test_grid_al(prod(dims_tasks_2d)*prod(sub_grid_y)), stat = ierr(2))
-    ! ! REMOVE 2!!!!!! ONLY for 1d test!!
-    ! test_grid(1:dims_tasks_2d(1)*x_cy_star, &! REMOVE 2 !!!!!!!!!!!!!!!!!!!1
-    !           1:y_s, &
-    !           1:dims_tasks_2d(1)*dims_tasks_2d(2)*z_cy_star) => test_grid_al
+     write(*,*) "My Task Dims", dims_tasks_2d, "of rank ", my_rank, "sub_grid:", sub_grid_y
+     call MPI_BARRIER(MPI_COMM_WORLD)
 
-    ! ! rcounts
-    ! allocate(rcounts(world_size), stat = ierr(3))
+     allocate(test_grid_al(prod(dims_tasks_2d)*prod(sub_grid_y)), stat = ierr(2))
+     ! REMOVE 2!!!!!! ONLY for 1d test!!
+     test_grid(1:dims_tasks_2d(1)*x_cy_star, &! REMOVE 2 !!!!!!!!!!!!!!!!!!!1
+               1:y_s, &
+               1:dims_tasks_2d(1)*dims_tasks_2d(2)*z_cy_star) => test_grid_al
 
-    ! ! disp
-    ! allocate(disp(world_size), stat = ierr(4))
+     ! rcounts
+     allocate(rcounts(world_size), stat = ierr(3))
 
-    ! if (sum(ierr)/= 0) print *, "u(sub_grid_y), : Allocation request denied"
+     ! disp
+     allocate(disp(world_size), stat = ierr(4))
+
+     if (sum(ierr)/= 0) print *, "u(sub_grid_y), : Allocation request denied"
 
     ! Create Communicator-------------------------------------------------------
-    !call get_nm_from_ys(world_size, y_s, dims_tasks_2d) It test done, uncomment here.
+    !call get_task_dims(world_size, y_s, dims_tasks_2d) It test done, uncomment here.
     !!!!!!! TEST DIMS = 1, but you need to use 2!!!
-    !call MPI_CART_CREATE(MPI_COMM_WORLD, 2, dims_tasks_2d, periods, .true., MPI_COMM_CART, ierr(1)) 
+    call MPI_CART_CREATE(MPI_COMM_WORLD, 2, dims_tasks_2d, periods, .true., MPI_COMM_CART, ierr(1)) 
     !if (ierr(1)/= 0) print *, "Comm Cart Not Valid"
 
     !call MPI_Comm_rank(MPI_COMM_CART, my_rank)
