@@ -18,7 +18,7 @@ contains
         enddo
     end function get_factors
 
-    subroutine get_nm_from_ys(world_size, y_s, task_dims)
+    subroutine get_task_dims(world_size, y_s, task_dims)
     ! Minimizes max(dims_task_2d), 
     !   while keeping in mind, that dims_task_2d(1) <= y_s
     !   and sum(task_dims) = world_size.
@@ -52,7 +52,7 @@ contains
     m_num = world_size/n_num
     task_dims = [m_num, n_num]
 
-    end subroutine get_nm_from_ys
+    end subroutine get_task_dims
 
     subroutine print_cube_views(cube, n, m, p)
         implicit none
