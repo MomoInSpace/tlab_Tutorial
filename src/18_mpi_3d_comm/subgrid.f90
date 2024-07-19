@@ -16,6 +16,7 @@ module subgrid_handler
         procedure:: get_state_string
         procedure:: set_pointer
         procedure:: allocate_arrays
+        procedure:: get_dims
     end type Subgrid 
 
 contains
@@ -60,37 +61,45 @@ contains
 
     end subroutine allocate_arrays
 
+    subroutine get_dims(self, dims)
+        class(Subgrid)                      :: self
+        integer(3), intent(inout)           :: dims
+
+        select case(self%state)
+            case(1)
+                dims(1) = self%subgrid_xyz_dims(1)
+                dims(2) = self%subgrid_xyz_dims(2)
+                dims(3) = self%subgrid_xyz_dims(3)
+            case(2)
+                dims(1) = self%subgrid_xyz_dims(2)
+                dims(2) = self%subgrid_xyz_dims(3)
+                dims(3) = self%subgrid_xyz_dims(1)
+            case(3)
+                dims(1) = self%subgrid_xyz_dims(3)
+                dims(2) = self%subgrid_xyz_dims(1)
+                dims(3) = self%subgrid_xyz_dims(2)
+        end select
+
+    end subroutine get_dims
+
     subroutine set_pointer(self, state, grid_array, buffer_array)
         class(Subgrid)                      :: self
         integer, intent(in)                 :: state
-        integer                             :: dim1, dim2, dim3
+        integer, dimension(3)               :: dims
         real(kind = wp), intent(in),   &
                          asynchronous, &
                          dimension(:), &
                          allocatable, target        :: grid_array, buffer_array
 
-        select case(self%state)
-            case(1)
-                dim1 = self%subgrid_xyz_dims(1)
-                dim2 = self%subgrid_xyz_dims(2)
-                dim3 = self%subgrid_xyz_dims(3)
-            case(2)
-                dim1 = self%subgrid_xyz_dims(2)
-                dim2 = self%subgrid_xyz_dims(3)
-                dim3 = self%subgrid_xyz_dims(1)
-            case(3)
-                dim1 = self%subgrid_xyz_dims(3)
-                dim2 = self%subgrid_xyz_dims(1)
-                dim3 = self%subgrid_xyz_dims(2)
-        end select
+        self%get_dims(dims)
 
-        self%grid_pointer(1:dim1, &
-                          1:dim2, &
-                          1:dim3) => grid_array
+        self%grid_pointer(1:dims(1), &
+                          1:dims(2), &
+                          1:dims(3)) => grid_array
 
-        self%buffer_pointer(1:dim1, &
-                            1:dim2, &
-                            1:dim3) => buffer_array
+        self%buffer_pointer(1:dims(1), &
+                            1:dims(2), &
+                            1:dims(3)) => buffer_array
 
     end subroutine set_pointer
 
