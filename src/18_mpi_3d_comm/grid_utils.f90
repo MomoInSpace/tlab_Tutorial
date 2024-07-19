@@ -42,13 +42,15 @@ contains
     n_num = 0 
     do i = 1, size(factors_ys)
         fac = factors_ys(i)
-        if (any(factors_wsize == fac)) n_num = fac
+        if (any(factors_wsize == fac) .and. fac <= world_size/fac) n_num = fac
     end do
-    !             
-    if (n_num /= y_s) print *, "Note: world_size is not divisible by y_s. For flat grids this is adviced to reduce communication delay! "
-    if (n_num == 1) error stop "Fatal: world_size ist not divisible by facors of y_s, except 1"
 
     m_num = world_size/n_num
+
+    if (n_num /= y_s) print *, "Note: world_size not divisible by y_s. For flat grids this reduces communication delay! "
+    if (n_num == 1 .or. m_num == 1) error stop "Fatal: world_size ist not divisible by facors of y_s, except 1, or calc error. Check code"
+    if (n_num == 0) error stop "Fatal: Something went terribly wrong. n_num in get_task_dims shouldn't be zero!!"
+
     task_dims = [m_num, n_num]
 
     end subroutine get_task_dims
@@ -64,7 +66,7 @@ contains
         do j = 1, m
             ! Print top view slice
             do i = 1, n
-                write(*, '(I4)', advance='no') cube(i, j, 1)
+                write(*,'(I4)' , advance='no') cube(i, j, 1)
             end do
             write(*, *)  ! Newline after each row
         end do

@@ -13,7 +13,7 @@
 # Start of script ========================================
 export gpu_profile="$HOME/fortran_projs/tlab_Tutorial/src/18_mpi_3d_comm"
 cd $gpu_profile
-mkdir build -p 
+mkdir build -p
 cd build
 
 #mpifort $gpu_profile/tlab_constants.f90 $gpu_profile/tlab_arrays.f90 $gpu_profile/export_values.f90 $gpu_profile/timer.f90 $gpu_profile/ring_timer_module.f90 -acc=gpu -target=gpu -Minfo=accel,inline -gpu=lineinfo,cc80 -cpp -o test_ring_times.o
@@ -22,7 +22,7 @@ cd build
 
 #mpifort $gpu_profile/tlab_constants.f90 $gpu_profile/tlab_arrays.f90 $gpu_profile/export_values.f90 $gpu_profile/timer.f90 $gpu_profile/ring_timer_module.cuf -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -o test_ring_times_cpu_only.o
 
-mpifort $gpu_profile/tlab_constants.f90 $gpu_profile/tlab_arrays.f90 $gpu_profile/grid_utils.f90 $gpu_profile/program_comm_test.f90 -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -o comm_test.o
+mpifort $gpu_profile/tlab_constants.f90 $gpu_profile/tlab_arrays.f90 $gpu_profile/grid_utils.f90 $gpu_profile/subgrid.f90 $gpu_profile/program_comm_grid_test.f90 -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -o comm_test.o
 
 
 # Test
