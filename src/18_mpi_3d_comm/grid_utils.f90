@@ -39,13 +39,15 @@ contains
     factors_ys = get_factors(y_s)
     factors_wsize = get_factors(world_size)
 
-    n_num = 0 
+    n_num = world_size
+    m_num = 1
     do i = 1, size(factors_ys)
         fac = factors_ys(i)
-        if (any(factors_wsize == fac) .and. fac <= world_size/fac) n_num = fac
+        if (any(factors_wsize == fac) .and. (fac+world_size/fac <= n_num+m_num) )then
+            n_num = fac
+            m_num = world_size/n_num
+            end if
     end do
-
-    m_num = world_size/n_num
 
     if (n_num /= y_s) print *, "Note: world_size not divisible by y_s. For flat grids this reduces communication delay! "
     if (n_num == 1 .or. m_num == 1) error stop "Fatal: world_size ist not divisible by facors of y_s, except 1, or calc error. Check code"
@@ -119,6 +121,44 @@ contains
             prod = prod*arr(i)
         end do
     end function prod
+
+subroutine gather_and_print_characters(my_chars, MPI_print_comm)
+    use mpi_f08
+    implicit none
+
+    ! Arguments
+    character(len=*), intent(in):: my_chars   ! Each process's character array
+
+    ! Locals
+    integer:: ierr, my_rank, num_procs, root, i
+    character(len = 3000):: gathered_chars   ! Character array to hold gathered results
+    TYPE(MPI_Comm):: MPI_print_comm
+
+    call MPI_COMM_RANK(MPI_print_comm, my_rank, ierr)
+    call MPI_COMM_SIZE(MPI_print_comm, num_procs, ierr)
+
+    root = 0
+
+    ! Allocate space to receive all character arrays at the root process
+    ! if (my_rank == root) then
+    !     allocate(gathered_chars(num_procs*size(my_chars)))
+    ! end if
+
+    ! Gather all character arrays at the root
+    call MPI_GATHER(my_chars, len(my_chars), MPI_CHARACTER, &
+                    gathered_chars, len(my_chars), MPI_CHARACTER, root, MPI_print_comm, ierr)
+
+    ! Root process prints the gathered characters in order
+    if (my_rank == root) then
+        print*, "Gathered characters in order:"
+        do i = 1, num_procs
+            ! write(*,*) "noice"
+            write(*,*,advance = 'no') gathered_chars((i-1)*len(my_chars)+1:i*len(my_chars))
+        end do
+        ! deallocate(gathered_chars)  ! Deallocate dynamically allocated array
+    end if
+
+end subroutine gather_and_print_characters
 
 end module grid_utils
 
