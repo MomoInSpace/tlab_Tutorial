@@ -24,11 +24,13 @@ program comm_test
                          dimension(:,:,:):: subgrid_pointer => null(),   &
                                             subbuffer_pointer => null(), &
                                             testgrid_pointer => null(),  &
-                                            testbuffer_pointer => null()
+                                            testbuffer_pointer => null(), &
+                                            temp_pointer => null()
+                                            
 
 
     ! Input Grid Data
-    INTEGER:: i, m, num_val, arg_num
+    INTEGER:: i, j, k, m, p, num_val, arg_num
     CHARACTER(len = 32):: arg
 
     ! MPI Parameters
@@ -38,6 +40,7 @@ program comm_test
     LOGICAL, DIMENSION(2):: periods = [.false., .false.]
     TYPE(MPI_Comm):: MPI_COMM_CART, comm_myRow, comm_myColumn
     INTEGER, DIMENSION(:), allocatable:: rcounts, disp
+    character(len = 200):: mpi_out
     
     ! Formating:
     character(len = 100):: fmt
@@ -81,19 +84,20 @@ program comm_test
     ! Initiate SubGrid
     call subgrid_handler%init(state, subgrid_xyz_dims)
     call subgrid_handler%allocate_arrays(state, subgrid_array, subbuffer_array)
-    subgrid_pointer = subgrid_handler%grid_pointer
-    subbuffer_pointer = subgrid_handler%buffer_pointer
+    ! subgrid_pointer = subgrid_handler%grid_pointer
+    ! subbuffer_pointer = subgrid_handler%buffer_pointer
 
     ! Initiate Test Grid
     call testgrid_handler%init(state, [subgrid_xyz_dims(1)*dims_tasks_2d(1), &                                    
                                        subgrid_xyz_dims(2), &
                                        subgrid_xyz_dims(3)*dims_tasks_2d(2)])
     call testgrid_handler%allocate_arrays(state, testgrid_array, testbuffer_array)
-    testgrid_pointer   = testgrid_handler%grid_pointer
-    testbuffer_pointer = testgrid_handler%buffer_pointer
+    ! testgrid_pointer   = testgrid_handler%grid_pointer
+    ! testbuffer_pointer = testgrid_handler%buffer_pointer
 
     ! Set Values For Grids------------------------------------------------------
     subgrid_array = my_rank
+    testbuffer_array = 99
     testgrid_array =  99
 
     ! Send Subgrids------------------------------------------------------------
@@ -111,37 +115,65 @@ program comm_test
 
     ! !write(*,*) "Before Barrier", my_rank
     ! !call MPI_BARRIER(MPI_COMM_WORLD)
+    
+    ! write(*,*) "TestBarrier"
+    ! call MPI_BARRIER(MPI_COMM_CART)
 
     call MPI_Gatherv(sendbuf = subgrid_array, &
                      sendcount = send_num, &
-                     sendtype = MPI_REAL, &
+                     sendtype = MPI_DOUBLE, &
                      recvbuf = testbuffer_array, &
                      recvcounts = rcounts, &
                      displs = disp, &
-                     recvtype = MPI_REAL, &
+                     recvtype = MPI_DOUBLE, &
                      root = 0, &
                      comm = MPI_COMM_CART, &
                      ierror = ierr(1))
+
+
+    p = 1
+    do k = 1, dims_tasks_2d(1)  ! 3
+        do j = 1, dims_tasks_2d(2)  ! 2
+            do i = 1, subgrid_xyz_dims(1)  ! 5
+                do m = 1, subgrid_xyz_dims(3)  ! 3
+                    testgrid_handler%grid_pointer(:, m+subgrid_xyz_dims(3)*(j-1), i+subgrid_xyz_dims(1)*(k-1)) = &
+                    testbuffer_array(p:p+subgrid_xyz_dims(2))
+                    p = p+subgrid_xyz_dims(2)  ! dims_tasks_2d(2)
+                    ! testgrid_handler%buffer_pointer(:, i*subgrid_xyz_dims(3):, k*subgrid_xyz_dims(1):) = &
+                end do
+            end do
+        end do
+    end do
+
+    ! write(*,*) "TestBarrier"
+    ! call MPI_BARRIER(MPI_COMM_CART)
 
     ! Write For Testing
      if (my_rank == 0) then 
         ! write(*,*) subgrid_handler%grid_pointer  
         ! write(fmt, '(A, I0, A)') '(', subgrid_handler%subgrid_xyz_dims(1), 'I4)'
-        write(fmt, '(A, I0, A)') '(', subgrid_handler%subgrid_xyz_dims(1), 'F4.0)'
-        write(*,fmt) subgrid_handler%grid_pointer  
+        ! write(fmt, '(A, I0, A)') '(', subgrid_handler%subgrid_xyz_dims(3), 'F4.0)'
+        ! write(*,fmt) subgrid_handler%grid_pointer(1, :,:)
         ! call print_cube_views(subgrid_handler%grid_pointer, subgrid_xyz_dims(1), &
         !                                                     subgrid_xyz_dims(2), &
         !                                                     subgrid_xyz_dims(3))
-        write(*,*) "my grid rank 0"
-        write(fmt, '(A, I0, A)') '(', testgrid_handler%subgrid_xyz_dims(1), 'F4.0)'
-        write(*,fmt) testgrid_handler%buffer_pointer
-        ! ar_shape = shape(test_grid)
+        ! write(*,*) "my grid rank 0"
+        ! write(fmt, '(A, I0, A)') '(', testgrid_handler%subgrid_xyz_dims(3), 'F4.0)'
+        ! write(*,fmt) testgrid_handler%buffer_pointer(1, :,:)
+
+        write(*,*) "topmost zx-surface of total grid."
+        write(fmt, '(A, I0, A)') '(', testgrid_handler%subgrid_xyz_dims(3), 'F4.0)'
+        write(*,fmt) testgrid_handler%grid_pointer(1, :,:)
      end if
-     ! write(*,*)
 
 
-    ! !call MPI_BARRIER(MPI_COMM_WORLD)
-    ! !write(*,*) "After cube view", my_rank
+    call MPI_BARRIER(MPI_COMM_CART)
+    ! write(*,*) "After cube view", my_rank, coords
+
+    ! write(mpi_out, *) "My Rank: ", my_rank, ", My Coords: ", coords, ", Tasks m and n: ", dims_tasks_2d
+    ! call gather_and_print_characters(mpi_out, MPI_COMM_WORLD)
+
+    ! call MPI_BARRIER(MPI_COMM_CART)
 
     ! if (my_rank == 0) then
     !     call print_cube_views(test_grid, sub_grid_y(1), sub_grid_y(2), sub_grid_y(3)*2)

@@ -17,6 +17,7 @@ module subgrid_handler
         procedure:: set_pointer
         procedure:: allocate_arrays
         procedure:: get_dims
+        procedure:: reorder_gatherv
     end type Subgrid 
 
 contains
@@ -63,7 +64,7 @@ contains
 
     subroutine get_dims(self, dims)
         class(Subgrid)                      :: self
-        integer(3), intent(inout)           :: dims
+        integer, dimension(3), intent(inout)           :: dims
 
         select case(self%state)
             case(1)
@@ -91,7 +92,7 @@ contains
                          dimension(:), &
                          allocatable, target        :: grid_array, buffer_array
 
-        self%get_dims(dims)
+        call self%get_dims(dims)
 
         self%grid_pointer(1:dims(1), &
                           1:dims(2), &
@@ -124,5 +125,26 @@ contains
         end if
 
     end subroutine get_state_string
+
+    subroutine reorder_gatherv(self)!, state, grid_array, buffer_array)
+        class(Subgrid), intent(in)          :: self
+        ! integer, intent(in)                 :: state
+        ! real(kind = wp), intent(inout),   &
+        !                  asynchronous, &
+        !                  dimension(:), &
+        !                  allocatable, target:: grid_array, buffer_array
+        integer, dimension(2)               :: ierr
+
+        select case(self%state)
+            case(1)
+                print*, "Case 1 reorder gatherv not implemented yet"
+            case(2)
+                print*, shape(self%grid_pointer)
+            case(3)
+                print*, "Case 3 reorder gatherv not implemented yet"
+        end select
+
+
+    end subroutine reorder_gatherv
   
 end module subgrid_handler 
