@@ -3,35 +3,50 @@ program comm_test
     use TLAB_ARRAYS 
     use mpi_f08
     use grid_utils
+    use subgrid_handler
     ! use MATRIX_OUTPUT
     implicit none 
 
     ! Parameters================================================================
     ! Grid definition, sub_grid_y = [x_cy*, y_s, z_cy*]
-    INTEGER, DIMENSION(3), target:: sub_grid_y
-    integer:: x_cy_star, y_s, z_cy_star
-    ! REAL(kind = wp), DIMENSION(:,:,:), ALLOCATABLE, ASYNCHRONOUS:: my_grid
-    ! REAL(kind = wp), DIMENSION(:,:,:), ALLOCATABLE, ASYNCHRONOUS:: test_grid
+    ! INTEGER, DIMENSION(3), target:: sub_grid_y
 
-    integer, pointer::  my_grid(:,:,:) => null(), &
-                        test_grid(:,:,:) => null()
-    integer, DIMENSION(:), ALLOCATABLE, ASYNCHRONOUS, Target:: my_grid_al
-    integer, DIMENSION(:), ALLOCATABLE, ASYNCHRONOUS, Target:: test_grid_al
-    INTEGER, DIMENSION(:), allocatable:: rcounts, disp
+    integer                             :: state, send_num
+    type(Subgrid)                      :: subgrid_handler, testgrid_handler
+    integer, dimension(3)               :: subgrid_xyz_dims 
+    real(kind = wp), asynchronous, &
+                     dimension(:), &
+                     allocatable, target:: subgrid_array, subbuffer_array
+    real(kind = wp), asynchronous, &
+                     dimension(:), &
+                     allocatable, target:: testgrid_array, testbuffer_array
+        real(kind = wp), pointer, &
+                         dimension(:,:,:):: subgrid_pointer => null(),   &
+                                            subbuffer_pointer => null(), &
+                                            testgrid_pointer => null(),  &
+                                            testbuffer_pointer => null(), &
+                                            temp_pointer => null()
+                                            
+
 
     ! Input Grid Data
-    INTEGER:: i, m, num_val, arg_num
+    INTEGER:: i, j, k, m, p, num_val, arg_num
     CHARACTER(len = 32):: arg
 
     ! MPI Parameters
     INTEGER:: world_size, my_rank, my_row, my_col
     INTEGER, DIMENSION(2):: dims_tasks_2d, coords
+    INTEGER, DIMENSION(3):: ar_shape
     LOGICAL, DIMENSION(2):: periods = [.false., .false.]
     TYPE(MPI_Comm):: MPI_COMM_CART, comm_myRow, comm_myColumn
+    INTEGER, DIMENSION(:), allocatable:: rcounts, disp
+    character(len = 200):: mpi_out
     
+    ! Formating:
+    character(len = 100):: fmt
 
     ! Error Integer
-    INTEGER, dimension(100):: ierr 
+    INTEGER, dimension(100):: ierr  = 0
 
     ! Body======================================================================
     ! Initialisation------------------------------------------------------------
@@ -41,125 +56,152 @@ program comm_test
     call MPI_Comm_rank(MPI_COMM_WORLD, my_rank)
     call MPI_Comm_size(MPI_COMM_WORLD, world_size)
 
-
      ! Read Input Parameters from Terminal---------------------------------------
      if (my_rank == 0) then
-         do i = 1, COMMAND_ARGUMENT_COUNT()  ! Should be 3
-             ! Get Arguments:
-             call getarg(i, arg)
-                 READ(arg, '(I10)') sub_grid_y(i)
-             end do
+        do i = 1, COMMAND_ARGUMENT_COUNT()  ! Should be 3
+            ! Get Arguments:
+            call getarg(i, arg)
+                READ(arg, '(I10)') subgrid_xyz_dims(i)
+            end do
      end if
 
-     ! Broadcast Input Parameters and use pointers for better readability
-     call MPI_BCAST(sub_grid_y, 3, MPI_INTEGER, 0, MPI_COMM_WORLD)
-     x_cy_star = sub_grid_y(1)
-     y_s       = sub_grid_y(2)
-     z_cy_star = sub_grid_y(3)
-
-    write(*,*) "Before Allocation Barrier", my_rank, sub_grid_y
-    call MPI_BARRIER(MPI_COMM_WORLD)
-
-    ! Allocation----------------------------------------------------------------
-    ! Error Handling:
-     ierr = 0
-     ! my_grid:
-     allocate(my_grid_al(&
-              x_cy_star*y_s*z_cy_star), stat = ierr(1))
-     my_grid(1:x_cy_star, 1:y_s, 1:z_cy_star) => my_grid_al  
-
-     ! test_grid: only for test. Can be removes later, with the call
-     call get_task_dims(world_size, sub_grid_y(2), dims_tasks_2d)
-     if (dims_tasks_2d(1) <= 1 .or. dims_tasks_2d(2) <= 1) print *, &
-         "Grid has Prime Decomposition. Don't use Primes as task numbers!"
-
-     write(*,*) "My Task Dims", dims_tasks_2d, "of rank ", my_rank, "sub_grid:", sub_grid_y
-     call MPI_BARRIER(MPI_COMM_WORLD)
-
-     allocate(test_grid_al(prod(dims_tasks_2d)*prod(sub_grid_y)), stat = ierr(2))
-     ! REMOVE 2!!!!!! ONLY for 1d test!!
-     test_grid(1:dims_tasks_2d(1)*x_cy_star, &! REMOVE 2 !!!!!!!!!!!!!!!!!!!1
-               1:y_s, &
-               1:dims_tasks_2d(1)*dims_tasks_2d(2)*z_cy_star) => test_grid_al
-
-     ! rcounts
-     allocate(rcounts(world_size), stat = ierr(3))
-
-     ! disp
-     allocate(disp(world_size), stat = ierr(4))
-
-     if (sum(ierr)/= 0) print *, "u(sub_grid_y), : Allocation request denied"
+    ! Broadcast Input Parameters and use pointers for better readability
+    call MPI_BCAST(subgrid_xyz_dims, 3, MPI_INTEGER, 0, MPI_COMM_WORLD)
+    ! Defines the number of tasks in 2d grid
+    call get_task_dims(world_size, subgrid_xyz_dims(2), dims_tasks_2d)
 
     ! Create Communicator-------------------------------------------------------
-    !call get_task_dims(world_size, y_s, dims_tasks_2d) It test done, uncomment here.
-    !!!!!!! TEST DIMS = 1, but you need to use 2!!!
     call MPI_CART_CREATE(MPI_COMM_WORLD, 2, dims_tasks_2d, periods, .true., MPI_COMM_CART, ierr(1)) 
-    !if (ierr(1)/= 0) print *, "Comm Cart Not Valid"
+    if (ierr(1)/= 0) error stop "Comm Cart Not Valid"
 
-    !call MPI_Comm_rank(MPI_COMM_CART, my_rank)
-    !call MPI_CART_COORDS(MPI_COMM_CART, my_rank, 2, coords, ierr(1))
+    call MPI_Comm_rank(MPI_COMM_CART, my_rank)
+    call MPI_CART_COORDS(MPI_COMM_CART, my_rank, 2, coords, ierr(1))
     ! call MPI_Comm_split(MPI_COMM_CART, coords(1), coords(2), comm_myColumn, ierr(1))
     ! call MPI_Comm_split(MPI_COMM_CART, coords(2), coords(1), comm_myRow, ierr(1))
 
+    ! Grid Initiation-----------------------------------------------------------
+    state = 2
+    ! Initiate SubGrid
+    call subgrid_handler%init(state, subgrid_xyz_dims)
+    call subgrid_handler%allocate_arrays(state, subgrid_array, subbuffer_array)
+    ! subgrid_pointer = subgrid_handler%grid_pointer
+    ! subbuffer_pointer = subgrid_handler%buffer_pointer
+
+    ! Initiate Test Grid
+    call testgrid_handler%init(state, [subgrid_xyz_dims(1)*dims_tasks_2d(1), &                                    
+                                       subgrid_xyz_dims(2), &
+                                       subgrid_xyz_dims(3)*dims_tasks_2d(2)])
+    call testgrid_handler%allocate_arrays(state, testgrid_array, testbuffer_array)
+    ! testgrid_pointer   = testgrid_handler%grid_pointer
+    ! testbuffer_pointer = testgrid_handler%buffer_pointer
+
+    ! Set Values For Grids------------------------------------------------------
+    subgrid_array = my_rank
+    testbuffer_array = 99
+    testgrid_array =  99
+
     ! Send Subgrids------------------------------------------------------------
-    ! Set values for testing
-    ! my_grid = my_rank
-    ! test_grid = 99
+    ! rcounts
+    allocate(rcounts(world_size), stat = ierr(3))
 
-    ! do i = 1, world_size, 1
-    !     rcounts(i) = prod(sub_grid_y)
-    !     disp(i) = (i-1)*prod(sub_grid_y)
-    ! end do
+    ! disp
+    allocate(disp(world_size), stat = ierr(4))
+
+    send_num = prod(subgrid_handler%subgrid_xyz_dims)
+    do i = 1, world_size, 1
+        rcounts(i) = send_num
+        disp(i) = (i-1)*send_num
+    end do
+
+    ! !write(*,*) "Before Barrier", my_rank
+    ! !call MPI_BARRIER(MPI_COMM_WORLD)
     
-    !write(*,*) "Before Barrier", my_rank
-    !call MPI_BARRIER(MPI_COMM_CART)
+    ! write(*,*) "TestBarrier"
+    ! call MPI_BARRIER(MPI_COMM_CART)
 
-    !call MPI_Gatherv(sendbuf = my_grid_al, &
-    !                 sendcount = prod(sub_grid_y), &
-    !                 sendtype = MPI_INTEGER, &
-    !                 recvbuf = test_grid_al, &
-    !                 recvcounts = rcounts, &
-    !                 displs = disp, &
-    !                 recvtype = MPI_INTEGER, &
-    !                 root = 0, &
-    !                 comm = MPI_COMM_WORLD, &
-    !                 ierror = ierr(1))
+    call MPI_Gatherv(sendbuf = subgrid_array, &
+                     sendcount = send_num, &
+                     sendtype = MPI_DOUBLE, &
+                     recvbuf = testbuffer_array, &
+                     recvcounts = rcounts, &
+                     displs = disp, &
+                     recvtype = MPI_DOUBLE, &
+                     root = 0, &
+                     comm = MPI_COMM_CART, &
+                     ierror = ierr(1))
+
+
+    p = 1
+    do k = 1, dims_tasks_2d(1)  ! 3
+        do j = 1, dims_tasks_2d(2)  ! 2
+            do i = 1, subgrid_xyz_dims(1)  ! 5
+                do m = 1, subgrid_xyz_dims(3)  ! 3
+                    testgrid_handler%grid_pointer(:, m+subgrid_xyz_dims(3)*(j-1), i+subgrid_xyz_dims(1)*(k-1)) = &
+                    testbuffer_array(p:p+subgrid_xyz_dims(2))
+                    p = p+subgrid_xyz_dims(2)  ! dims_tasks_2d(2)
+                    ! testgrid_handler%buffer_pointer(:, i*subgrid_xyz_dims(3):, k*subgrid_xyz_dims(1):) = &
+                end do
+            end do
+        end do
+    end do
+
+    ! write(*,*) "TestBarrier"
+    ! call MPI_BARRIER(MPI_COMM_CART)
 
     ! Write For Testing
-    ! if (my_rank == 0) then 
-    !     !write(*,"(5I4)") my_grid
-    !     write(*,*) "my grid rank 0"
-    !     !write(*,"(5I4)") test_grid
-    ! end if
-    ! write(*,*)
+     if (my_rank == 0) then 
+        ! write(*,*) subgrid_handler%grid_pointer  
+        ! write(fmt, '(A, I0, A)') '(', subgrid_handler%subgrid_xyz_dims(1), 'I4)'
+        ! write(fmt, '(A, I0, A)') '(', subgrid_handler%subgrid_xyz_dims(3), 'F4.0)'
+        ! write(*,fmt) subgrid_handler%grid_pointer(1, :,:)
+        ! call print_cube_views(subgrid_handler%grid_pointer, subgrid_xyz_dims(1), &
+        !                                                     subgrid_xyz_dims(2), &
+        !                                                     subgrid_xyz_dims(3))
+        ! write(*,*) "my grid rank 0"
+        ! write(fmt, '(A, I0, A)') '(', testgrid_handler%subgrid_xyz_dims(3), 'F4.0)'
+        ! write(*,fmt) testgrid_handler%buffer_pointer(1, :,:)
+
+        write(*,*) "topmost zx-surface of total grid."
+        write(fmt, '(A, I0, A)') '(', testgrid_handler%subgrid_xyz_dims(3), 'F4.0)'
+        write(*,fmt) testgrid_handler%grid_pointer(1, :,:)
+     end if
+
+
+    call MPI_BARRIER(MPI_COMM_CART)
+    ! write(*,*) "After cube view", my_rank, coords
+
+    ! write(mpi_out, *) "My Rank: ", my_rank, ", My Coords: ", coords, ", Tasks m and n: ", dims_tasks_2d
+    ! call gather_and_print_characters(mpi_out, MPI_COMM_WORLD)
+
+    ! call MPI_BARRIER(MPI_COMM_CART)
 
     ! if (my_rank == 0) then
-    !     !call print_cube_views(test_grid, sub_grid_y(1), sub_grid_y(2), sub_grid_y(3)*2)
+    !     call print_cube_views(test_grid, sub_grid_y(1), sub_grid_y(2), sub_grid_y(3)*2)
     !     write(*,*) "Cube views Rank 0"
     ! end if
 
-    ! write(*,*) "After Send Barrier", my_rank
-    ! call MPI_BARRIER(MPI_COMM_WORLD)
+    ! !write(*,*) "After Send Barrier", my_rank
+    ! !call MPI_BARRIER(MPI_COMM_WORLD)
 
 
 
 
 
 
-    ! Cleanup-------------------------------------------------------------------
-    !ierr(1) = 0
-    !if (allocated(my_grid_al)) then
-    !    deallocate(my_grid, stat = ierr(1))
-    !end if
-    !if (ierr(1) /= 0) print *, "u(sub_grid_y), : Deallocation request denied"
+    ! ! Cleanup-------------------------------------------------------------------
+    ! ierr(1) = 0
+    ! if (allocated(my_grid_al)) then
+    !     deallocate(my_grid, stat = ierr(1))l50151
+    ! end if
+    ! if (ierr(1) /= 0) print *, "u(sub_grid_y), : Deallocation request denied"
     
 
     ! call MPI_Comm_free(comm_myRow, ierr(1))
     ! call MPI_Comm_free(comm_myColumn, ierr(1))
     
-    !write(*,*) "Before Barrier", my_rank
-    !call MPI_BARRIER(MPI_COMM_CART)
-    !call MPI_Comm_free(MPI_COMM_CART, ierr(1))
+    call MPI_BARRIER(MPI_COMM_CART)
+    ! write(*,*) "After Barrier", my_rank, coords
+    call MPI_Comm_free(MPI_COMM_CART, ierr(1))
     call MPI_Finalize()
 
 
