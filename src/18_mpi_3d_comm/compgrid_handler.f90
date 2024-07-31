@@ -78,30 +78,31 @@ contains
     subroutine reorder_gatherv(self)!, dims_tasks_2d, grid_xyz_dims)!, state, grid_array, buffer_array)
         class(Complete_Grid), intent(in)          :: self
         integer, dimension(3)           :: dims
-        integer:: i, j, k, m, n, p
+        integer:: i, j, k, m, n, p, n_max, m_max
         ! integer, dimension(2):: dims_tasks_2d
         ! integer, dimension(3):: grid_xyz_dims
         integer, dimension(2)               :: ierr
         character(len = 100):: fmt
         
         p = 1
+        n_max = self%task_dims(self%task_state(1))
+        m_max = self%task_dims(self%task_state(2))
         call self%get_sub_dims(dims)
-        write(*,*) "TaskDims: ", self%task_dims
 
-        do n = 1, self%task_dims(1)  ! dims_tasks_2d(1)  ! 3
-            do m = 1, self%task_dims(2)  ! dims_tasks_2d(2)  ! 2
-                do i = 1, dims(3)  ! grid_xyz_dims(1)  ! 5
-                    do j = 1, dims(2)  ! grid_xyz_dims(3)  ! 3
+        do m = 1, m_max  
+            do n = 1, n_max  
+                do i = 1, dims(3)  
+                    do j = 1, dims(2)  
                         self%grid_pointer_3d(:, j+dims(2)*(n-1), i+dims(3)*(m-1)) = &
                         self%buffer_pointer_1d(p:p+dims(1))
-                        p = p+dims(1)  ! dims_tasks_2d(2)
+                        p = p+dims(1)  
                     end do
                 end do
             end do
         end do
 
 
-        write(*,*) "topmost zx-surface of total grid, with shape:"
+        ! write(*,*) "topmost xz-surface of total grid, with shape:"
         write(*,*) "State:   ", self%state_xyz
         call self%get_sub_dims(dims)
         write(*,*) "Subgrid: ", dims
@@ -123,6 +124,8 @@ contains
         ! write(*,*) "Dims3:"
         ! write(fmt, '(A, I0, A)') '(', dims(3), 'F4.0)'
         ! write(*,fmt) self%grid_pointer_3d(1, :,:)
+        ! write(*,*) self%grid_pointer_3d(1, :,:)
+        ! write(*,*) shape(self%grid_pointer_3d(1, :,:))
 
     end subroutine reorder_gatherv
   

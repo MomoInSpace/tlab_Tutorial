@@ -136,7 +136,7 @@ subroutine gather_and_print_characters(my_chars, MPI_print_comm)
 
     ! Locals
     integer:: ierr, my_rank, num_procs, root, i
-    character(len = 3000):: gathered_chars   ! Character array to hold gathered results
+    character(len = 30000):: gathered_chars   ! Character array to hold gathered results
     TYPE(MPI_Comm):: MPI_print_comm
 
     call MPI_COMM_RANK(MPI_print_comm, my_rank, ierr)
@@ -158,7 +158,7 @@ subroutine gather_and_print_characters(my_chars, MPI_print_comm)
         print*, "Gathered characters in order:"
         do i = 1, num_procs
             ! write(*,*) "noice"
-            write(*,*,advance = 'no') gathered_chars((i-1)*len(my_chars)+1:i*len(my_chars))
+            write(*,*,advance = 'no') trim(gathered_chars((i-1)*len(my_chars)+1:i*len(my_chars)))
         end do
         ! deallocate(gathered_chars)  ! Deallocate dynamically allocated array
     end if

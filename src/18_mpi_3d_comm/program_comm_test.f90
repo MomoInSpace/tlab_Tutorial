@@ -16,7 +16,8 @@ program comm_test
     integer, dimension(3)                  :: state_xyz
     type(Grid)                             :: subgrid_handler 
     type(Complete_Grid)                    :: testgrid_handler
-    integer, dimension(3)                  :: subgrid_xyz_dims 
+    integer, dimension(3)                  :: subgrid_xyz_dims, grid_xyz_dims 
+    integer, dimension(2)                  :: task_state
     real(kind = wp), asynchronous, &
                      dimension(:), &
                      allocatable, target   :: subgrid_array!, subbuffer_array
@@ -68,10 +69,13 @@ program comm_test
             end do
      end if
 
+    ! Define Complete Grid------------------------------------------------------
     ! Broadcast Input Parameters and use pointers for better readability
     call MPI_BCAST(subgrid_xyz_dims, 3, MPI_INTEGER, 0, MPI_COMM_WORLD)
     ! Defines the number of tasks in 2d grid
-    call get_task_dims(world_size, subgrid_xyz_dims(2), dims_tasks_2d)
+    state_xyz  = [2, 1, 3]
+    task_state = [2, 1] ! If you use MPI_COMM_CART, use [2, 1]
+    call get_task_dims(world_size, subgrid_xyz_dims(state_xyz(1)), dims_tasks_2d)
 
     ! Create Communicator-------------------------------------------------------
     call MPI_CART_CREATE(MPI_COMM_WORLD, 2, dims_tasks_2d, periods, .true., MPI_COMM_CART, ierr(1)) 
@@ -83,23 +87,34 @@ program comm_test
     ! call MPI_Comm_split(MPI_COMM_CART, coords(2), coords(1), comm_myRow, ierr(1))
 
     ! Grid Initiation-----------------------------------------------------------
-    state_xyz = [2, 1, 3]
-    ! state_xyz = [2, 3, 1]
+
     ! Initiate SubGrid
     call subgrid_handler%init(state_xyz, subgrid_xyz_dims)
     call subgrid_handler%allocate_arrays(subgrid_array)
 
     ! Initiate Test Grid
-    call testgrid_handler%init_complete(state_xyz, [subgrid_xyz_dims(1)*dims_tasks_2d(1), &                                    
-                                                    subgrid_xyz_dims(2), &
-                                                    subgrid_xyz_dims(3)*dims_tasks_2d(2)], &
+    ! First we initialize the total grid as subgrid
+    grid_xyz_dims = [subgrid_xyz_dims(1), &                                    
+                     subgrid_xyz_dims(2), &
+                     subgrid_xyz_dims(3)]
+    ! Now we multiply the last two dimensions of the grid with 
+    ! the dimensions of the tasks in said direction
+    grid_xyz_dims(state_xyz(2)) = grid_xyz_dims(state_xyz(2))*dims_tasks_2d(task_state(1))
+    grid_xyz_dims(state_xyz(3)) = grid_xyz_dims(state_xyz(3))*dims_tasks_2d(task_state(2))
+
+    call testgrid_handler%init_complete(state_xyz, grid_xyz_dims, &
                                         subgrid_xyz_dims, &
                                         dims_tasks_2d, &
-                                        [1, 3])
+                                        task_state)
     call testgrid_handler%allocate_arrays_wbuffer(testgrid_array, testbuffer_array)
 
     ! Set Values For Grids------------------------------------------------------
     subgrid_array = my_rank
+    if (my_rank == 0) then
+        do i = 1, size(subgrid_handler%grid_pointer_1d), 1
+            subgrid_handler%grid_pointer_1d(i) = 90+i
+        end do
+    end if
     testbuffer_array = 99
     testgrid_array =  99
 
