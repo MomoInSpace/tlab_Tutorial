@@ -1,5 +1,6 @@
 module grid_utils
-  implicit none
+    use mpi_f08
+    implicit none
 
 contains
 
@@ -29,7 +30,7 @@ contains
     integer, intent(in):: world_size, y_s
     ! task_dims are the dimensions of the cartesian tasks 
     integer, dimension(2), intent(out):: task_dims  
-    integer:: i, j, fac, m_num, n_num, factor_diff
+    integer:: i, j, fac, m_num, n_num, factor_diff, my_rank
     integer, allocatable:: m_arr(:), n_arr(:)
     integer, allocatable:: factors_ys(:), factors_wsize(:)
 
@@ -49,7 +50,11 @@ contains
             end if
     end do
 
-    if (n_num /= y_s) print *, "Note: world_size not divisible by y_s. For flat grids this reduces communication delay! "
+    call MPI_Comm_rank(MPI_COMM_WORLD, my_rank)
+    if (my_rank == 0) then
+        if (n_num /= y_s) print *, "Note: n_num not divisible by y_s. For flat grids this reduces communication delay! "
+        if (n_num /= y_s) print *, "n_num: ", n_num, ", y_s: ", y_s
+    end if
     if (n_num == 1 .or. m_num == 1) error stop "Fatal: world_size ist not divisible by facors of y_s, except 1, or calc error. Check code"
     if (n_num == 0) error stop "Fatal: Something went terribly wrong. n_num in get_task_dims shouldn't be zero!!"
 
@@ -131,7 +136,7 @@ subroutine gather_and_print_characters(my_chars, MPI_print_comm)
 
     ! Locals
     integer:: ierr, my_rank, num_procs, root, i
-    character(len = 3000):: gathered_chars   ! Character array to hold gathered results
+    character(len = 30000):: gathered_chars   ! Character array to hold gathered results
     TYPE(MPI_Comm):: MPI_print_comm
 
     call MPI_COMM_RANK(MPI_print_comm, my_rank, ierr)
@@ -153,7 +158,7 @@ subroutine gather_and_print_characters(my_chars, MPI_print_comm)
         print*, "Gathered characters in order:"
         do i = 1, num_procs
             ! write(*,*) "noice"
-            write(*,*,advance = 'no') gathered_chars((i-1)*len(my_chars)+1:i*len(my_chars))
+            write(*,*,advance = 'no') trim(gathered_chars((i-1)*len(my_chars)+1:i*len(my_chars)))
         end do
         ! deallocate(gathered_chars)  ! Deallocate dynamically allocated array
     end if
