@@ -14,13 +14,13 @@ program comm_test
 
     integer                                :: send_num
     integer, dimension(3)                  :: state_xyz
-    type(Grid)                             :: subgrid_handler 
+    type(Grid)                             :: subgrid_handler, subgrid_handler2
     type(Complete_Grid)                    :: testgrid_handler
-    integer, dimension(3)                  :: subgrid_xyz_dims, grid_xyz_dims 
+    integer, dimension(3)                  :: subgrid_xyz_dims, grid_xyz_dims, dims
     integer, dimension(2)                  :: task_state
     real(kind = wp), asynchronous, &
                      dimension(:), &
-                     allocatable, target   :: subgrid_array!, subbuffer_array
+                     allocatable, target   :: subgrid_array, subgrid_array2!, subbuffer_array
     real(kind = wp), asynchronous, &
                      dimension(:), &
                      allocatable, target   :: testgrid_array, testbuffer_array
@@ -42,7 +42,7 @@ program comm_test
     INTEGER, DIMENSION(2):: dims_tasks_2d, coords
     INTEGER, DIMENSION(3):: ar_shape
     LOGICAL, DIMENSION(2):: periods = [.false., .false.]
-    TYPE(MPI_Comm):: MPI_COMM_CART, comm_myRow, comm_myColumn
+    TYPE(MPI_Comm):: MPI_COMM_CART, MPI_COMM_Row, MPI_COMM_Column 
     INTEGER, DIMENSION(:), allocatable:: rcounts, disp
     character(len = 200):: mpi_out
     
@@ -83,9 +83,6 @@ program comm_test
 
     call MPI_Comm_rank(MPI_COMM_CART, my_rank)
     call MPI_CART_COORDS(MPI_COMM_CART, my_rank, 2, coords, ierr(1))
-    ! call MPI_Comm_split(MPI_COMM_CART, coords(1), coords(2), comm_myColumn, ierr(1))
-    ! call MPI_Comm_split(MPI_COMM_CART, coords(2), coords(1), comm_myRow, ierr(1))
-
     ! Grid Initiation-----------------------------------------------------------
 
     ! Initiate SubGrid
@@ -118,7 +115,16 @@ program comm_test
     testbuffer_array = 99
     testgrid_array =  99
 
-    ! Send Subgrids------------------------------------------------------------
+    ! Send Subgrids to bigGrid--------------------------------------------------
+
+    call subgrid_handler2%init(state_xyz, subgrid_xyz_dims)
+    call subgrid_handler2%allocate_arrays(subgrid_array2)
+    subgrid_array2 = subgrid_array
+    call subgrid_handler%get_dims(dims)
+    ! call dns_transpose(subgrid_handler%grid_pointer_3d(1, :,:), &
+    !                    dims(2), dims(3), dims(3), &
+    !                    subgrid_handler2%grid_pointer_3d(1, :,:), & 
+    !                    dims(3))
     ! rcounts
     allocate(rcounts(world_size), stat = ierr(3))
 
@@ -131,7 +137,7 @@ program comm_test
         disp(i) = (i-1)*send_num
     end do
 
-    call MPI_Gatherv(sendbuf = subgrid_handler%grid_pointer_1d, &
+    call MPI_Gatherv(sendbuf = subgrid_handler2%grid_pointer_1d, &
                      sendcount = send_num, &
                      sendtype = MPI_DOUBLE, &
                      recvbuf = testgrid_handler%buffer_pointer_1d, &
@@ -148,6 +154,78 @@ program comm_test
         call testgrid_handler%reorder_gatherv()!, dims_tasks_2d, subgrid_xyz_dims)
      end if
 
+    ierr = 0
+    if (allocated(rcounts)) deallocate(rcounts, stat = ierr(1))
+    if (allocated(disp)) deallocate(disp, stat = ierr(2))
+    if (sum(ierr) /= 0) print *, "u(sub_grid_y), : Deallocation request denied"
+
+    ! SubComm Initialization----------------------------------------------------
+    ! call MPI_Comm_split(MPI_COMM_CART, coords(1), coords(2), MPI_COMM_Column, ierr(1))
+    call MPI_Comm_split(MPI_COMM_CART, coords(2), coords(1), MPI_COMM_Row, ierr(1))
+    call MPI_Comm_rank(MPI_COMM_Row, my_col)
+    call MPI_Comm_size(MPI_COMM_Row, world_size)
+
+    ! Subgrid SubgridComm-------------------------------------------------------
+
+
+
+    ! subroutine dns_transpose(a, nra, nca, ma, b, mb)
+    !     use TLAB_CONSTANTS
+    !     implicit none
+
+    !     integer(wi), intent(in):: nra      ! Number of rows in a
+    !     integer(wi), intent(in):: nca      ! Number of columns in b
+    !     integer(wi), intent(in):: ma       ! Leading dimension on the input matrix a
+    !     integer(wi), intent(in):: mb       ! Leading dimension on the output matrix b
+    !     real(wp), intent(in)    :: a(ma, *)  ! Input array
+    !     real(wp), intent(out)   :: b(mb, *)  ! Transposed array
+    
+    if (my_rank == 0) write(*,*)  "Before switch"
+    if (my_rank == 0) write(*,*)  subgrid_handler%complete_pointer_1d
+    call subgrid_handler%switch_dims_12()
+    if (my_rank == 0) write(*,*)  "After switch"
+    if (my_rank == 0) write(*,*)  subgrid_handler%complete_pointer_1d
+
+
+    ! rcounts
+    allocate(rcounts(world_size), stat = ierr(3))
+
+    ! disp
+    allocate(disp(world_size), stat = ierr(4))
+
+    send_num =  prod(subgrid_handler%grid_xyz_dims)/world_size
+
+    ! call MPI_Gather(sendbuf    = subgrid_handler%grid_pointer_1d, &
+    !                 sendcount  = send_num, &
+    !                 sendtype   = MPI_DOUBLE, &
+    !                 recvbuf    = subgrid_handler2%grid_pointer_1d, &
+    !                 recvcount  = send_num, &
+    !                 recvtype   = MPI_DOUBLE, &
+    !                 root       = 0, &
+    !                 comm       = MPI_COMM_Row, &
+    !                 ierror     = ierr(1))
+
+    ! call subgrid_handler2%reorder_gatherv_sub(world_size, subgrid_handler%grid_pointer_3d)
+
+    if (my_rank == 0) then
+        write(*,*) ""
+        write(*,*) ""
+        write(*,*) ""
+        call subgrid_handler2%get_dims(dims)
+        write(*,*) "Dims (1, :,:)"
+        write(fmt, '(A, I0, A)') '(', dims(2), 'F4.0)'
+        write(*,fmt) subgrid_handler2%grid_pointer_3d(1, :,:)
+
+        write(*,*) "Dims (:,1, :)"
+        write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
+        write(*,fmt) subgrid_handler2%grid_pointer_3d(:, 1, :)
+
+        write(*,*) "Dims (:,:,1)"
+        write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
+        write(*,fmt) subgrid_handler2%grid_pointer_3d(:, :, 1)
+
+        write(*,*) subgrid_handler2%grid_pointer_3d
+    end if
 
     ! call MPI_BARRIER(MPI_COMM_CART)
     ! write(mpi_out, *) "My Rank: ", my_rank, ", My Coords: ", coords, ", Tasks m and n: ", dims_tasks_2d

@@ -8,10 +8,11 @@ module grid_handler
     type:: Grid
         integer, dimension(3)        :: state_xyz
         integer, dimension(3)        :: grid_xyz_dims
+        integer                      :: overhead_factor, free_space
         real(kind = wp), pointer, &
-                         dimension(:,:,:):: grid_pointer_3d 
+                         dimension(:,:,:):: grid_pointer_3d
         real(kind = wp), pointer, &
-                         dimension(:):: grid_pointer_1d
+                         dimension(:):: grid_pointer_1d, overhead_pointer_1d, complete_pointer_1d
 
     contains
         procedure:: init
@@ -19,6 +20,8 @@ module grid_handler
         procedure:: set_pointer
         procedure:: allocate_arrays
         procedure:: get_dims
+        procedure:: switch_dims_12
+        procedure:: reorder_gatherv_sub
     end type Grid 
 
 contains
@@ -31,29 +34,42 @@ contains
                  dimension(3)               :: grid_xyz_dims
         integer, dimension(2):: ierr 
 
+        self%overhead_factor = 2
         self%state_xyz = state_xyz
         self%grid_xyz_dims = grid_xyz_dims
 
     end subroutine init
 
     subroutine allocate_arrays(self, grid_array)
-        class(Grid), intent(in)          :: self
+        class(Grid), intent(inout)          :: self
         ! integer, intent(in), &
         !          dimension(3)               :: state_xyz
         real(kind = wp), intent(inout),   &
                          asynchronous, &
                          dimension(:), &
                          allocatable, target:: grid_array
-        integer, dimension(2)               :: ierr
+        integer                             :: ierr
+        integer                             :: max_area, free_space, total_space
+
+
+        max_area = max(prod(self%grid_xyz_dims(1:2)), &
+                       prod(self%grid_xyz_dims(2:3)), &
+                       prod(self%grid_xyz_dims(1:3:2)))
+        free_space = max_area*self%overhead_factor
+        total_space = free_space+prod(self%grid_xyz_dims)
+
+        self%free_space = free_space
+
 
         ! Allocate the grid_array with length prod(grid_xyz_dims)
-        allocate( &
-                 grid_array(prod(self%grid_xyz_dims)), stat = ierr(1) &
-        )
+        allocate(grid_array(total_space), stat = ierr)
 
-    if (sum(ierr)/= 0) error stop "subgrid grid_array: Allocation request denied"
+    if (ierr /= 0) error stop "subgrid grid_array: Allocation request denied"
 
-    call self%set_pointer(self%grid_pointer_1d, self%grid_pointer_3d, grid_array)
+    ! self%overhead_pointer_1d => grid_array(:free_space)
+    self%complete_pointer_1d => grid_array
+    call self%set_pointer(self%grid_pointer_1d, self%grid_pointer_3d, &
+                          grid_array(free_space:))
 
     end subroutine allocate_arrays
 
@@ -77,7 +93,8 @@ contains
         real(kind = wp), intent(in),   &
                          asynchronous, &
                          dimension(:), &
-                         allocatable, target        :: grid_array 
+                         target        :: grid_array 
+                         ! allocatable, target        :: grid_array 
 
         ! dims = self%state_xyz
         call self%get_dims(dims)
@@ -88,6 +105,31 @@ contains
                              1:dims(3)) => grid_array
 
     end subroutine set_pointer
+
+    subroutine switch_dims_12(self)
+        class(Grid), intent(inout):: self
+        integer, dimension(3)            :: dims
+        real(kind = wp), pointer, &
+                         dimension(:,:):: surface 
+        integer:: i
+        real(kind = wp):: placeholder
+
+
+        call self%get_dims(dims)
+        
+        do i = 1, dims(3), 1
+            ! surface => reshape(self%complete_pointer_1d(dim(1)*dim(2)*(i-1)+1:dim(1)*dim(2)*i), [dim(2), dim(1)])
+             call dns_transpose(self%grid_pointer_1d(dims(1)*dims(2)*(i-1):dims(1)*dims(2)*i), & 
+                                dims(1), dims(2), dims(2), &
+                                self%complete_pointer_1d(dims(1)*dims(2)*(i-1):dims(1)*dims(2)*i), & 
+                                dims(2))
+        end do
+
+        self%state_xyz = [dims(2), dims(1), dims(3)]
+        call self%set_pointer(self%grid_pointer_1d, self%grid_pointer_3d, &
+                              self%complete_pointer_1d(:self%free_space))
+        
+    end subroutine switch_dims_12
 
     subroutine get_state_string(self, print_bool, state_string)
         class(Grid), intent(in)   :: self
@@ -117,5 +159,123 @@ contains
         end if
 
     end subroutine get_state_string
+
+    subroutine reorder_gatherv_sub(self, len_comm, grid_pointer_3d)!, dims_tasks_2d, grid_xyz_dims)!, state, grid_array, buffer_array)
+        class(Grid), intent(in)                     :: self
+        real(kind = wp), intent(out), &
+                         pointer, dimension(:,:,:)  :: grid_pointer_3d 
+        integer, dimension(3)                       :: dims
+        integer:: i, j, k, m, n, p, n_max, m_max, len_comm
+        ! integer, dimension(2):: dims_tasks_2d
+        ! integer, dimension(3):: grid_xyz_dims
+        integer, dimension(2)               :: ierr
+        character(len = 100):: fmt
+        
+        p = 1
+        n_max = 1  ! self%task_dims(self%task_state(1))
+        m_max = len_comm  ! self%task_dims(self%task_state(2))
+        call self%get_dims(dims)
+
+        do m = 1, m_max  
+            do n = 1, n_max  
+                do i = 1, dims(3)  
+                    do j = 1, dims(2)  
+                        grid_pointer_3d(:, j+dims(2)*(n-1), i+dims(3)*(m-1)) = &
+                        self%grid_pointer_1d(p:p+dims(1))
+                        p = p+dims(1)  
+                    end do
+                end do
+            end do
+        end do
+
+
+        ! write(*,*) "topmost xz-surface of total grid, with shape:"
+        ! write(*,*) "State:   ", self%state_xyz
+        ! call self%get_dims(dims)
+        ! write(*,*) "Subgrid: ", dims
+        ! call self%get_dims(dims)
+        ! write(*,*) "Dims:    ", dims
+        ! ! write(*,*) "Dims2:"
+
+        ! write(*,*) "Dims (1, :,:)"
+        ! write(fmt, '(A, I0, A)') '(', dims(2), 'F4.0)'
+        ! write(*,fmt) self%grid_pointer_3d(1, :,:)
+
+        ! write(*,*) "Dims (:,1, :)"
+        ! write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
+        ! write(*,fmt) self%grid_pointer_3d(:, 1, :)
+
+        ! write(*,*) "Dims (:,:,1)"
+        ! write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
+        ! write(*,fmt) self%grid_pointer_3d(:, :, 1)
+        ! write(*,*) "Dims3:"
+        ! write(fmt, '(A, I0, A)') '(', dims(3), 'F4.0)'
+        ! write(*,fmt) self%grid_pointer_3d(1, :,:)
+        ! write(*,*) self%grid_pointer_3d(1, :,:)
+        ! write(*,*) shape(self%grid_pointer_3d(1, :,:))
+
+    end subroutine reorder_gatherv_sub
+
+    subroutine dns_transpose(a, nra, nca, ma, b, mb)
+        use TLAB_CONSTANTS
+        implicit none
+
+        integer(wi), intent(in):: nra      ! Number of rows in a
+        integer(wi), intent(in):: nca      ! Number of columns in b
+        integer(wi), intent(in):: ma       ! Leading dimension on the input matrix a
+        integer(wi), intent(in):: mb       ! Leading dimension on the output matrix b
+        real(wp), intent(in)    :: a(ma, *)  ! Input array
+        real(wp), intent(out)   :: b(mb, *)  ! Transposed array
+
+    ! -------------------------------------------------------------------
+        integer(wi) jb, kb
+
+        integer(wi):: srt, end, siz
+
+        integer(wi) k, j, jj, kk
+        integer(wi) last_k, last_j
+
+        parameter(jb = 64, kb = 64)
+    ! -------------------------------------------------------------------
+
+        ! call DNS_OMP_PARTITION(nca, srt, end, siz)
+          ! omp_siz = len 
+          ! omp_srt = 1 
+          ! omp_end = len
+        ! siz = nca
+        srt = 1
+        end = nca
+
+        kk = 1; jj = 1
+
+        do k = srt, end-kb+1, kb; 
+            do j = 1, nra-jb+1, jb; 
+                do jj = j, j+jb-1
+                    do kk = k, k+kb-1
+                        b(kk, jj) = a(jj, kk)
+                    end do
+                end do
+            end do
+        end do
+
+        last_k = kk
+        last_j = jj
+
+        do k = last_k, end
+            do j = 1, nra
+                b(k, j) = a(j, k)
+            end do
+        end do
+
+        do k = srt, end
+            do j = last_j, nra
+                b(k, j) = a(j, k)
+            end do
+        end do
+
+
+
+        return
+    end subroutine dns_transpose
 
 end module grid_handler 
