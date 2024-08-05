@@ -71,8 +71,8 @@ contains
     end subroutine init
 
     function get_dims(self) result(dims)
-        class(Grid)                      :: self
-        integer, dimension(3), intent(out)           :: dims
+        class(Grid3D)        :: self
+        integer, dimension(3):: dims
 
         dims(1) = self%grid_xyz_dims(self%state_xyz(1))
         dims(2) = self%grid_xyz_dims(self%state_xyz(2))
@@ -117,7 +117,7 @@ contains
 
     end subroutine set_pointer_1D_cpu
 
-    subroutine get_pointer_3D_cpu(self, grid3D_pointer)
+    function get_pointer_3D_cpu(self) result(grid3D_pointer)
         class(Grid3D_cpu), intent(inout)          :: self
         real(kind = wp), pointer, &
                          dimension(:,:,:):: grid3D_pointer 
@@ -128,20 +128,40 @@ contains
         grid3D_pointer(1:dims(1), &
                        1:dims(2), &
                        1:dims(3)) => grid_array
-    end subroutine get_pointer_3D_cpu
+    end function get_pointer_3D_cpu
 
     subroutine print_state(self, state_string)
         class(Grid3D), intent(in)   :: self
         character(len = 3), optional:: state_string
         integer, dimension(3)       :: dims
+        real(kind = wp), pointer, &
+                         dimension(:,:,:):: grid3D_pointer 
+        ! Formating:
+        character(len = 100):: fmt
 
         dims = self%get_dims()
+        grid3D_pointer = self%get_pointer_3D()
 
         state_string(dims(1):dims(1)) = "x"
         state_string(dims(2):dims(2)) = "y"
         state_string(dims(3):dims(3)) = "z"
 
         write(*,*) "State: " state_string
+
+        write(*,*) "Dims (1, :,:)"
+        write(fmt, '(A, I0, A)') '(', dims(2), 'F4.0)'
+        write(*,fmt) grid3D_pointer(1, :,:)
+
+        write(*,*) "Dims (:,1, :)"
+        write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
+        write(*,fmt) grid3D_pointer(:, 1, :)
+
+        write(*,*) "Dims (:,:,1)"
+        write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
+        write(*,fmt) grid3D_pointer(:, :, 1)
+
+
+        ! write(*,*) grid3D_pointer
 
     end subroutine print_state 
 

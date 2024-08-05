@@ -17,6 +17,11 @@ module grid_comm_module
         procedure:: init
         procedure:: rotate_grid_row_213
         procedure:: rotate_grid_col_312
+
+        !Only For Debugging:
+        ! procedure:: gather_grid
+        ! procedure:: allocate_gather_buffer
+        ! procedure:: reorder_gatherv
     end type Grid3D_Comm_Handler
 
 
@@ -24,7 +29,7 @@ contains
 
     subroutine init(self, world_size, vertical_dimension)
         class(Grid3D_Comm_Handler):: self
-        integer              :: world_size, rank
+        integer              :: world_size, rank, vertical_dimension
         integer, dimension(2):: task_dims  
         logical, dimension(2):: periods = [.false., .false.]
         ! Error integer:
@@ -104,5 +109,163 @@ contains
             endif
         enddo
     end function get_factors
+
+    function prod(arr)
+        integer, dimension(:), intent(in):: arr
+        integer:: prod
+        integer:: i
+
+        prod = 1  ! Initialize product
+
+        do i = 1, size(arr)
+            prod = prod*arr(i)
+        end do
+    end function prod
+
+    ! subroutine gather_grid(self, subgrid, complete_grid_array, buffer_array)
+    !     class(Grid3D_Comm_Handler):: self
+    !     class(Grid3D) :: subgrid
+    !     real(kind = wp), asynchronous, &
+    !                      dimension(:), &
+    !                      allocatable, target   :: complete_grid_array, buffer_array
+    !     integer :: rank
+    !     integer, dimension(2):: task_state
+    !     integer, dimension(3):: state_xyz, grid_xyz_dims
+    !     integer, dimension(100):: ierr  = 0
+
+    !     call MPI_Comm_rank(self%MPI_COMM_CART, rank)
+
+    !     if(rank == 0) then
+    !         call allocate_complete_grid(subgrid, complete_grid_array, buffer_array)
+    !     end if
+
+
+    !     send_num = prod(grid_xyz_dims)
+    !     call MPI_Gather(sendbuf    = subgrid%grid_space, &
+    !                     sendcount  = send_num, &
+    !                     sendtype   = MPI_DOUBLE, &
+    !                     recvbuf    = buffer_array, &
+    !                     recvcount  = send_num, &
+    !                     recvtype   = MPI_DOUBLE, &
+    !                     root       = 0, &
+    !                     comm       = MPI_COMM_CART, &
+    !                     ierror     = ierr(3))
+
+    ! ! Write For Testing
+    !  if (my_rank == 0) then 
+    !     call testgrid_handler%reorder_gatherv()!, dims_tasks_2d, subgrid_xyz_dims)
+    !  end if
+
+    ! if (sum(ierr) /= 0) print *, "Something went terribly wrong in gather_grid"
+
+
+    ! end subroutine gather_grid
+
+    ! subroutine allocate_complete_grid(subgrid, complete_grid_array, buffer_array)
+    !     class(Grid3D) :: subgrid
+    !     real(kind = wp), asynchronous, &
+    !                      dimension(:), &
+    !                      allocatable, target   :: complete_grid_array, buffer_array
+    !     integer :: rank
+    !     integer, dimension(2):: task_state
+    !     integer, dimension(3):: state_xyz, grid_xyz_dims, dims, dims_complete
+    !     integer, dimension(2):: ierr  = 0
+    !     integer:: n_max, m_max
+    !         task_state = [2, 1] ! If you use MPI_COMM_CART, use [2, 1]
+    !         ! Initiate Test Grid
+    !         ! First we initialize the total grid as subgrid
+    !         grid_xyz_dims = subgrid%grid_xyz_dims
+    !         state_xyz = subgrid%state_xyz
+    !         dims = get_dims()
+    !         MPI_Cart_Dims = self%MPI_Cart_Dims
+
+
+    !         dims_complete(1) = grid_xyz_dims(state_xyz(1))
+    !         dims_complete(2) = grid_xyz_dims(state_xyz(2))
+    !         dims_complete(3) = grid_xyz_dims(state_xyz(3))
+    !                         
+    !         ! Now we multiply the last two dimensions of the grid with 
+    !         ! the dimensions of the tasks in said direction
+    !         n_max = MPI_Cart_Dims(task_state(1))
+    !         m_max = MPI_Cart_Dims(task_state(2))
+    !         grid_xyz_dims(state_xyz(2)) = grid_xyz_dims(state_xyz(2))*n_max
+    !         grid_xyz_dims(state_xyz(3)) = grid_xyz_dims(state_xyz(3))*m_max
+
+
+    !     ! Allocate the grid_array with length prod(grid_xyz_dims)
+    !     allocate( &
+    !              grid_array(prod(grid_xyz_dims)), stat = ierr(1) &
+    !     )
+    !     allocate( &
+    !              buffer_array(prod(grid_xyz_dims)), stat = ierr(2) &
+    !     )
+
+    !     if (sum(ierr)/= 0) error stop "subgrid grid_array: Allocation request denied"
+
+    !     call reorder_gatherv(dims, n_max, m_max, dims_complete )
+    ! end subroutine allocate_complete_grid
+
+    ! subroutine reorder_gatherv(dims, n_max, m_max, dims_complete)!, dims_tasks_2d, grid_xyz_dims)!, state, grid_array, buffer_array)
+    !     real(kind = wp), pointer, &
+    !                      dimension(:,:,:):: buffer_pointer_3d
+    !     real(kind = wp), pointer, &
+    !                      dimension(:):: buffer_pointer_1d
+    !     ! class(Complete_Grid), intent(in)          :: self
+    !     integer, dimension(3)           :: dims, dims_complete
+    !     integer:: i, j, k, m, n, p, n_max, m_max
+    !     ! integer, dimension(2):: dims_tasks_2d
+    !     ! integer, dimension(3):: grid_xyz_dims
+    !     integer, dimension(2)               :: ierr
+    !     character(len = 100):: fmt
+
+
+    !     
+    !     p = 1
+    !     call self%get_sub_dims(dims)
+
+    !     do m = 1, m_max  
+    !         do n = 1, n_max  
+    !             do i = 1, dims(3)  
+    !                 do j = 1, dims(2)  
+    !                     self%grid_pointer_3d(:, j+dims(2)*(n-1), i+dims(3)*(m-1)) = &
+    !                     self%buffer_pointer_1d(p:p+dims(1))
+    !                     p = p+dims(1)  
+    !                 end do
+    !             end do
+    !         end do
+    !     end do
+
+
+    !     ! write(*,*) "topmost xz-surface of total grid, with shape:"
+    !     write(*,*) "State:   ", self%state_xyz
+    !     call self%get_sub_dims(dims)
+    !     write(*,*) "Subgrid: ", dims
+    !     call self%get_dims(dims)
+    !     write(*,*) "Dims:    ", dims
+    !     ! write(*,*) "Dims2:"
+
+    !     write(*,*) "Dims (1, :,:)"
+    !     write(fmt, '(A, I0, A)') '(', dims(2), 'F4.0)'
+    !     write(*,fmt) self%grid_pointer_3d(1, :,:)
+
+    !     write(*,*) "Dims (:,1, :)"
+    !     write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
+    !     write(*,fmt) self%grid_pointer_3d(:, 1, :)
+
+    !     write(*,*) "Dims (:,:,1)"
+    !     write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
+    !     write(*,fmt) self%grid_pointer_3d(:, :, 1)
+    !     ! write(*,*) "Dims3:"
+    !     ! write(fmt, '(A, I0, A)') '(', dims(3), 'F4.0)'
+    !     ! write(*,fmt) self%grid_pointer_3d(1, :,:)
+    !     ! write(*,*) self%grid_pointer_3d(1, :,:)
+    !     ! write(*,*) shape(self%grid_pointer_3d(1, :,:))
+
+    ! end subroutine reorder_gatherv
+
+    ! procedure:: gather_grid
+    ! procedure:: allocate_gather_buffer
+    ! procedure:: reorder_gatherv
+
 
 end module grid_comm_module
