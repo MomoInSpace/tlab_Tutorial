@@ -141,13 +141,15 @@ contains
         integer, intent(out), &
                  dimension(3)            :: dims
 
-        call self%get_dims(dims)
+        dims = self%get_dims()
         call self%get_pointer_3D(grid_3D_pointer)
 
-        work_space(1:dim(2), &
-                   1:dim(1), &
-                   1:dim(3)) => self%allocated_space(1+self%free_space-dim(1)*dim(2): &
-                                                     1+self%free_space+dim(1)*dim(2)*(dim(3)-1))
+        work_space(1:dims(2), &
+                   1:dims(1), &
+                   1:dims(3)) => &
+            reshape(self%allocated_space(1+self%free_space-dims(1)*dims(2): &
+                                 1+self%free_space+dims(1)*dims(2)*(dims(3)-1)), &
+                    [dims(2), dims(1), dims(3)])
  
     end subroutine get_switch_dims_213_workspace
 
