@@ -16,13 +16,9 @@ module grid_comm_module
 
     contains
         procedure:: init
-        ! procedure:: rotate_grid_row_213
+        procedure:: rotate_grid_row_213_cpu
         ! procedure:: rotate_grid_col_312
 
-        !Only For Debugging:
-        ! procedure:: gather_grid
-        ! procedure:: allocate_gather_buffer
-        ! procedure:: reorder_gatherv
     end type Grid3D_Comm_Handler
 
 
@@ -50,6 +46,53 @@ contains
         call MPI_Comm_split(self%MPI_COMM_CART, self%MPI_Cart_Coords(1), self%MPI_Cart_Coords(2), self%MPI_Comm_Column, ierr(4))
         
     end subroutine init
+
+    subroutine rotate_grid_row_213_cpu(self, grid_handler_send, grid_handler_rcv)
+        class(Grid3D_Comm_Handler)         :: self
+        class(Grid3D_cpu), intent(inout)   :: grid_handler_send, grid_handler_rcv
+        real(kind = wp), pointer, &
+                         dimension(:,:,:):: work_space, grid3D_pointer
+        integer, dimension(3)            :: dims
+        integer                          :: root, send_num, ierr0
+        integer, dimension(:), &
+                 allocatable             :: ierr
+
+        call grid_handler%get_switch_dims_213_workspace(dims, work_space, grid3D_pointer)
+        grid_handler_rcv%state_xyz = [dim(2), dim(1), dim(3)]
+        send_num = dim(1)*dim(2)
+        
+        allocate(ierr(dim(3)), stat = ierr0)
+        if (ierr0 /= 0) print *, "ierr: Allocation request denied, grid_row_213"
+        ierr = 0
+
+        
+        do k = 1, dim(3) 
+            do j = 1, dim(1) 
+                do i = 1, dim(2) 
+                work_space(i, j, k) =  grid3D_pointer(j, i, k)
+                end do
+            end do
+            
+            root = k*dim(3)/row_size
+            call MPI_Gather(sendbuf    = work_space(:,:,k), &
+                            sendcount  = send_num, &
+                            sendtype   = MPI_DOUBLE, &
+                            recvbuf    = grid_handler_rcv%grid_space, &
+                            recvcount  = send_num, &
+                            recvtype   = MPI_DOUBLE, &
+                            root       = root, &
+                            comm       = self%MPI_Comm_Row, &
+                            ierror     = ierr(k))
+            
+        end do
+
+        if (sum(ierr) /= 0) error stop "Grid Row 213 Failed"
+
+        if (allocated(ierr)) deallocate(ierr, stat = ierr0)
+        if (ierr0 /= 0) print *, "ierr: Deallocation request denied, grid_row_213"
+
+    end subroutine rotate_grid_row_213_cpu
+
 
     subroutine get_task_dims(world_size, y_s, task_dims)
     ! Minimizes max(dims_task_2d), 
@@ -110,5 +153,7 @@ contains
             endif
         enddo
     end function get_factors
+
+
 
 end module grid_comm_module

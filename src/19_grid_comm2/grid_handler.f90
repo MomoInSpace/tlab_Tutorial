@@ -34,7 +34,7 @@ module grid_handler
         procedure:: set_pointer_1D
         procedure:: get_pointer_3D
         procedure:: allocate_array
-        ! procedure:: switch_dims_213_step
+        procedure:: switch_dims_213_step
         ! procedure:: switch_dims_132_step
         procedure:: print_state
     end type Grid3D
@@ -133,6 +133,24 @@ contains
                        1:dims(3)) => self%grid_space
     end subroutine get_pointer_3D
 
+    subroutine get_switch_dims_213_workspace(self, dims, work_space, grid_3D_pointer)
+        class(Grid3D), intent(in):: self
+        real(kind = wp), intent(out), &
+                         pointer, &
+                         dimension(:,:,:):: work_space, grid_3D_pointer
+        integer, intent(out), &
+                 dimension(3)            :: dims
+
+        call self%get_dims(dims)
+        call self%get_pointer_3D(grid_3D_pointer)
+
+        work_space(1:dim(2), &
+                   1:dim(1), &
+                   1:dim(3)) => self%allocated_space(1+self%free_space-dim(1)*dim(2): &
+                                                     1+self%free_space+dim(1)*dim(2)*(dim(3)-1))
+ 
+    end subroutine get_switch_dims_213_workspace
+
     subroutine print_state(self, state_string)
         class(Grid3D), intent(in)   :: self
         character(len = 3), optional:: state_string
@@ -167,6 +185,8 @@ contains
         ! write(*,*) grid3D_pointer
 
     end subroutine print_state 
+
+
 
     ! Private Subourtines and Functions ========================================
     ! ==========================================================================

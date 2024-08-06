@@ -21,7 +21,7 @@ program comm_test
 
     integer:: world_size, my_rank
     type(Grid3D_Comm_Handler):: grid_comm_handler
-    type(Grid3D_cpu):: grid_handler
+    type(Grid3D_cpu):: grid_handler, grid_handler_rcv
     type(Complete_grid_debugger):: testgrid_handler
     integer, dimension(3)                  :: state_xyz
     integer, dimension(3)                  :: subgrid_xyz_dims, grid_xyz_dims, dims
@@ -65,10 +65,14 @@ program comm_test
 
     ! Initiate derived types
     call grid_handler%init(state_xyz, subgrid_xyz_dims, 2)
-    allocate(q(grid_handler%total_space, 1), stat = ierr(1))
+    call grid_handler_rcv%init(state_xyz, subgrid_xyz_dims, 2)
+
+    allocate(q(grid_handler%total_space, 2), stat = ierr(1))
     if (ierr(1) /= 0) print *, "q(1, grid_handler%total_space), : Allocation request denied"
     q = my_rank
+
     call grid_handler%set_pointer_1D(q(:, 1))
+    call grid_handler_rcv%set_pointer_1D(q(:, 2))
     call grid_handler%get_pointer_3D(u)
 
     call grid_comm_handler%init(world_size, subgrid_xyz_dims(state_xyz(1)))
@@ -108,5 +112,25 @@ program comm_test
      if (my_rank == 0) then 
         call testgrid_handler%reorder_gatherv()!, dims_tasks_2d, subgrid_xyz_dims)
      end if
+
+    call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler, grid_handler_rcv)
+
+    write(*,*) "Stunde der Wahrheit"
+
+    call MPI_Gather(sendbuf    = grid_handler_rcv%grid_space, &
+                    sendcount  = send_num, &
+                    sendtype   = MPI_DOUBLE, &
+                    recvbuf    = testgrid_handler%buffer_pointer_1d, &
+                    recvcount  = send_num, &
+                    recvtype   = MPI_DOUBLE, &
+                    root       = 0, &
+                    comm       = grid_comm_handler%MPI_COMM_CART, &
+                    ierror     = ierr(1))
+
+    ! Write For Testing
+     if (my_rank == 0) then 
+        call testgrid_handler%reorder_gatherv()!, dims_tasks_2d, subgrid_xyz_dims)
+     end if
+
 
 end program comm_test
