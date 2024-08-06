@@ -11,12 +11,13 @@ module grid_comm_module
 
         TYPE(MPI_Comm):: MPI_COMM_CART, MPI_Comm_Row, MPI_Comm_Column
         integer              :: world_size, row_size, column_size
+        integer              :: cart_rank, row_rank, column_rank
         integer, dimension(2):: MPI_Cart_Dims, MPI_Cart_Coords
 
     contains
         procedure:: init
-        procedure:: rotate_grid_row_213
-        procedure:: rotate_grid_col_312
+        ! procedure:: rotate_grid_row_213
+        ! procedure:: rotate_grid_col_312
 
         !Only For Debugging:
         ! procedure:: gather_grid
@@ -39,14 +40,14 @@ contains
 
         call MPI_CART_CREATE(MPI_COMM_WORLD, 2, self%MPI_Cart_Dims, periods, .true., self%MPI_COMM_CART, ierr(1)) 
 
-        call MPI_Comm_rank(MPI_COMM_CART, rank)
-        call MPI_CART_COORDS(MPI_COMM_CART, rank, 2, MPI_Cart_Coords, ierr(2))
+        call MPI_Comm_rank(self%MPI_COMM_CART, self%cart_rank)
+        call MPI_CART_COORDS(self%MPI_COMM_CART, self%cart_rank, 2, self%MPI_Cart_Coords, ierr(2))
 
         ! Create Row communicator
-        call MPI_Comm_split(MPI_COMM_CART, MPI_Cart_Coords(2), MPI_Cart_Coords(1), self%MPI_Comm_Row, ierr(3))
+        call MPI_Comm_split(self%MPI_COMM_CART, self%MPI_Cart_Coords(2), self%MPI_Cart_Coords(1), self%MPI_Comm_Row, ierr(3))
 
         ! Create Column communicator
-        call MPI_Comm_split(MPI_COMM_CART, MPI_Cart_Coords(1), MPI_Cart_Coords(2), self%MPI_Comm_Column, ierr(4))
+        call MPI_Comm_split(self%MPI_COMM_CART, self%MPI_Cart_Coords(1), self%MPI_Cart_Coords(2), self%MPI_Comm_Column, ierr(4))
         
     end subroutine init
 
@@ -109,17 +110,5 @@ contains
             endif
         enddo
     end function get_factors
-
-    function prod(arr)
-        integer, dimension(:), intent(in):: arr
-        integer:: prod
-        integer:: i
-
-        prod = 1  ! Initialize product
-
-        do i = 1, size(arr)
-            prod = prod*arr(i)
-        end do
-    end function prod
 
 end module grid_comm_module

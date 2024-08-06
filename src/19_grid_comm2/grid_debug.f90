@@ -1,8 +1,9 @@
 module grid_debug 
     use TLAB_CONSTANTS, only: wp
-    use grid_utils
     use mpi_f08
     implicit none
+
+    private:: prod
 
   ! Define the Point type
     type:: Grid_debugger

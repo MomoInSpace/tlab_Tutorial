@@ -2,7 +2,7 @@ module grid_handler
     use TLAB_CONSTANTS, only: wp
     implicit none
 
-    private:: prod
+    ! private:: prod
 
   ! Define the Point type
     type, abstract:: Grid3D
@@ -16,7 +16,7 @@ module grid_handler
         integer, dimension(3):: grid_xyz_dims
         ! grid_xyz_dims saves the length of each dimension x, y and z
 
-        integer:: overhead_factor, free_space
+        integer:: overhead_factor, free_space, total_space
         ! overhead gives you the factor of the overhead that needs to be
         !  there for a fast communication. A factor of 2 means that we need
         !  2 surfaces space, i.e. structured_grid(:,:,:+2)
@@ -41,10 +41,10 @@ module grid_handler
 
   ! Define the Point type
     type, extends(Grid3D):: Grid3D_cpu 
-    contains
-        procedure:: set_pointer_1D => set_pointer_1D_cpu
-        procedure:: get_pointer_3D => get_pointer_3D_cpu
-        procedure:: allocate_array => allocate_array_cpu
+    ! contains
+        ! procedure:: set_pointer_1D => set_pointer_1D_cpu
+        ! procedure:: get_pointer_3D => get_pointer_3D_cpu
+        ! procedure:: allocate_array => allocate_array_cpu
     end type Grid3D_cpu
 
 contains
@@ -60,13 +60,14 @@ contains
         ! Initialisation of Grid3D.=============================================
 
         self%state_xyz = state_xyz
-        self%grid_xyz_dims = grid_xyz_dim
+        self%grid_xyz_dims = grid_xyz_dims
         self%overhead_factor = overhead_factor
 
         max_area = max(prod(self%grid_xyz_dims(1:2)), &
                        prod(self%grid_xyz_dims(2:3)), &
                        prod(self%grid_xyz_dims(1:3:2)))
         self%free_space = max_area*self%overhead_factor
+        self%total_space = self%free_space+prod(self%grid_xyz_dims)
 
     end subroutine init
 
@@ -80,8 +81,8 @@ contains
 
     end function get_dims
 
-    subroutine allocate_array_cpu(self, grid_array)
-            class(Grid3D_cpu), intent(inout)          :: self
+    subroutine allocate_array(self, grid_array)
+            class(Grid3D), intent(inout)          :: self
             real(kind = wp), intent(inout),   &
                              asynchronous, &
                              dimension(:), &
@@ -90,18 +91,16 @@ contains
             integer                             :: total_space
 
 
-            total_space = self%free_space+prod(self%grid_xyz_dims)
-
             ! Allocate the grid_array with length prod(grid_xyz_dims)
-            allocate(grid_array(total_space), stat = ierr)
+            allocate(grid_array(self%total_space), stat = ierr)
             if (ierr /= 0) error stop "subgrid grid_array: Allocation request denied"
 
             call self%set_pointer_1D(grid_array)
 
-    end subroutine allocate_array_cpu
+    end subroutine allocate_array
 
-    subroutine set_pointer_1D_cpu(self, grid_array)
-        class(Grid3D_cpu), intent(inout)          :: self
+    subroutine set_pointer_1D(self, grid_array)
+        class(Grid3D), intent(inout)          :: self
         real(kind = wp), pointer, &
                          dimension(:):: grid_space, allocated_space
         real(kind = wp), intent(in),   &
@@ -111,24 +110,28 @@ contains
         integer                        :: total_space
 
         total_space = self%free_space+prod(self%grid_xyz_dims)
-        if (len(grid_array) < total_space) error stop "Array is too small for grid"
-        self%grid_space => grid_array(self%free_space:)
+        if (size(grid_array) < total_space) then 
+            write(*,*) "Array is too small for grid", size(grid_array), "< ",total_space
+            error stop 
+        end if
+        self%grid_space => grid_array(self%free_space+1:)  ! INDEXING MIGHT BE WRONG
         self%allocated_space => grid_array
 
-    end subroutine set_pointer_1D_cpu
+    end subroutine set_pointer_1D
 
-    function get_pointer_3D_cpu(self) result(grid3D_pointer)
-        class(Grid3D_cpu), intent(inout)          :: self
-        real(kind = wp), pointer, &
-                         dimension(:,:,:):: grid3D_pointer 
+    subroutine get_pointer_3D(self, grid3D_pointer)  ! result(grid3D_pointer)
+        class(Grid3D), intent(in)          :: self
+        real(kind = wp), intent(inout), &
+                         pointer, &
+                         dimension(:,:,:):: grid3D_pointer
         integer, dimension(3)            :: dims
 
         dims = self%get_dims()
 
         grid3D_pointer(1:dims(1), &
                        1:dims(2), &
-                       1:dims(3)) => grid_array
-    end function get_pointer_3D_cpu
+                       1:dims(3)) => self%grid_space
+    end subroutine get_pointer_3D
 
     subroutine print_state(self, state_string)
         class(Grid3D), intent(in)   :: self
@@ -140,13 +143,13 @@ contains
         character(len = 100):: fmt
 
         dims = self%get_dims()
-        grid3D_pointer = self%get_pointer_3D()
+        call self%get_pointer_3D(grid3D_pointer )
 
         state_string(dims(1):dims(1)) = "x"
         state_string(dims(2):dims(2)) = "y"
         state_string(dims(3):dims(3)) = "z"
 
-        write(*,*) "State: " state_string
+        write(*,*) "State: ", state_string
 
         write(*,*) "Dims (1, :,:)"
         write(fmt, '(A, I0, A)') '(', dims(2), 'F4.0)'
