@@ -85,6 +85,7 @@ program comm_test
     call grid_handler%get_pointer_3D(u)
 
 
+
     ! TestGrid Shenanigans------------------------------------------------------
     ! Init .....................................................................
     ! Initiate Test Grid
@@ -106,6 +107,12 @@ program comm_test
 
     send_num = prod(grid_handler%grid_xyz_dims)
 
+    if (my_rank == 0 ) then
+        do i = 1, prod(subgrid_xyz_dims)
+            grid_handler%grid_space(i) = i
+        end do
+    end if 
+
     ! TestGrid Send............................................................. 
     call MPI_Gather(sendbuf    = grid_handler%grid_space, &
                     sendcount  = send_num, &
@@ -117,6 +124,10 @@ program comm_test
                     comm       = grid_comm_handler%MPI_COMM_CART, &
                     ierror     = ierr(1))
 
+
+     if (my_rank == 0) then 
+        write(*,*) grid_handler%grid_space
+     end if
     ! Write For Testing
      if (my_rank == 0) then 
         call testgrid_handler%reorder_gatherv()!, dims_tasks_2d, subgrid_xyz_dims)
@@ -172,6 +183,9 @@ program comm_test
                     comm       = grid_comm_handler%MPI_COMM_CART, &
                     ierror     = ierr(1))
 
+     if (my_rank == 0) then 
+        write(*,*) grid_handler_rcv%grid_space
+     end if
     ! Write For Testing
      if (my_rank == 0) then 
         call testgrid_handler%reorder_gatherv()!, dims_tasks_2d, subgrid_xyz_dims)
@@ -235,6 +249,9 @@ program comm_test
                     comm       = grid_comm_handler%MPI_COMM_CART, &
                     ierror     = ierr(1))
 
+     if (my_rank == 0) then 
+        write(*,*) grid_handler%grid_space
+     end if
     ! Write For Testing
      if (my_rank == 0) then 
         call testgrid_handler%reorder_gatherv()!, dims_tasks_2d, subgrid_xyz_dims)
