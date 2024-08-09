@@ -31,10 +31,11 @@ module grid_handler
     contains
         procedure:: init
         procedure:: get_dims
+        procedure:: perturb_state
         procedure:: set_pointer_1D
         procedure:: get_pointer_3D
         procedure:: allocate_array
-        procedure:: switch_dims_213_step
+        procedure:: get_switch_dims_213_workspace
         ! procedure:: switch_dims_132_step
         procedure:: print_state
     end type Grid3D
@@ -49,18 +50,18 @@ module grid_handler
 
 contains
 
-    subroutine init(self, state_xyz, grid_xyz_dims, overhead_factor)
+    subroutine init(self, state_xyz, grid_xyz_dims, overhead_factor, subgrid_factors)
         class(Grid3D)           :: self
         integer, intent(in), &
                  dimension(3)   :: state_xyz
         integer, intent(in), &
-                 dimension(3)   :: grid_xyz_dims
+                 dimension(3)   :: grid_xyz_dims, subgrid_factors
         integer                 :: overhead_factor, max_area
 
         ! Initialisation of Grid3D.=============================================
 
         self%state_xyz = state_xyz
-        self%grid_xyz_dims = grid_xyz_dims
+        self%grid_xyz_dims = grid_xyz_dims*subgrid_factors
         self%overhead_factor = overhead_factor
 
         max_area = max(prod(self%grid_xyz_dims(1:2)), &
@@ -80,6 +81,27 @@ contains
         dims(3) = self%grid_xyz_dims(self%state_xyz(3))
 
     end function get_dims
+
+    subroutine perturb_state(self, state_xyz, grid_xyz_dims, subgrid_factors_123, subgrid_dividers_123, perturbation_123) 
+        class(Grid3D)          :: self
+        integer, intent(in), &
+                 dimension(3)  :: perturbation_123, subgrid_factors_123, subgrid_dividers_123
+        integer, dimension(3)  :: state_xyz, grid_xyz_dims
+        integer                :: i
+        ! As the dimensions should always change with the same factors, the amount of free space stays the same.
+        !   This is why whe only have to change the state_xyz and the grid_xyz_dims and not the 1D_pointers.
+        ! It is assumed that the Grid3D is already initialized before this function is called!
+        ! The Factors are applied first, then the state is perturbed!
+
+        self%grid_xyz_dims(state_xyz(1)) = grid_xyz_dims(state_xyz(1))*subgrid_factors_123(1)/subgrid_dividers_123(1)
+        self%grid_xyz_dims(state_xyz(2)) = grid_xyz_dims(state_xyz(2))*subgrid_factors_123(2)/subgrid_dividers_123(2)
+        self%grid_xyz_dims(state_xyz(3)) = grid_xyz_dims(state_xyz(3))*subgrid_factors_123(3)/subgrid_dividers_123(3)
+
+        do i = 1, 3
+            self%state_xyz(i) = state_xyz(perturbation_123(i))
+        end do
+
+    end subroutine perturb_state
 
     subroutine allocate_array(self, grid_array)
             class(Grid3D), intent(inout)          :: self
@@ -114,6 +136,9 @@ contains
             write(*,*) "Array is too small for grid", size(grid_array), "< ",total_space
             error stop 
         end if
+
+        ! write(*,*) self%free_space, size(grid_array), self%total_space
+
         self%grid_space => grid_array(self%free_space+1:)  ! INDEXING MIGHT BE WRONG
         self%allocated_space => grid_array
 
@@ -127,6 +152,8 @@ contains
         integer, dimension(3)            :: dims
 
         dims = self%get_dims()
+
+        ! write(*,*) dims(1)*dims(2)*dims(3), dims(1), dims(2), dims(3), size(self%grid_space)
 
         grid3D_pointer(1:dims(1), &
                        1:dims(2), &
@@ -147,9 +174,9 @@ contains
         work_space(1:dims(2), &
                    1:dims(1), &
                    1:dims(3)) => &
-            reshape(self%allocated_space(1+self%free_space-dims(1)*dims(2): &
-                                 1+self%free_space+dims(1)*dims(2)*(dims(3)-1)), &
-                    [dims(2), dims(1), dims(3)])
+            self%allocated_space(1+self%free_space-dims(1)*dims(2): &
+                                 1+self%free_space+dims(1)*dims(2)*(dims(3)-1))
+        ! write(*,*) size(work_space), size(self%grid_space)
  
     end subroutine get_switch_dims_213_workspace
 

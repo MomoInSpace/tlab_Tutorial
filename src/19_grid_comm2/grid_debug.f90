@@ -375,6 +375,7 @@ contains
 
 
         ! write(*,*) "topmost xz-surface of total grid, with shape:"
+        write(*,*) "=========================================================="
         write(*,*) "State:   ", self%state_xyz
         call self%get_sub_dims(dims)
         write(*,*) "Subgrid: ", dims
@@ -393,6 +394,7 @@ contains
         write(*,*) "Dims (:,:,1)"
         write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
         write(*,fmt) self%grid_pointer_3d(:, :, 1)
+        ! write(*,*) ".........................................................."
         ! write(*,*) "Dims3:"
         ! write(fmt, '(A, I0, A)') '(', dims(3), 'F4.0)'
         ! write(*,fmt) self%grid_pointer_3d(1, :,:)
