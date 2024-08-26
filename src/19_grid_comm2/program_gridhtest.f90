@@ -211,19 +211,18 @@ program comm_test
     call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler_rcv, grid_handler, .false.)
 
 
+    ! TestGrid Shenanigans------------------------------------------------------
     state_xyz  = [2, 1, 3]
-    ! task_state = [2, 1] ! If you use MPI_COMM_CART, use [2, 1]
 
     subgrid_xyz_dims = grid_handler%grid_xyz_dims
     grid_xyz_dims = [subgrid_xyz_dims(1), &                                    
                      subgrid_xyz_dims(2), &
                      subgrid_xyz_dims(3)]
+
     ! Now we multiply the last two dimensions of the grid with 
     ! the dimensions of the tasks in said direction
     grid_xyz_dims(state_xyz(2)) = grid_xyz_dims(state_xyz(2))*dims_tasks_2d(task_state(1))
     grid_xyz_dims(state_xyz(3)) = grid_xyz_dims(state_xyz(3))*dims_tasks_2d(task_state(2))
-
-    ! write(*,*)grid_xyz_dims
 
     call testgrid_handler%init_complete(state_xyz, grid_xyz_dims, &
                                         subgrid_xyz_dims, &
@@ -234,10 +233,6 @@ program comm_test
     call testgrid_handler%allocate_arrays_wbuffer(testgrid_array, testbuffer_array)
 
     send_num = prod(grid_handler%grid_xyz_dims)
-
-    !  ! if (my_rank == 0) then 
-    !  !    write(*,*) grid_handler_rcv%grid_space
-    !  ! end if
 
     call MPI_Gather(sendbuf    = grid_handler%grid_space, &
                     sendcount  = send_num, &
@@ -259,31 +254,6 @@ program comm_test
      end if
 
 
- !    if (my_rank == 0) write(*,*) 'Rotation 2,   Rank', my_rank, 'grid_space:', grid_handler_rcv%grid_space
- !    call MPI_Barrier(MPI_COMM_WORLD)
- !    if (my_rank == 3) write(*,*) 'Rotation 2,   Rank', my_rank, 'grid_space:', grid_handler_rcv%grid_space
- !    ! if (my_rank == 2) write(*,*) 'Rotation 2,   Rank', my_rank, 'grid_space:', grid_handler_rcv%grid_space
- ! call MPI_Barrier(MPI_COMM_WORLD)
-
-    ! grid_handler_rcv%grid_space = my_rank
-
-
-    ! TestGrid Shenanigans------------------------------------------------------
-    ! call MPI_Gather(sendbuf    = grid_handler_rcv%grid_space, &
-    !                 sendcount  = send_num, &
-    !                 sendtype   = MPI_DOUBLE, &
-    !                 recvbuf    = testgrid_handler%buffer_pointer_1d, &
-    !                 recvcount  = send_num, &
-    !                 recvtype   = MPI_DOUBLE, &
-    !                 root       = 0, &
-    !                 comm       = grid_comm_handler%MPI_COMM_CART, &
-    !                 ierror     = ierr(1))
-
-    ! ! Write For Testing
-    !  if (my_rank == 0) then 
-    !     testgrid_handler%task_state= [2, 1]
-    !     call testgrid_handler%reorder_gatherv()!, dims_tasks_2d, subgrid_xyz_dims)
-    !  end if
     ! Cleanup ==================================================================
     if (allocated(q )) deallocate(q, stat = ierr(1))
     if (ierr(1) /= 0) print *, "q(1, grid_handler%total_space), : Deallocation request denied"

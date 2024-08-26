@@ -1,6 +1,7 @@
 module grid_handler 
-    use TLAB_CONSTANTS, only: wp
-    implicit none
+
+use TLAB_CONSTANTS, only: wp
+implicit none
 
     ! private:: prod
 
@@ -50,15 +51,17 @@ module grid_handler
 
 contains
 
-    subroutine init(self, state_xyz, grid_xyz_dims, overhead_factor, subgrid_factors)
+    subroutine init(self, state_xyz, grid_xyz_dims, &
+                          overhead_factor, subgrid_factors)
+        ! Parameters================================================================
         class(Grid3D)           :: self
         integer, intent(in), &
-                 dimension(3)   :: state_xyz
-        integer, intent(in), &
-                 dimension(3)   :: grid_xyz_dims, subgrid_factors
+                 dimension(3)   :: state_xyz, grid_xyz_dims, subgrid_factors
         integer                 :: overhead_factor, max_area
-
-        ! Initialisation of Grid3D.=============================================
+        ! Notes=====================================================================
+        ! Initialization of Grid3D. Setting the base values. 
+        ! ALWAYS has to be called first before using Grid3D.
+        ! Body======================================================================
 
         self%state_xyz = state_xyz
         self%grid_xyz_dims = grid_xyz_dims*subgrid_factors
@@ -82,21 +85,39 @@ contains
 
     end function get_dims
 
-    subroutine perturb_state(self, state_xyz, grid_xyz_dims, subgrid_factors_123, subgrid_dividers_123, perturbation_123) 
-        class(Grid3D)          :: self
+    subroutine perturb_state(self, state_xyz, grid_xyz_dims, &
+                             subgrid_factors_123, subgrid_dividers_123, &
+                             perturbation_123) 
+        ! Parameters================================================================
+        class(Grid3D), intent(inout):: self
         integer, intent(in), &
-                 dimension(3)  :: perturbation_123, subgrid_factors_123, subgrid_dividers_123
-        integer, dimension(3)  :: state_xyz, grid_xyz_dims
-        integer                :: i
-        ! As the dimensions should always change with the same factors, the amount of free space stays the same.
-        !   This is why whe only have to change the state_xyz and the grid_xyz_dims and not the 1D_pointers.
-        ! It is assumed that the Grid3D is already initialized before this function is called!
+             dimension(3)           :: state_xyz, grid_xyz_dims, &
+                                       perturbation_123, subgrid_factors_123, &
+                                       subgrid_dividers_123
+        ! Loop variables
+        integer                     :: i
+        ! Notes=====================================================================
+        ! As the dimensions should always change with the same factors, the amount 
+        !   of free space stays the same. This is why whe only have to change the 
+        !   state_xyz and the grid_xyz_dims and not the 1D_pointers.
+        ! It is assumed that the Grid3D is already initialized, 
+        !   before this function is called!
         ! The Factors are applied first, then the state is perturbed!
+        ! When calling this subroutine it is assumed that the data in 
+        !   self%allocated_space can be disregarded and overwritten.
+        ! Body======================================================================
 
-        self%grid_xyz_dims(state_xyz(1)) = grid_xyz_dims(state_xyz(1))*subgrid_factors_123(1)/subgrid_dividers_123(1)
-        self%grid_xyz_dims(state_xyz(2)) = grid_xyz_dims(state_xyz(2))*subgrid_factors_123(2)/subgrid_dividers_123(2)
-        self%grid_xyz_dims(state_xyz(3)) = grid_xyz_dims(state_xyz(3))*subgrid_factors_123(3)/subgrid_dividers_123(3)
+        ! Resizing of the xyz-axes:
+        self%grid_xyz_dims(state_xyz(1)) = &
+            grid_xyz_dims(state_xyz(1))*subgrid_factors_123(1)/subgrid_dividers_123(1)
 
+        self%grid_xyz_dims(state_xyz(2)) = &
+            grid_xyz_dims(state_xyz(2))*subgrid_factors_123(2)/subgrid_dividers_123(2)
+
+        self%grid_xyz_dims(state_xyz(3)) = &
+            grid_xyz_dims(state_xyz(3))*subgrid_factors_123(3)/subgrid_dividers_123(3)
+
+        ! Perturbation of xyz-axes:
         do i = 1, 3
             self%state_xyz(i) = state_xyz(perturbation_123(i))
         end do
@@ -104,24 +125,32 @@ contains
     end subroutine perturb_state
 
     subroutine allocate_array(self, grid_array)
-            class(Grid3D), intent(inout)          :: self
-            real(kind = wp), intent(inout),   &
-                             asynchronous, &
-                             dimension(:), &
-                             allocatable, target:: grid_array
-            integer                             :: ierr
-            integer                             :: total_space
+        ! Parameters================================================================
+            class(Grid3D),   intent(inout)  :: self
+            integer                         :: total_space
+            real(kind = wp), intent(inout), &
+                             allocatable,   &
+                             asynchronous,  &
+                             dimension(:),  &
+                             target         :: grid_array
+            ! Error handling
+            integer                         :: ierr
+        ! Notes=====================================================================
+        ! The array can be allocated outside this subroutine. The pointer can be
+        !   set with an existing array, provided it has the right size.
+        ! Body======================================================================
 
 
-            ! Allocate the grid_array with length prod(grid_xyz_dims)
-            allocate(grid_array(self%total_space), stat = ierr)
-            if (ierr /= 0) error stop "subgrid grid_array: Allocation request denied"
+        ! Allocate the grid_array with length prod(grid_xyz_dims)
+        allocate(grid_array(self%total_space), stat = ierr)
+        if (ierr /= 0) error stop "subgrid grid_array: Allocation request denied"
 
-            call self%set_pointer_1D(grid_array)
+        call self%set_pointer_1D(grid_array)
 
     end subroutine allocate_array
 
     subroutine set_pointer_1D(self, grid_array)
+        ! Parameters================================================================
         class(Grid3D), intent(inout)          :: self
         real(kind = wp), pointer, &
                          dimension(:):: grid_space, allocated_space
@@ -130,6 +159,8 @@ contains
                          dimension(:), &
                          target        :: grid_array 
         integer                        :: total_space
+        ! Notes=====================================================================
+        ! Body======================================================================
 
         total_space = self%free_space+prod(self%grid_xyz_dims)
         if (size(grid_array) < total_space) then 
@@ -137,23 +168,25 @@ contains
             error stop 
         end if
 
-        ! write(*,*) self%free_space, size(grid_array), self%total_space
-
         self%grid_space => grid_array(self%free_space+1:)  ! INDEXING MIGHT BE WRONG
         self%allocated_space => grid_array
 
     end subroutine set_pointer_1D
 
-    subroutine get_pointer_3D(self, grid3D_pointer)  ! result(grid3D_pointer)
+    subroutine get_pointer_3D(self, grid3D_pointer)  
+        ! Parameters================================================================
         class(Grid3D), intent(in)          :: self
         real(kind = wp), intent(inout), &
                          pointer, &
                          dimension(:,:,:):: grid3D_pointer
         integer, dimension(3)            :: dims
+        ! Notes=====================================================================
+        ! In each state, the cuboids have the same volume. This is why we can
+        !   retrieve the 3D pointer by just using get_dims(), whithout needing
+        !   to adjust self%grid_space
+        ! Body======================================================================
 
         dims = self%get_dims()
-
-        ! write(*,*) dims(1)*dims(2)*dims(3), dims(1), dims(2), dims(3), size(self%grid_space)
 
         grid3D_pointer(1:dims(1), &
                        1:dims(2), &
@@ -161,12 +194,29 @@ contains
     end subroutine get_pointer_3D
 
     subroutine get_switch_dims_213_workspace(self, dims, work_space, grid_3D_pointer)
-        class(Grid3D), intent(in):: self
+        ! Parameters================================================================
+        class(Grid3D),   intent(in)   :: self
+        integer,         intent(out), &
+           dimension(3)               :: dims
         real(kind = wp), intent(out), &
-                         pointer, &
-                         dimension(:,:,:):: work_space, grid_3D_pointer
-        integer, intent(out), &
-                 dimension(3)            :: dims
+             pointer, &
+             dimension(:,:,:)         :: work_space, grid_3D_pointer
+        ! Notes=====================================================================
+        ! The base assumption when initializing our subgrids with the grid_handler
+        !   is, that we have 'overhead_factor's of free layers of (:,:,1) with no 
+        !   data and then grid-data below it. The workspace is then one layer 
+        !   higher, i.e:
+        !   Grid data: grid_array(:,:,overhead_factor:)
+        !   Grid data: grid_array(:,:,overhead_factor-1:)
+        ! 
+        !   grid_3D_pointer       work_space:
+        !   0 0 0                 0 0 0    The 0 marks unused allocated space, the 
+        !   0 0 0                 x x x        x marks used space.
+        !   x x x    ------>      x x x 
+        !   x x x                 0 0 0 
+        !
+        ! We also switch the dimensions 1 and 2.
+        ! Body======================================================================
 
         dims = self%get_dims()
         call self%get_pointer_3D(grid_3D_pointer)
@@ -181,6 +231,7 @@ contains
     end subroutine get_switch_dims_213_workspace
 
     subroutine print_state(self, state_string)
+        ! Parameters================================================================
         class(Grid3D), intent(in)   :: self
         character(len = 3), optional:: state_string
         integer, dimension(3)       :: dims
@@ -188,6 +239,9 @@ contains
                          dimension(:,:,:):: grid3D_pointer 
         ! Formating:
         character(len = 100):: fmt
+        ! Notes=====================================================================
+        ! Subroutine to print the sides of the subgrid cube.
+        ! Body======================================================================
 
         dims = self%get_dims()
         call self%get_pointer_3D(grid3D_pointer )
@@ -210,20 +264,18 @@ contains
         write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
         write(*,fmt) grid3D_pointer(:, :, 1)
 
-
-        ! write(*,*) grid3D_pointer
-
     end subroutine print_state 
-
-
 
     ! Private Subourtines and Functions ========================================
     ! ==========================================================================
 
     function prod(arr)
+        ! Parameters================================================================
         integer, dimension(:), intent(in):: arr
         integer:: prod
         integer:: i
+        ! Notes=====================================================================
+        ! Body======================================================================
 
         prod = 1  ! Initialize product
 
