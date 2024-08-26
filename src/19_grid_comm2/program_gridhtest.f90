@@ -85,173 +85,38 @@ program comm_test
     call grid_handler%get_pointer_3D(u)
 
 
-
-    ! TestGrid Shenanigans------------------------------------------------------
-    ! Init .....................................................................
-    ! Initiate Test Grid
-    ! First we initialize the total grid as subgrid
-    subgrid_xyz_dims = subgrid_xyz_dims*subgrid_factors
-    grid_xyz_dims = [subgrid_xyz_dims(1), &                                    
-                     subgrid_xyz_dims(2), &
-                     subgrid_xyz_dims(3)]
-    ! Now we multiply the last two dimensions of the grid with 
-    ! the dimensions of the tasks in said direction
-    grid_xyz_dims(state_xyz(2)) = grid_xyz_dims(state_xyz(2))*dims_tasks_2d(task_state(1))
-    grid_xyz_dims(state_xyz(3)) = grid_xyz_dims(state_xyz(3))*dims_tasks_2d(task_state(2))
-
-    call testgrid_handler%init_complete(state_xyz, grid_xyz_dims, &
-                                        subgrid_xyz_dims, &
-                                        dims_tasks_2d, &
-                                        task_state)
-    call testgrid_handler%allocate_arrays_wbuffer(testgrid_array, testbuffer_array)
-
-    send_num = prod(grid_handler%grid_xyz_dims)
-
+    ! More Numbers for task 0 for better visualisation-------------------------
     if (my_rank == 0 ) then
-        do i = 1, prod(subgrid_xyz_dims)
+        do i = 1, prod(subgrid_xyz_dims*subgrid_factors)
             grid_handler%grid_space(i) = i
         end do
     end if 
 
-    ! TestGrid Send............................................................. 
-    call MPI_Gather(sendbuf    = grid_handler%grid_space, &
-                    sendcount  = send_num, &
-                    sendtype   = MPI_DOUBLE, &
-                    recvbuf    = testgrid_handler%buffer_pointer_1d, &
-                    recvcount  = send_num, &
-                    recvtype   = MPI_DOUBLE, &
-                    root       = 0, &
-                    comm       = grid_comm_handler%MPI_COMM_CART, &
-                    ierror     = ierr(1))
+    ! TestGrid Shenanigans------------------------------------------------------
 
-
-     if (my_rank == 0) then 
-        write(*,*) grid_handler%grid_space
-     end if
-    ! Write For Testing
-     if (my_rank == 0) then 
-        call testgrid_handler%reorder_gatherv()!, dims_tasks_2d, subgrid_xyz_dims)
-     end if
+    call gather_compgrid(grid_handler, grid_comm_handler, &
+                         subgrid_xyz_dims, grid_xyz_dims,     &
+                         testgrid_array  , testbuffer_array, &
+                         testgrid_handler, my_rank)
 
     ! Rotation 1------------------------------------------------------=========
-    ! if (my_rank == 0) write(*,*) prod(subgrid_xyz_dims), prod(subgrid_xyz_dims(1:2))
-    ! if (my_rank == 0) write(*,*) 'Ground State, Rank', my_rank, 'grid_space:', grid_handler%grid_space
-    ! call MPI_Barrier(MPI_COMM_WORLD)
-    ! q(:,1) = my_rank
-    ! q(:,2) = 99
     call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler, grid_handler_rcv, .true.)
-    ! if (my_rank == 0) write(*,*) 'Rotation 1,   Rank', my_rank, 'grid_space:', grid_handler_rcv%grid_space
-    ! if (my_rank == 3) write(*,*) 'Rotation 1,   Rank', my_rank, 'grid_space:', grid_handler_rcv%grid_space
-
-    ! grid_handler_rcv%grid_space = my_rank
-
 
     ! TestGrid Shenanigans------------------------------------------------------
-    state_xyz  = [1, 2, 3]
-    ! task_state = [2, 1] ! If you use MPI_COMM_CART, use [2, 1]
-
-    subgrid_xyz_dims = grid_handler_rcv%grid_xyz_dims
-    grid_xyz_dims = [subgrid_xyz_dims(1), &                                    
-                     subgrid_xyz_dims(2), &
-                     subgrid_xyz_dims(3)]
-    ! Now we multiply the last two dimensions of the grid with 
-    ! the dimensions of the tasks in said direction
-    grid_xyz_dims(state_xyz(2)) = grid_xyz_dims(state_xyz(2))*dims_tasks_2d(task_state(1))
-    grid_xyz_dims(state_xyz(3)) = grid_xyz_dims(state_xyz(3))*dims_tasks_2d(task_state(2))
-
-    call testgrid_handler%init_complete(state_xyz, grid_xyz_dims, &
-                                        subgrid_xyz_dims, &
-                                        dims_tasks_2d, &
-                                        task_state)
-    deallocate(testgrid_array)
-    deallocate(testbuffer_array)
-    call testgrid_handler%allocate_arrays_wbuffer(testgrid_array, testbuffer_array)
-
-    send_num = prod(grid_handler%grid_xyz_dims)
-
-    !  ! if (my_rank == 0) then 
-    !  !    write(*,*) grid_handler_rcv%grid_space
-    !  ! end if
-
-    call MPI_Gather(sendbuf    = grid_handler_rcv%grid_space, &
-                    sendcount  = send_num, &
-                    sendtype   = MPI_DOUBLE, &
-                    recvbuf    = testgrid_handler%buffer_pointer_1d, &
-                    recvcount  = send_num, &
-                    recvtype   = MPI_DOUBLE, &
-                    root       = 0, &
-                    comm       = grid_comm_handler%MPI_COMM_CART, &
-                    ierror     = ierr(1))
-
-     if (my_rank == 0) then 
-        write(*,*) grid_handler_rcv%grid_space
-     end if
-    ! Write For Testing
-     if (my_rank == 0) then 
-        call testgrid_handler%reorder_gatherv()!, dims_tasks_2d, subgrid_xyz_dims)
-        ! write(*,*) grid_handler_rcv%grid_space
-     end if
-
-    
-    ! Write For Testing
-     ! if (my_rank == 0) then 
-        ! write(*,*) "Stunde der Wahrheit"
-     !    testgrid_handler%state_xyz = [1, 2, 3]
-     !    testgrid_handler%state_xyz = [1, 2, 3]
-     !    testgrid_handler%task_state= [2, 1]
-     !    grid_pointer_1d => testgrid_handler%grid_pointer_1d
-     !    call testgrid_handler%set_pointer(testgrid_handler%grid_pointer_1d, &
-     !                                      testgrid_handler%grid_pointer_3d, &
-     !                                      grid_pointer_1d) 
-     !    call testgrid_handler%reorder_gatherv()!, dims_tasks_2d, subgrid_xyz_dims)
-
-     ! end if
+    call gather_compgrid(grid_handler_rcv, grid_comm_handler, &
+                         subgrid_xyz_dims, grid_xyz_dims,     &
+                         testgrid_array  , testbuffer_array, &
+                         testgrid_handler, my_rank)
 
     ! Rotation 2------------------------------------------------------=========
     call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler_rcv, grid_handler, .false.)
 
 
     ! TestGrid Shenanigans------------------------------------------------------
-    state_xyz  = [2, 1, 3]
-
-    subgrid_xyz_dims = grid_handler%grid_xyz_dims
-    grid_xyz_dims = [subgrid_xyz_dims(1), &                                    
-                     subgrid_xyz_dims(2), &
-                     subgrid_xyz_dims(3)]
-
-    ! Now we multiply the last two dimensions of the grid with 
-    ! the dimensions of the tasks in said direction
-    grid_xyz_dims(state_xyz(2)) = grid_xyz_dims(state_xyz(2))*dims_tasks_2d(task_state(1))
-    grid_xyz_dims(state_xyz(3)) = grid_xyz_dims(state_xyz(3))*dims_tasks_2d(task_state(2))
-
-    call testgrid_handler%init_complete(state_xyz, grid_xyz_dims, &
-                                        subgrid_xyz_dims, &
-                                        dims_tasks_2d, &
-                                        task_state)
-    deallocate(testgrid_array)
-    deallocate(testbuffer_array)
-    call testgrid_handler%allocate_arrays_wbuffer(testgrid_array, testbuffer_array)
-
-    send_num = prod(grid_handler%grid_xyz_dims)
-
-    call MPI_Gather(sendbuf    = grid_handler%grid_space, &
-                    sendcount  = send_num, &
-                    sendtype   = MPI_DOUBLE, &
-                    recvbuf    = testgrid_handler%buffer_pointer_1d, &
-                    recvcount  = send_num, &
-                    recvtype   = MPI_DOUBLE, &
-                    root       = 0, &
-                    comm       = grid_comm_handler%MPI_COMM_CART, &
-                    ierror     = ierr(1))
-
-     if (my_rank == 0) then 
-        write(*,*) grid_handler%grid_space
-     end if
-    ! Write For Testing
-     if (my_rank == 0) then 
-        call testgrid_handler%reorder_gatherv()!, dims_tasks_2d, subgrid_xyz_dims)
-        ! write(*,*) grid_handler_rcv%grid_space
-     end if
+    call gather_compgrid(grid_handler, grid_comm_handler, &
+                         subgrid_xyz_dims, grid_xyz_dims,     &
+                         testgrid_array  , testbuffer_array, &
+                         testgrid_handler, my_rank)
 
 
     ! Cleanup ==================================================================
@@ -264,4 +129,81 @@ program comm_test
     call MPI_Comm_free(grid_comm_handler%MPI_COMM_CART, ierr(1))
     call MPI_Comm_free(grid_comm_handler%MPI_COMM_Row, ierr(1))
     call MPI_Comm_free(grid_comm_handler%MPI_COMM_Column, ierr(1))
+
+    contains
+
+subroutine gather_compgrid(grid_handler, grid_comm_handler, &
+                           subgrid_xyz_dims, grid_xyz_dims,     &
+                           testgrid_array  , testbuffer_array, &
+                           testgrid_handler, my_rank)
+
+    type(Grid3D_cpu)                        :: grid_handler
+    type(Grid3D_Comm_Handler)               :: grid_comm_handler
+    type(Complete_grid_debugger)            :: testgrid_handler
+    integer, dimension(3)                   :: state_xyz
+    integer, dimension(3)                   :: subgrid_xyz_dims, grid_xyz_dims
+    integer, dimension(2)                   :: task_state
+    integer                                 ::  my_rank
+
+    ! Debug arrays
+    real(kind = wp), intent(inout), &
+                     asynchronous, &
+                     dimension(:), &
+                     allocatable, target   :: testgrid_array, testbuffer_array
+    INTEGER, DIMENSION(2):: dims_tasks_2d
+    integer                                :: send_num, err
+    real(kind = wp), pointer, &
+                     dimension(:):: grid_pointer_1d
+
+    task_state = [2, 1] 
+    state_xyz  = grid_handler%state_xyz
+    dims_tasks_2d = grid_comm_handler%MPI_CART_DIMS
+
+    ! Calculate grid_xyz_dims--------------------------------------------------
+    subgrid_xyz_dims = grid_handler%grid_xyz_dims
+    grid_xyz_dims = [subgrid_xyz_dims(1), &                                    
+                     subgrid_xyz_dims(2), &
+                     subgrid_xyz_dims(3)]
+
+    ! Now we multiply the last two dimensions of the grid with 
+    ! the dimensions of the tasks in said direction
+    grid_xyz_dims(state_xyz(2)) = grid_xyz_dims(state_xyz(2))*dims_tasks_2d(task_state(1))
+    grid_xyz_dims(state_xyz(3)) = grid_xyz_dims(state_xyz(3))*dims_tasks_2d(task_state(2))
+
+    ! Initialization of testgrid_handler---------------------------------------
+    call testgrid_handler%init_complete(state_xyz, grid_xyz_dims, &
+                                        subgrid_xyz_dims, &
+                                        dims_tasks_2d, &
+                                        task_state)
+
+    ! Allocate testgrid and testbuffer . . . . . . . . . . . . . . . . . . . . 
+    if (allocated(testgrid_array)) deallocate(testgrid_array, stat = err)
+    if (err /= 0) print *, "array: Deallocation request denied"
+
+    if (allocated(testbuffer_array)) deallocate(testbuffer_array, stat = err)
+    if (err /= 0) print *, "array: Deallocation request denied"
+
+    call testgrid_handler%allocate_arrays_wbuffer(testgrid_array, testbuffer_array)
+
+    ! Gather complete Grid-----------------------------------------------------
+    send_num = prod(grid_handler%grid_xyz_dims)
+    call MPI_Gather(sendbuf    = grid_handler%grid_space, &
+                    sendcount  = send_num, &
+                    sendtype   = MPI_DOUBLE, &
+                    recvbuf    = testgrid_handler%buffer_pointer_1d, &
+                    recvcount  = send_num, &
+                    recvtype   = MPI_DOUBLE, &
+                    root       = 0, &
+                    comm       = grid_comm_handler%MPI_COMM_CART, &
+                    ierror     = err)
+
+    ! Reorder The buffer so that it has the correct form------------------------
+     if (my_rank == 0) then 
+        call testgrid_handler%reorder_gatherv()
+     end if
+end subroutine gather_compgrid
+
 end program comm_test
+
+
+
