@@ -1,9 +1,12 @@
 module grid_debug 
     use TLAB_CONSTANTS, only: wp
     use mpi_f08
+
+    use grid_handler
+    use grid_comm_module
     implicit none
 
-    private:: prod
+    ! private:: prod
 
   ! Define the Point type
     type:: Grid_debugger
@@ -403,16 +406,88 @@ contains
 
     end subroutine reorder_gatherv
 
-    function prod(arr)
-        integer, dimension(:), intent(in):: arr
-        integer:: prod
-        integer:: i
+    ! function prod(arr)
+    !     integer, dimension(:), intent(in):: arr
+    !     integer:: prod
+    !     integer:: i
 
-        prod = 1  ! Initialize product
+    !     prod = 1  ! Initialize product
 
-        do i = 1, size(arr)
-            prod = prod*arr(i)
-        end do
-    end function prod
+    !     do i = 1, size(arr)
+    !         prod = prod*arr(i)
+    !     end do
+    ! end function prod
+
+    subroutine gather_compgrid(grid_handler, grid_comm_handler, &
+                               subgrid_xyz_dims,      &
+                               testgrid_handler, my_rank)
+                               ! testgrid_array  , testbuffer_array, &
+
+        type(Grid3D_cpu)                        :: grid_handler
+        type(Grid3D_Comm_Handler)               :: grid_comm_handler
+        type(Complete_grid_debugger)            :: testgrid_handler
+        integer, dimension(3)                   :: state_xyz
+        integer, dimension(3)                   :: subgrid_xyz_dims, grid_xyz_dims 
+        integer                                 ::  my_rank
+
+        ! Debug arrays
+        real(kind = wp), &
+                         asynchronous, &
+                         dimension(:), &
+                         allocatable, target   :: testgrid_array, testbuffer_array
+        INTEGER, DIMENSION(2):: dims_tasks_2d
+        integer                                :: send_num, err
+        real(kind = wp), pointer, &
+                         dimension(:):: grid_pointer_1d
+
+        state_xyz  = grid_handler%state_xyz
+        dims_tasks_2d = grid_comm_handler%MPI_CART_DIMS
+
+        ! Calculate grid_xyz_dims--------------------------------------------------
+        subgrid_xyz_dims = grid_handler%grid_xyz_dims
+        grid_xyz_dims = [subgrid_xyz_dims(1), &                                    
+                         subgrid_xyz_dims(2), &
+                         subgrid_xyz_dims(3)]
+
+        ! Now we multiply the last two dimensions of the grid with 
+        ! the dimensions of the tasks in said direction
+        grid_xyz_dims(state_xyz(2)) = grid_xyz_dims(state_xyz(2))*grid_comm_handler%row_size  
+        grid_xyz_dims(state_xyz(3)) = grid_xyz_dims(state_xyz(3))*grid_comm_handler%column_size  
+
+        ! Initialization of testgrid_handler---------------------------------------
+        call testgrid_handler%init_complete(state_xyz, grid_xyz_dims, &
+                                            subgrid_xyz_dims, &
+                                            dims_tasks_2d, &
+                                            [2, 1])  ! The [2, 1] value is always the same.
+                                                     ! this should be removed.
+
+        call testgrid_handler%allocate_arrays_wbuffer(testgrid_array, testbuffer_array)
+
+        ! Gather complete Grid-----------------------------------------------------
+        send_num = prod(grid_handler%grid_xyz_dims)
+        call MPI_Gather(sendbuf    = grid_handler%grid_space, &
+                        sendcount  = send_num, &
+                        sendtype   = MPI_DOUBLE, &
+                        recvbuf    = testgrid_handler%buffer_pointer_1d, &
+                        recvcount  = send_num, &
+                        recvtype   = MPI_DOUBLE, &
+                        root       = 0, &
+                        comm       = grid_comm_handler%MPI_COMM_CART, &
+                        ierror     = err)
+
+        ! Reorder The buffer so that it has the correct form------------------------
+         if (my_rank == 0) then 
+            call testgrid_handler%reorder_gatherv()
+         end if
+
+        ! Allocate testgrid and testbuffer . . . . . . . . . . . . . . . . . . . . 
+        if (allocated(testgrid_array)) deallocate(testgrid_array, stat = err)
+        if (err /= 0) print *, "array: Deallocation request denied"
+
+        if (allocated(testbuffer_array)) deallocate(testbuffer_array, stat = err)
+        if (err /= 0) print *, "array: Deallocation request denied"
+
+    end subroutine gather_compgrid
 
 end module grid_debug 
+
