@@ -3,18 +3,12 @@ program comm_test
     use TLAB_CONSTANTS, only: wp
     use TLAB_ARRAYS 
     use TLAB_POINTERS_3D
-    ! use grid_utils
     use grid_handler
     use grid_comm_module
     use grid_debug
-    ! use compgrid_handler
-    ! use MATRIX_OUTPUT
     implicit none 
 
     ! Parameters================================================================
-    ! Grid definition, sub_grid_y = [x_cy*, y_s, z_cy*]
-    ! INTEGER, DIMENSION(3), target:: sub_grid_y
-
     ! Input Grid Data
     INTEGER:: i 
     CHARACTER(len = 32):: arg
@@ -204,6 +198,3 @@ subroutine gather_compgrid(grid_handler, grid_comm_handler, &
 end subroutine gather_compgrid
 
 end program comm_test
-
-
-
