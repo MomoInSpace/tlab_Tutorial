@@ -24,7 +24,7 @@ program comm_test
     ! Error Integer
     INTEGER, dimension(100):: ierr  = 0
 
-    integer                                :: send_num
+    integer                                :: send_num, overhead_factor
 
     ! Body======================================================================
     ! Initialisation------------------------------------------------------------
@@ -54,8 +54,9 @@ program comm_test
     call grid_comm_handler%init(world_size, subgrid_xyz_dims(state_xyz(1)))
 
     ! Init grid_handler derived types-------------------------------------------
-    call grid_handler%init(state_xyz, subgrid_xyz_dims, 2, grid_comm_handler%MPI_Cart_Dims)
-    call grid_handler_rcv%init(state_xyz, subgrid_xyz_dims, 2, grid_comm_handler%MPI_Cart_Dims)
+    overhead_factor = 10
+    call grid_handler%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
+    call grid_handler_rcv%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
 
     allocate(x(grid_handler%total_space, 1), stat = ierr(1))
     if (ierr(1) /= 0) print *, "q(1, grid_handler%total_space), : Allocation request denied"
@@ -96,7 +97,7 @@ program comm_test
                          testgrid_handler, my_rank)
 
     ! Rotation 2------------------------------------------------------=========
-    call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler_rcv, grid_handler, .false.)
+    call grid_comm_handler%rotate_grid_row_321_cpu(grid_handler_rcv, grid_handler, .false.)
 
 
     ! Visualize Complete Grid--------------------------------------------------
