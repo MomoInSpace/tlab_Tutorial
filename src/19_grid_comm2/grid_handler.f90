@@ -14,7 +14,7 @@ implicit none
         !  means, that the second dimension in the structured grid can be
         !  understood as the 'x' coordinate.
 
-        integer, dimension(3):: grid_xyz_dims
+        integer, dimension(3):: grid_xyz_dims, complete_grid_xyz_dims 
         ! grid_xyz_dims saves the length of each dimension x, y and z
 
         integer:: overhead_factor, free_space, total_space
@@ -36,7 +36,7 @@ implicit none
         procedure:: set_pointer_1D
         procedure:: get_pointer_3D
         procedure:: allocate_array
-        procedure:: get_switch_dims_213_workspace
+        procedure:: get_switch_dims_workspace
         ! procedure:: switch_dims_132_step
         procedure:: print_state
     end type Grid3D
@@ -52,11 +52,14 @@ implicit none
 contains
 
     subroutine init(self, state_xyz, grid_xyz_dims, &
-                          overhead_factor, subgrid_factors)
+                          overhead_factor, MPI_Cart_Dims)
         ! Parameters================================================================
         class(Grid3D)           :: self
         integer, intent(in), &
-                 dimension(3)   :: state_xyz, grid_xyz_dims, subgrid_factors
+                 dimension(3)   :: state_xyz, grid_xyz_dims
+        integer, dimension(3)   :: subgrid_factors
+        integer, intent(in), &
+                 dimension(2)   :: MPI_Cart_Dims
         integer                 :: overhead_factor, max_area
         ! Notes=====================================================================
         ! Initialization of Grid3D. Setting the base values. 
@@ -64,12 +67,27 @@ contains
         ! Body======================================================================
 
         self%state_xyz = state_xyz
+        subgrid_factors = [MPI_Cart_Dims(1), 1, 1]
         self%grid_xyz_dims = grid_xyz_dims*subgrid_factors
         self%overhead_factor = overhead_factor
 
+        ! Calculate complete_grid_xyz_dims--------------------------------------
+        self%complete_grid_xyz_dims = [grid_xyz_dims(1), &                                    
+                                       grid_xyz_dims(2), &
+                                       grid_xyz_dims(3)]
+
+        ! Now we multiply the last two dimensions of the grid with 
+        ! the dimensions of the tasks in said direction
+        self%complete_grid_xyz_dims(state_xyz(2)) = self%complete_grid_xyz_dims(state_xyz(2))*MPI_Cart_Dims(2)
+        self%complete_grid_xyz_dims(state_xyz(3)) = self%complete_grid_xyz_dims(state_xyz(3))*MPI_Cart_Dims(1)
         max_area = max(prod(self%grid_xyz_dims(1:2)), &
                        prod(self%grid_xyz_dims(2:3)), &
-                       prod(self%grid_xyz_dims(1:3:2)))
+                       prod(self%grid_xyz_dims(1:3:2)), &
+                       self%complete_grid_xyz_dims(1), &
+                       self%complete_grid_xyz_dims(2), &
+                       self%complete_grid_xyz_dims(3))
+
+        ! Calculate Free Space-------------------------------------------------
         self%free_space = max_area*self%overhead_factor
         self%total_space = self%free_space+prod(self%grid_xyz_dims)
 
@@ -86,14 +104,14 @@ contains
     end function get_dims
 
     subroutine perturb_state(self, state_xyz, grid_xyz_dims, &
-                             subgrid_factors_123, subgrid_dividers_123, &
-                             perturbation_123) 
+                             subgrid_factors_xyz, subgrid_dividers_xyz, &
+                             perturbation_xyz) 
         ! Parameters================================================================
         class(Grid3D), intent(inout):: self
         integer, intent(in), &
              dimension(3)           :: state_xyz, grid_xyz_dims, &
-                                       perturbation_123, subgrid_factors_123, &
-                                       subgrid_dividers_123
+                                       perturbation_xyz, subgrid_factors_xyz, &
+                                       subgrid_dividers_xyz
         ! Loop variables
         integer                     :: i
         ! Notes=====================================================================
@@ -109,17 +127,17 @@ contains
 
         ! Resizing of the xyz-axes:
         self%grid_xyz_dims(state_xyz(1)) = &
-            grid_xyz_dims(state_xyz(1))*subgrid_factors_123(1)/subgrid_dividers_123(1)
+            grid_xyz_dims(state_xyz(1))*subgrid_factors_xyz(1)/subgrid_dividers_xyz(1)
 
         self%grid_xyz_dims(state_xyz(2)) = &
-            grid_xyz_dims(state_xyz(2))*subgrid_factors_123(2)/subgrid_dividers_123(2)
+            grid_xyz_dims(state_xyz(2))*subgrid_factors_xyz(2)/subgrid_dividers_xyz(2)
 
         self%grid_xyz_dims(state_xyz(3)) = &
-            grid_xyz_dims(state_xyz(3))*subgrid_factors_123(3)/subgrid_dividers_123(3)
+            grid_xyz_dims(state_xyz(3))*subgrid_factors_xyz(3)/subgrid_dividers_xyz(3)
 
         ! Perturbation of xyz-axes:
         do i = 1, 3
-            self%state_xyz(i) = state_xyz(perturbation_123(i))
+            self%state_xyz(i) = state_xyz(perturbation_xyz(i))
         end do
 
     end subroutine perturb_state
@@ -193,14 +211,20 @@ contains
                        1:dims(3)) => self%grid_space
     end subroutine get_pointer_3D
 
-    subroutine get_switch_dims_213_workspace(self, dims, work_space, grid_3D_pointer)
+    subroutine get_switch_dims_workspace(self, dims, work_space3D, work_space, grid_3D_pointer, pertubation)
         ! Parameters================================================================
         class(Grid3D),   intent(in)   :: self
         integer,         intent(out), &
            dimension(3)               :: dims
+        integer,         intent(in), &
+           dimension(3)               :: pertubation
         real(kind = wp), intent(out), &
              pointer, &
-             dimension(:,:,:)         :: work_space, grid_3D_pointer
+             dimension(:,:,:)         :: work_space3D, grid_3D_pointer
+        real(kind = wp), intent(out), &
+             pointer, &
+             dimension(:)         :: work_space
+
         ! Notes=====================================================================
         ! The base assumption when initializing our subgrids with the grid_handler
         !   is, that we have 'overhead_factor's of free layers of (:,:,1) with no 
@@ -217,18 +241,24 @@ contains
         !
         ! We also switch the dimensions 1 and 2.
         ! Body======================================================================
+        ! pertubation = [2, 1, 3]
 
         dims = self%get_dims()
         call self%get_pointer_3D(grid_3D_pointer)
 
-        work_space(1:dims(2), &
-                   1:dims(1), &
-                   1:dims(3)) => &
-            self%allocated_space(1+self%free_space-dims(1)*dims(2): &
-                                 1+self%free_space+dims(1)*dims(2)*(dims(3)-1))
+        work_space3D(1:dims(pertubation(1)), &
+                     1:dims(pertubation(2)), &
+                     1:dims(pertubation(3))) => &
+            self%allocated_space(1+self%free_space-dims(pertubation(1))*dims(pertubation(2)): &
+                                 1+self%free_space+dims(pertubation(1))*dims(pertubation(2))*(dims(pertubation(3))-1))
+
+        work_space(1:prod(dims)) => &
+            self%allocated_space(1+self%free_space-dims(pertubation(1))*dims(pertubation(2)): &
+                                 1+self%free_space+dims(pertubation(1))*dims(pertubation(2))*(dims(pertubation(3))-1))
+
         ! write(*,*) size(work_space), size(self%grid_space)
  
-    end subroutine get_switch_dims_213_workspace
+    end subroutine get_switch_dims_workspace
 
     subroutine print_state(self, state_string)
         ! Parameters================================================================

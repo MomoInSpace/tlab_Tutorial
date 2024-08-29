@@ -13,25 +13,27 @@ module grid_comm_module
         integer              :: world_size, row_size, column_size
         integer              :: cart_rank, row_rank, column_rank
         integer, dimension(2):: MPI_Cart_Dims, MPI_Cart_Coords
+        integer, dimension(3):: complete_grid_xyz_dims
+        ! grid_xyz_dims saves the length of each dimension x, y and z
 
     contains
         procedure:: init
         procedure:: rotate_grid_row_213_cpu
-        ! procedure:: rotate_grid_col_312
+        procedure:: rotate_grid_col_321_cpu
 
     end type Grid3D_Comm_Handler
 
 
 contains
 
-    subroutine init(self, world_size, vertical_dimension, subgrid_factors)
+    subroutine init(self, world_size, vertical_dimension)
         class(Grid3D_Comm_Handler):: self
-        integer              :: world_size, rank, vertical_dimension
+        integer              :: world_size, rank, vertical_dimension, max_area
         integer, dimension(2):: task_dims  
         logical, dimension(2):: periods = [.false., .false.]
         ! Error integer:
         integer, dimension(100):: ierr  = 0
-        integer, dimension(3), intent(out):: subgrid_factors
+        ! integer, dimension(3), intent(out):: subgrid_xyz_dims
 
         call get_task_dims(world_size, vertical_dimension, self%MPI_Cart_Dims)
 
@@ -40,10 +42,10 @@ contains
         call MPI_Comm_rank(self%MPI_COMM_CART, self%cart_rank)
         call MPI_CART_COORDS(self%MPI_COMM_CART, self%cart_rank, 2, self%MPI_Cart_Coords, ierr(2))
 
-        self%row_size = self%MPI_Cart_Dims(2)
-        self%row_rank = self%MPI_Cart_Coords(2)
         self%column_size = self%MPI_Cart_Dims(1)
         self%column_rank = self%MPI_Cart_Coords(1)
+        self%row_size = self%MPI_Cart_Dims(2)
+        self%row_rank = self%MPI_Cart_Coords(2)
         ! Create Row communicator
         call MPI_Comm_split(comm  = self%MPI_COMM_CART, &
                             color = self%column_rank, &
@@ -58,54 +60,65 @@ contains
                             newcomm = self%MPI_Comm_Column, &
                             ierror   = ierr(4))
 
-        subgrid_factors = [self%column_size, 1, 1]
-        ! subgrid_factors = [1, 1, 1]
-        
     end subroutine init
 
     subroutine rotate_grid_row_213_cpu(self, grid_handler_send, grid_handler_rcv, forward)
         class(Grid3D_Comm_Handler)         :: self
         class(Grid3D_cpu), intent(inout)   :: grid_handler_send, grid_handler_rcv
         real(kind = wp), pointer, &
-                         dimension(:,:,:):: work_space_send, grid3D_pointer_send, grid3D_pointer_rcv
-        integer, dimension(3)            :: dims_send, dims_rcv
-        integer                          :: send_count, surface_area, ierr0, i, j, k, m, n, my_rank
+                         dimension(:,:,:):: work_space3D_send, grid3D_pointer_send, grid3D_pointer_rcv
+        integer, dimension(3)            :: dims_send, dims_rcv, pertubation3, &
+                                            subgrid_factors_xyz = [1, 1, 1], &
+                                            subgrid_dividers_xyz = [1, 1, 1]
+        integer, dimension(2)            :: pertubation
+        integer                          :: send_count, surface_area, ierr0, i, j, k, m, n, my_rank, comm_dim
         integer, dimension(:), &
                  allocatable             :: ierr, root, rcv_j
-        real(kind = wp), pointer, dimension(:):: send_buf_pointer
-        logical:: forward
+        real(kind = wp), pointer, dimension(:):: send_buf_pointer, work_space_send
+        logical:: forward, overwrite
+        TYPE(MPI_Comm):: my_comm
 
+        pertubation = [2, 1]
+        pertubation3 = [2, 1, 3]
+        ! pertubation3(pertubation(1)) = pertubation(1)
+        ! pertubation3(pertubation(2)) = pertubation(2)
 
-        call MPI_Comm_rank(self%MPI_COMM_CART, my_rank)
-        call grid_handler_send%get_switch_dims_213_workspace(dims_send, work_space_send, grid3D_pointer_send)
+        overwrite = .False.
+        comm_dim = 2
+        my_comm = self%MPI_Comm_Row
         
 
-        allocate(ierr(dims_send(3)*self%row_size), stat = ierr0)
+        call MPI_Comm_rank(self%MPI_COMM_CART, my_rank)
+        call grid_handler_send%get_switch_dims_workspace(dims_send, &
+                                                         work_space3D_send, &
+                                                         work_space_send, &
+                                                         grid3D_pointer_send, &
+                                                         pertubation3)
+        
+
+        allocate(ierr(dims_send(pertubation3(3))*self%row_size), stat = ierr0)
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
         ierr = 0
 
+        subgrid_factors_xyz(pertubation(1))  = self%MPI_Cart_Dims(comm_dim)
+        subgrid_dividers_xyz(pertubation(2)) = self%MPI_Cart_Dims(comm_dim)
+
         call grid_handler_rcv%perturb_state(state_xyz            = grid_handler_send%state_xyz, &
                                             grid_xyz_dims        = grid_handler_send%grid_xyz_dims, &
-                                            subgrid_factors_123  = [1, self%row_size, 1], &
-                                            subgrid_dividers_123 = [self%row_size, 1, 1], &
-                                            perturbation_123      = [2, 1, 3]) 
+                                            subgrid_factors_xyz  = subgrid_factors_xyz, &
+                                            subgrid_dividers_xyz = subgrid_dividers_xyz, &
+                                            perturbation_xyz      = pertubation) 
         call grid_handler_rcv%get_pointer_3D(grid3D_pointer_rcv)
         dims_rcv = grid_handler_rcv%get_dims()
 
-        ! if (my_rank == 0) write(*,*) "Dims Send:", dims_send
-        ! if (my_rank == 0) write(*,*) 'Dims Rcv: ', dims_rcv
+        send_count = dims_send(pertubation(1))  ! surface_area/self%row_size
+        j = dims_send(pertubation(2))/self%MPI_Cart_Dims(comm_dim)
 
+        allocate(root(dims_send(pertubation(2))), stat = ierr0)
+        allocate(rcv_j(dims_send(pertubation(2))), stat = ierr0)
 
-        ! surface_area = dims(1)*dims(2)
-        send_count = dims_send(2)  ! surface_area/self%row_size
-
-        j = dims_send(1)/self%row_size
         k = 0
-
-        allocate(root(dims_send(1)), stat = ierr0)
-        allocate(rcv_j(dims_send(1)), stat = ierr0)
-
-        do i = 1, dims_send(1), j
+        do i = 1, dims_send(pertubation(2)), j
             root(i:i+j-1) = k
             k = k+1
             n = 1
@@ -115,55 +128,41 @@ contains
             end do
         end do
 
-
-
-        ! if (my_rank == 0) write(*,*) 'Rotation 1', "Step", m, 'Rank', my_rank, 'grid_space:', grid3D_pointer_rcv
-        do k = 1, dims_send(3) 
-            do j = 1, dims_send(1) 
-                do i = 1, dims_send(2) 
-                    work_space_send(i, j, k) =  grid3D_pointer_send(j, i, k)
+        do k = 1, dims_send(pertubation3(3)) 
+            do j = 1, dims_send(pertubation3(2)) 
+                do i = 1, dims_send(pertubation3(1)) 
+                    work_space3D_send(i, j, k) =  grid3D_pointer_send(j, i, k)
+                    ! pertubation = [2, 1, 3]
                 end do
-            end do
+            ! end do
 
-            do j = 1, dims_send(1) 
-                ! Each process A, B, C has to scatter their data to all other processes in its row:
-                ! Look at one (1, 2)-surface:
-                !       A     B     C 
-                !    |1 1 1|2 2 2|3 3 3|    A |1 1 1 2 2 2 3 3 3|
-                !    |     |     |     |      |-----------------|
-                !    |1 1 1|2 2 2|3 3 3| -> B |1 1 1 2 2 2 3 3 3|
-                !    |     |     |     |      |-----------------|
-                !    |1 1 1|2 2 2|3 3 3|    C |1 1 1 2 2 2 3 3 3|
+            ! do j = 1, dims_send(pertubation(2)) 
+            ! Each process A, B, C has to scatter their data to all other processes in its row:
+            ! Look at one (1, 2)-surface:
+            !       A     B     C 
+            !    |1 1 1|2 2 2|3 3 3|    A |1 1 1 2 2 2 3 3 3|
+            !    |     |     |     |      |-----------------|
+            !    |1 1 1|2 2 2|3 3 3| -> B |1 1 1 2 2 2 3 3 3|
+            !    |     |     |     |      |-----------------|
+            !    |1 1 1|2 2 2|3 3 3|    C |1 1 1 2 2 2 3 3 3|
 
-                call MPI_Gather(sendbuf   = work_space_send(:, j, k), &
-                                sendcount  = send_count, &
-                                sendtype   = MPI_DOUBLE, &
-                                recvbuf    = grid3D_pointer_rcv(:,rcv_j(j), k), &
-                                                ! (m*send_count+surface_area*(k-1)+1:), &
-                                recvcount  = send_count, &
-                                recvtype   = MPI_DOUBLE, &
-                                root       = root(j), &
-                                comm       = self%MPI_Comm_Row, &
-                                ierror     = ierr0)
-                                ! ierror     = ierr(m+(k-1)*m)
-                                ! recvbuf    = work_space(1, 1, 1), &
-                                ! recvbuf    = grid_handler_rcv%grid_space, &
-                ! if (my_rank == 0) write(*,*) 'Rotation 1', "Step", m, 'Rank', my_rank, 'grid_space:', grid_handler_rcv%grid_space
-                ! if (my_rank == 0 .and. root(j) == 0) write(*,*) 'Rotation 1', "Step", m, 'Rank', my_rank, 'grid_space:', grid3D_pointer_rcv
-                ! if (my_rank == 0 .and. root(j) == 0) write(*,*) k, j, dims_send(3)
+            ! work_space_send = (((i-1)*dims_send(pertubation(1))+1)*j*((k-1)*dims_send(pertubation(3))-1))
+            ! work_space3D_send(:,j, k)
+
+            call MPI_Gather(sendbuf   = work_space3D_send(:,j, k), &
+                            sendcount  = send_count, &
+                            sendtype   = MPI_DOUBLE, &
+                            recvbuf    = grid3D_pointer_rcv(:,rcv_j(j), k), &
+                            recvcount  = send_count, &
+                            recvtype   = MPI_DOUBLE, &
+                            root       = root(j), &
+                            comm       = self%MPI_Comm_Row, &
+                            ierror     = ierr0)
             end do
 
 
         end do
 
-
-        ! if(my_rank == 0) write(*,*) "After Transformation:================="
-        ! do i = 0, self%row_size*self%column_size-1
-        !     call MPI_Barrier(MPI_COMM_WORLD)
-        !         if (my_rank == i) write(*,*) 'Rotation 1', 'Rank', my_rank, 'grid_space:', grid3D_pointer_rcv, grid_handler_rcv%grid_xyz_dims
-        !     end do
-        ! call MPI_Barrier(MPI_COMM_WORLD)
-        ! if(my_rank == 0) write(*,*) "=========================="
 
         if (sum(ierr) /= 0) error stop "Grid Row 213 Failed"
 
@@ -173,12 +172,112 @@ contains
         if (allocated(root)) deallocate(root, stat = ierr0)
         if (ierr0 /= 0) print *, "ierr: Deallocation request denied, grid_row_213"
 
-        ! call MPI_Barrier(MPI_COMM_WORLD)
-        ! if (my_rank == 0) write(*,*) "Past Barrier"
-
-
     end subroutine rotate_grid_row_213_cpu
 
+    subroutine rotate_grid_col_321_cpu(self, grid_handler_send, grid_handler_rcv, forward)
+        class(Grid3D_Comm_Handler)         :: self
+        class(Grid3D_cpu), intent(inout)   :: grid_handler_send, grid_handler_rcv
+        real(kind = wp), pointer, &
+                         dimension(:,:,:):: work_space3D_send, grid3D_pointer_send, grid3D_pointer_rcv
+        integer, dimension(3)            :: dims_send, dims_rcv, pertubation, &
+                                            subgrid_factors_xyz = [1, 1, 1], &
+                                            subgrid_dividers_xyz = [1, 1, 1]
+        integer                          :: send_count, surface_area, ierr0, i, j, k, m, n, my_rank
+        integer, dimension(:), &
+                 allocatable             :: ierr, root, rcv_j
+        real(kind = wp), pointer, dimension(:):: send_buf_pointer, work_space_send
+        logical:: forward, overwrite
+
+        pertubation = [3, 2, 1]
+        overwrite = .True.
+
+        call MPI_Comm_rank(self%MPI_COMM_CART, my_rank)
+        call grid_handler_send%get_switch_dims_workspace(dims_send,         & !-> out
+                                                         work_space3D_send, & !-> out
+                                                         work_space_send,   & !-> out
+                                                         grid3D_pointer_send, &!-> out
+                                                         pertubation)  ! <- in
+        
+
+        allocate(ierr(dims_send(pertubation(3))*self%column_size), stat = ierr0)
+        if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
+        ierr = 0
+
+        subgrid_factors_xyz(pertubation(1)) = self%column_size  ! Note: pertubation doesn't work here, 
+        subgrid_dividers_xyz(pertubation(3)) = self%column_size !       rework of pertubation needed.
+
+        call grid_handler_rcv%perturb_state(state_xyz            = grid_handler_send%state_xyz, &
+                                            grid_xyz_dims        = grid_handler_send%grid_xyz_dims, &
+                                            subgrid_factors_xyz  = subgrid_factors_xyz, &
+                                            subgrid_dividers_xyz = subgrid_dividers_xyz, &
+                                            perturbation_xyz      = pertubation) 
+        call grid_handler_rcv%get_pointer_3D(grid3D_pointer_rcv)
+        dims_rcv = grid_handler_rcv%get_dims()
+
+
+        allocate(root(dims_send(pertubation(1))), stat = ierr0)  ! Note: pertubation doesn't work here, 
+        allocate(rcv_j(dims_send(pertubation(1))), stat = ierr0) !       rework of pertubation needed.
+
+        k = 0
+        j = dims_send(pertubation(3))/self%column_size
+        send_count = dims_send(pertubation(1))  
+
+        do i = 1, dims_send(pertubation(3)), j
+            root(i:i+j-1) = k
+            k = k+1
+            n = 1
+            do m = 1, j
+               rcv_j(i+m-1) = n
+                n = n+1
+            end do
+        end do
+
+        do k = 1, dims_send(pertubation(3)) 
+            do j = 1, dims_send(pertubation(2)) 
+                do i = 1, dims_send(pertubation(1)) 
+                    work_space3D_send(i, j, k) =  grid3D_pointer_send(j, i, k)
+                    ! pertubation = [2, 1, 3]
+                end do
+            ! end do
+
+            ! do j = 1, dims_send(pertubation(2)) 
+            ! Each process A, B, C has to scatter their data to all other processes in its row:
+            ! Look at one (1, 2)-surface:
+            !       A     B     C 
+            !    |1 1 1|2 2 2|3 3 3|    A |1 1 1 2 2 2 3 3 3|
+            !    |     |     |     |      |-----------------|
+            !    |1 1 1|2 2 2|3 3 3| -> B |1 1 1 2 2 2 3 3 3|
+            !    |     |     |     |      |-----------------|
+            !    |1 1 1|2 2 2|3 3 3|    C |1 1 1 2 2 2 3 3 3|
+
+            ! work_space_send = (((i-1)*dims_send(pertubation(1))+1)*j*((k-1)*dims_send(pertubation(3))-1))
+            ! work_space3D_send(:,j, k)
+
+            call MPI_Gather(sendbuf   = work_space3D_send(:,j, k), &
+                            sendcount  = send_count, &
+                            sendtype   = MPI_DOUBLE, &
+                            recvbuf    = grid3D_pointer_rcv(:,rcv_j(j), k), &
+                            recvcount  = send_count, &
+                            recvtype   = MPI_DOUBLE, &
+                            root       = root(j), &
+                            comm       = self%MPI_Comm_Row, &
+                            ierror     = ierr0)
+            end do
+
+
+        end do
+
+
+        if (sum(ierr) /= 0) error stop "Grid Row 213 Failed"
+
+        if (allocated(ierr)) deallocate(ierr, stat = ierr0)
+        if (ierr0 /= 0) print *, "ierr: Deallocation request denied, grid_row_213"
+
+        if (allocated(root)) deallocate(root, stat = ierr0)
+        if (ierr0 /= 0) print *, "ierr: Deallocation request denied, grid_row_213"
+
+    end subroutine rotate_grid_col_321_cpu
+               
     subroutine get_task_dims(world_size, y_s, task_dims)
     ! Minimizes max(dims_task_2d), 
     !   while keeping in mind, that dims_task_2d(1) <= y_s

@@ -18,7 +18,7 @@ program comm_test
     type(Grid3D_cpu):: grid_handler, grid_handler_rcv
     type(Complete_grid_debugger):: testgrid_handler
     integer, dimension(3)                  :: state_xyz
-    integer, dimension(3)                  :: subgrid_xyz_dims, subgrid_factors
+    integer, dimension(3)                  :: subgrid_xyz_dims
     integer, dimension(2)                  :: task_state
 
     ! Error Integer
@@ -51,11 +51,11 @@ program comm_test
     state_xyz  = [2, 1, 3]
 
     !Init grid_comm_handler-----------------------------------------------------
-    call grid_comm_handler%init(world_size, subgrid_xyz_dims(state_xyz(1)), subgrid_factors)
+    call grid_comm_handler%init(world_size, subgrid_xyz_dims(state_xyz(1)))
 
     ! Init grid_handler derived types-------------------------------------------
-    call grid_handler%init(state_xyz, subgrid_xyz_dims, 2, subgrid_factors)
-    call grid_handler_rcv%init(state_xyz, subgrid_xyz_dims, 2, subgrid_factors)
+    call grid_handler%init(state_xyz, subgrid_xyz_dims, 2, grid_comm_handler%MPI_Cart_Dims)
+    call grid_handler_rcv%init(state_xyz, subgrid_xyz_dims, 2, grid_comm_handler%MPI_Cart_Dims)
 
     allocate(x(grid_handler%total_space, 1), stat = ierr(1))
     if (ierr(1) /= 0) print *, "q(1, grid_handler%total_space), : Allocation request denied"
@@ -74,10 +74,12 @@ program comm_test
     grid_handler_rcv%grid_space = 99
 
     if (my_rank == 0 ) then
-        do i = 1, prod(subgrid_xyz_dims*subgrid_factors)
+        do i = 1, size(grid_handler%grid_space)
             grid_handler%grid_space(i) = i
         end do
     end if 
+
+    if (my_rank == 0) write(*,*) x
 
     ! Visualize Complete Grid--------------------------------------------------
 
