@@ -22,7 +22,7 @@ cd build
 
 #mpifort $gpu_profile/tlab_constants.f90 $gpu_profile/tlab_arrays.f90 $gpu_profile/export_values.f90 $gpu_profile/timer.f90 $gpu_profile/ring_timer_module.cuf -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -o test_ring_times_cpu_only.o
 
-mpifort $gpu_profile/tlab_constants.f90 $gpu_profile/tlab_arrays.f90  $gpu_profile/grid_debug.f90 $gpu_profile/grid_handler.f90 $gpu_profile/grid_communicator.f90 $gpu_profile/program_gridhtest.f90 -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -o comm_test.o
+mpifort $gpu_profile/tlab_constants.f90 $gpu_profile/tlab_arrays.f90 $gpu_profile/grid_handler.f90 $gpu_profile/grid_communicator.f90 $gpu_profile/grid_debug.f90  $gpu_profile/program_gridhtest.f90 -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -o comm_test.o
 
 
 # Test
