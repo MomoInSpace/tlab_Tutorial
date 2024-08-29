@@ -75,19 +75,18 @@ contains
                  allocatable             :: ierr, root, rcv_j
         real(kind = wp), pointer, dimension(:):: send_buf_pointer, work_space_send
         logical:: forward, overwrite
+        TYPE(MPI_Comm):: my_comm
 
         pertubation = [2, 1, 3]
         overwrite = .False.
         comm_dim = 2
+        my_comm = self%MPI_Comm_Row
         
 
         call MPI_Comm_rank(self%MPI_COMM_CART, my_rank)
         call grid_handler_send%get_switch_dims_workspace(dims_send, work_space3D_send, work_space_send, grid3D_pointer_send, pertubation)
         
 
-        allocate(ierr(dims_send(pertubation(3))*self%row_size), stat = ierr0)
-        if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
-        ierr = 0
 
         subgrid_factors_xyz(pertubation(1))  = self%MPI_Cart_Dims(comm_dim)
         subgrid_dividers_xyz(pertubation(2)) = self%MPI_Cart_Dims(comm_dim)
@@ -118,6 +117,11 @@ contains
             end do
         end do
 
+        ! Later For Comm Checking
+        ! allocate(ierr(dims_send(pertubation(3))*self%MPI_Cart_Dims(comm_dim)), stat = ierr0)
+        ! if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
+        ! ierr = 0
+
         do k = 1, dims_send(pertubation(3)) 
             do j = 1, dims_send(pertubation(2)) 
                 do i = 1, dims_send(pertubation(1)) 
@@ -146,7 +150,7 @@ contains
                             recvcount  = send_count, &
                             recvtype   = MPI_DOUBLE, &
                             root       = root(j), &
-                            comm       = self%MPI_Comm_Row, &
+                            comm       = my_comm, &
                             ierror     = ierr0)
             end do
 
