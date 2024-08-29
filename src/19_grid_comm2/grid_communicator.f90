@@ -67,36 +67,25 @@ contains
         class(Grid3D_cpu), intent(inout)   :: grid_handler_send, grid_handler_rcv
         real(kind = wp), pointer, &
                          dimension(:,:,:):: work_space3D_send, grid3D_pointer_send, grid3D_pointer_rcv
-        integer, dimension(3)            :: dims_send, dims_rcv, pertubation3, &
+        integer, dimension(3)            :: dims_send, dims_rcv, pertubation, &
                                             subgrid_factors_xyz = [1, 1, 1], &
                                             subgrid_dividers_xyz = [1, 1, 1]
-        integer, dimension(2)            :: pertubation
         integer                          :: send_count, surface_area, ierr0, i, j, k, m, n, my_rank, comm_dim
         integer, dimension(:), &
                  allocatable             :: ierr, root, rcv_j
         real(kind = wp), pointer, dimension(:):: send_buf_pointer, work_space_send
         logical:: forward, overwrite
-        TYPE(MPI_Comm):: my_comm
 
-        pertubation = [2, 1]
-        pertubation3 = [2, 1, 3]
-        ! pertubation3(pertubation(1)) = pertubation(1)
-        ! pertubation3(pertubation(2)) = pertubation(2)
-
+        pertubation = [2, 1, 3]
         overwrite = .False.
         comm_dim = 2
-        my_comm = self%MPI_Comm_Row
         
 
         call MPI_Comm_rank(self%MPI_COMM_CART, my_rank)
-        call grid_handler_send%get_switch_dims_workspace(dims_send, &
-                                                         work_space3D_send, &
-                                                         work_space_send, &
-                                                         grid3D_pointer_send, &
-                                                         pertubation3)
+        call grid_handler_send%get_switch_dims_workspace(dims_send, work_space3D_send, work_space_send, grid3D_pointer_send, pertubation)
         
 
-        allocate(ierr(dims_send(pertubation3(3))*self%row_size), stat = ierr0)
+        allocate(ierr(dims_send(pertubation(3))*self%row_size), stat = ierr0)
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
         ierr = 0
 
@@ -112,6 +101,7 @@ contains
         dims_rcv = grid_handler_rcv%get_dims()
 
         send_count = dims_send(pertubation(1))  ! surface_area/self%row_size
+
         j = dims_send(pertubation(2))/self%MPI_Cart_Dims(comm_dim)
 
         allocate(root(dims_send(pertubation(2))), stat = ierr0)
@@ -128,9 +118,9 @@ contains
             end do
         end do
 
-        do k = 1, dims_send(pertubation3(3)) 
-            do j = 1, dims_send(pertubation3(2)) 
-                do i = 1, dims_send(pertubation3(1)) 
+        do k = 1, dims_send(pertubation(3)) 
+            do j = 1, dims_send(pertubation(2)) 
+                do i = 1, dims_send(pertubation(1)) 
                     work_space3D_send(i, j, k) =  grid3D_pointer_send(j, i, k)
                     ! pertubation = [2, 1, 3]
                 end do

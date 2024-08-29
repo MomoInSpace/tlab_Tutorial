@@ -79,7 +79,7 @@ program comm_test
         end do
     end if 
 
-    if (my_rank == 0) write(*,*) x
+    ! if (my_rank == 0) write(*,*) x
 
     ! Visualize Complete Grid--------------------------------------------------
 
