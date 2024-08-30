@@ -54,7 +54,7 @@ program comm_test
     call grid_comm_handler%init(world_size, subgrid_xyz_dims(state_xyz(1)))
 
     ! Init grid_handler derived types-------------------------------------------
-    overhead_factor = 20
+    overhead_factor = 1
     call grid_handler%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
     call grid_handler_rcv%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
 
@@ -84,17 +84,17 @@ program comm_test
 
     ! Visualize Complete Grid--------------------------------------------------
 
-    ! call gather_compgrid(grid_handler, grid_comm_handler, &
-    !                      subgrid_xyz_dims, &
-    !                      testgrid_handler, my_rank)
+    call gather_compgrid(grid_handler, grid_comm_handler, &
+                         subgrid_xyz_dims, &
+                         testgrid_handler, my_rank)
 
     ! Rotation 1------------------------------------------------------=========
     call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler, grid_handler_rcv, .true.)
 
     ! Visualize Complete Grid--------------------------------------------------
-    ! call gather_compgrid(grid_handler_rcv, grid_comm_handler, &
-    !                      subgrid_xyz_dims, &
-    !                      testgrid_handler, my_rank)
+    call gather_compgrid(grid_handler_rcv, grid_comm_handler, &
+                         subgrid_xyz_dims, &
+                         testgrid_handler, my_rank)
 
     ! Rotation 2------------------------------------------------------=========
     call grid_comm_handler%rotate_grid_col_321_cpu(grid_handler_rcv, grid_handler, .false.)
@@ -106,15 +106,15 @@ program comm_test
                          testgrid_handler, my_rank)
 
     ! Rotation 3------------------------------------------------------=========
-    ! call grid_comm_handler%rotate_grid_col_321_cpu(grid_handler, grid_handler_rcv,  .false.)
+    call grid_comm_handler%rotate_grid_col_321_cpu(grid_handler, grid_handler_rcv,  .false.)
 
     ! ! Rotation 4------------------------------------------------------=========
-    ! call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler_rcv, grid_handler, .false.)
+    call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler_rcv, grid_handler, .false.)
 
     ! ! Visualize Complete Grid--------------------------------------------------
-    ! call gather_compgrid(grid_handler, grid_comm_handler, &
-    !                      subgrid_xyz_dims, &
-    !                      testgrid_handler, my_rank)
+    call gather_compgrid(grid_handler, grid_comm_handler, &
+                         subgrid_xyz_dims, &
+                         testgrid_handler, my_rank)
 
     ! Cleanup ==================================================================
     if (allocated(q )) deallocate(q, stat = ierr(1))

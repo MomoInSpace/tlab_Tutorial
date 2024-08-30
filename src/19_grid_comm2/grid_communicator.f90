@@ -217,16 +217,16 @@ contains
             end do
         end do
 
-        if (my_rank == 0) then
-            write(*,*) root
-        end if
+        ! if (my_rank == 0) then
+        !     write(*,*) root
+        ! end if
 
         ! Later For Comm Checking
         allocate(ierr(dims_send(pertubation(3))*self%MPI_Cart_Dims(comm_dim)), stat = ierr0)
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
         ierr = 0
 
-        if (my_rank == 0) then
+        ! if (my_rank == 0) then
         !     write(*,*) "work_space_send"
         !     write(*,*) shape(work_space3D_send)
         !     write(*,*) work_space_send
@@ -234,8 +234,8 @@ contains
         !     write(*,*) shape(grid3D_pointer_send)
         !     write(*,*) grid3D_pointer_send
 
-            write(*,*) "dims_send: ",dims_send  ! 8, 1, 2
-        end if
+        !     write(*,*) "dims_send: ",dims_send  ! 8, 1, 2
+        ! end if
 
         do j = 1, dims_send(1)  ! 8  ! Change of pertubation from 2->3
             do k = 1, dims_send(2)  ! 1     ! Change of pertubation from 3->2   
@@ -259,10 +259,10 @@ contains
             ! work_space_send = (((i-1)*dims_send(pertubation(1))+1)*j*((k-1)*dims_send(pertubation(3))-1))
             ! work_space3D_send(:,j, k)
 
-            call MPI_Gather(sendbuf   = work_space3D_send(:,j, k), &
+            call MPI_Gather(sendbuf   = work_space3D_send(:,k, j), &
                             sendcount  = send_count, &
                             sendtype   = MPI_DOUBLE, &
-                            recvbuf    = grid3D_pointer_rcv(:,rcv_j(j), k), &
+                            recvbuf    = grid3D_pointer_rcv(:, k, rcv_j(j)), &
                             recvcount  = send_count, &
                             recvtype   = MPI_DOUBLE, &
                             root       = root(j), &
@@ -323,8 +323,8 @@ contains
     call MPI_Comm_rank(MPI_COMM_WORLD, my_rank)
     if (my_rank == 0) then
         if (n_num /= y_s) print *, &
-                "Note: n_num not divisible by y_s. For flat grids this reduces communication delay! "
-        if (n_num /= y_s) print *, "n_num: ", n_num, ", y_s: ", y_s, ', m_num', m_num
+                "Note: n_num not divisible by y_s. n_num <= y_s. Try to bring n_num and m_num as close to each other as possible. To reduce communication delay."
+        if (n_num /= y_s) print *, "y_s: ", y_s, "n_num: ", n_num,  ', m_num', m_num
     end if
     
     if (n_num == 1 .or. m_num == 1) error stop &
