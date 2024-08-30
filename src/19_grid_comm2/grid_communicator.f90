@@ -116,9 +116,9 @@ contains
         end do
 
         ! Later For Comm Checking
-        ! allocate(ierr(dims_send(pertubation(3))*self%MPI_Cart_Dims(comm_dim)), stat = ierr0)
-        ! if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
-        ! ierr = 0
+        allocate(ierr(dims_send(pertubation(3))*self%MPI_Cart_Dims(comm_dim)), stat = ierr0)
+        if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
+        ierr = 0
 
         do k = 1, dims_send(pertubation(3)) 
             do j = 1, dims_send(pertubation(2)) 
@@ -188,7 +188,7 @@ contains
 
         call MPI_Comm_rank(self%MPI_COMM_CART, my_rank)
         call grid_handler_send%get_switch_dims_workspace(dims_send, work_space3D_send, work_space_send, grid3D_pointer_send, pertubation)
-        
+
         subgrid_factors_xyz(pertubation(1))  = self%MPI_Cart_Dims(comm_dim)
         subgrid_dividers_xyz(pertubation(3)) = self%MPI_Cart_Dims(comm_dim)  ! Change of pertubation from 2->3
 
@@ -217,20 +217,36 @@ contains
             end do
         end do
 
-        ! Later For Comm Checking
-        ! allocate(ierr(dims_send(pertubation(3))*self%MPI_Cart_Dims(comm_dim)), stat = ierr0)
-        ! if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
-        ! ierr = 0
+        if (my_rank == 0) then
+            write(*,*) root
+        end if
 
-        do k = 1, dims_send(pertubation(2))      ! Change of pertubation from 3->2   
-            do j = 1, dims_send(pertubation(3))  ! Change of pertubation from 2->3
-                do i = 1, dims_send(pertubation(1)) 
-                    work_space3D_send(i, j, k) =  grid3D_pointer_send(k, j, i)  ! Change in grid3D_pointer to k, j, i
+        ! Later For Comm Checking
+        allocate(ierr(dims_send(pertubation(3))*self%MPI_Cart_Dims(comm_dim)), stat = ierr0)
+        if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
+        ierr = 0
+
+        if (my_rank == 0) then
+        !     write(*,*) "work_space_send"
+        !     write(*,*) shape(work_space3D_send)
+        !     write(*,*) work_space_send
+        !     write(*,*) "grid3D"
+        !     write(*,*) shape(grid3D_pointer_send)
+        !     write(*,*) grid3D_pointer_send
+
+            write(*,*) "dims_send: ",dims_send  ! 8, 1, 2
+        end if
+
+        do j = 1, dims_send(1)  ! 8  ! Change of pertubation from 2->3
+            do k = 1, dims_send(2)  ! 1     ! Change of pertubation from 3->2   
+                do i = 1, dims_send(3)  ! 2
+                    ! 2, 1, 8                      ! 8, 1, 2
+                    work_space3D_send(i, k, j) =  grid3D_pointer_send(j, k, i)  ! Change in grid3D_pointer to k, j, i
                     ! pertubation = [2, 1, 3]
                 end do
             ! end do
 
-            ! do j = 1, dims_send(pertubation(2)) 
+            ! do j = 1, dims_send(pertubation(3)) 
             ! Each process A, B, C has to scatter their data to all other processes in its row:
             ! Look at one (1, 2)-surface:
             !       A     B     C 
@@ -256,6 +272,13 @@ contains
 
 
         end do
+
+        ! if (my_rank == 0) then
+        !     write(*,*) "work space"
+        !     write(*,*) work_space3D_send
+        !     write(*,*) "grid3D_pointer_rcv"
+        !     write(*,*) grid3D_pointer_rcv
+        ! end if
 
 
         if (sum(ierr) /= 0) error stop "Grid Row 213 Failed"
@@ -301,8 +324,9 @@ contains
     if (my_rank == 0) then
         if (n_num /= y_s) print *, &
                 "Note: n_num not divisible by y_s. For flat grids this reduces communication delay! "
-        if (n_num /= y_s) print *, "n_num: ", n_num, ", y_s: ", y_s
+        if (n_num /= y_s) print *, "n_num: ", n_num, ", y_s: ", y_s, ', m_num', m_num
     end if
+    
     if (n_num == 1 .or. m_num == 1) error stop &
             "Fatal: world_size ist not divisible by facors of y_s, except 1, or calc error. Check code"
     if (n_num == 0) error stop &

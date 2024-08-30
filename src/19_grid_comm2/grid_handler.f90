@@ -248,13 +248,13 @@ contains
 
         work_space3D(1:dims(pertubation(1)), &
                      1:dims(pertubation(2)), &
-                     1:dims(pertubation(3))) => &
-            self%allocated_space(1+self%free_space-dims(pertubation(1))*dims(pertubation(2)): &
-                                 1+self%free_space+dims(pertubation(1))*dims(pertubation(2))*(dims(pertubation(3))-1))
+                     1:dims(pertubation(3))) => self%allocated_space!&
+            ! self%allocated_space(1+self%free_space-dims(pertubation(1))*dims(pertubation(2)): &
+            !                      1+self%free_space+dims(pertubation(1))*dims(pertubation(2))*(dims(pertubation(3))-1))
 
-        work_space(1:prod(dims)) => &
-            self%allocated_space(1+self%free_space-dims(pertubation(1))*dims(pertubation(2)): &
-                                 1+self%free_space+dims(pertubation(1))*dims(pertubation(2))*(dims(pertubation(3))-1))
+        work_space(1:prod(dims)) => self%allocated_space!&
+            ! self%allocated_space(1+self%free_space-dims(pertubation(1))*dims(pertubation(2)): &
+            !                      1+self%free_space+dims(pertubation(1))*dims(pertubation(2))*(dims(pertubation(3))-1))
 
         ! write(*,*) size(work_space), size(self%grid_space)
  
