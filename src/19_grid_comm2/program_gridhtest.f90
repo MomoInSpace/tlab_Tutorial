@@ -54,7 +54,7 @@ program comm_test
     call grid_comm_handler%init(world_size, subgrid_xyz_dims(state_xyz(1)))
 
     ! Init grid_handler derived types-------------------------------------------
-    overhead_factor = 1
+    overhead_factor = 20
     call grid_handler%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
     call grid_handler_rcv%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
 
@@ -87,6 +87,8 @@ program comm_test
     call gather_compgrid(grid_handler, grid_comm_handler, &
                          subgrid_xyz_dims, &
                          testgrid_handler, my_rank)
+    call grid_handler%get_pointer_3D(u)
+    !if (my_rank == 0) write(*,*) u(:,1, 1)
 
     ! Rotation 1------------------------------------------------------=========
     call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler, grid_handler_rcv, .true.)
@@ -95,6 +97,8 @@ program comm_test
     call gather_compgrid(grid_handler_rcv, grid_comm_handler, &
                          subgrid_xyz_dims, &
                          testgrid_handler, my_rank)
+    call grid_handler_rcv%get_pointer_3D(u)
+    !if (my_rank == 0) write(*,*) u(:,1, 1)
 
     ! Rotation 2------------------------------------------------------=========
     call grid_comm_handler%rotate_grid_col_321_cpu(grid_handler_rcv, grid_handler, .false.)
@@ -104,6 +108,8 @@ program comm_test
     call gather_compgrid(grid_handler, grid_comm_handler, &
                          subgrid_xyz_dims, &
                          testgrid_handler, my_rank)
+    call grid_handler%get_pointer_3D(u)
+    !if (my_rank == 0) write(*,*) u(:,1, 1)
 
     ! Rotation 3------------------------------------------------------=========
     call grid_comm_handler%rotate_grid_col_321_cpu(grid_handler, grid_handler_rcv,  .false.)
@@ -115,6 +121,8 @@ program comm_test
     call gather_compgrid(grid_handler, grid_comm_handler, &
                          subgrid_xyz_dims, &
                          testgrid_handler, my_rank)
+    call grid_handler%get_pointer_3D(u)
+    !if (my_rank == 0) write(*,*) u(:,1, 1)
 
     ! Cleanup ==================================================================
     if (allocated(q )) deallocate(q, stat = ierr(1))
