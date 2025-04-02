@@ -180,6 +180,7 @@ contains
         real(kind = wp), pointer, dimension(:):: send_buf_pointer, work_space_send
         logical:: overwrite
         TYPE(MPI_Comm):: my_comm
+        TYPE(MPI_Request) :: request
 
         pertubation = [3, 2, 1]
         comm_dim = 1
@@ -259,7 +260,7 @@ contains
             ! work_space_send = (((i-1)*dims_send(pertubation(1))+1)*j*((k-1)*dims_send(pertubation(3))-1))
             ! work_space3D_send(:,j, k)
 
-            call MPI_Gather(sendbuf   = work_space3D_send(:,k, j), &
+            call MPI_Gather(SENDBUF   = WORK_SPACE3d_SEND(:,K, J), &
                             sendcount  = send_count, &
                             sendtype   = MPI_DOUBLE, &
                             recvbuf    = grid3D_pointer_rcv(:, k, rcv_j(j)), &
@@ -267,9 +268,20 @@ contains
                             recvtype   = MPI_DOUBLE, &
                             root       = root(j), &
                             comm       = my_comm, &
-                            ierror     = ierr0)
+                            ierror     = ierr0)!, &
+                            !request    = request)
             end do
 
+            !ERROR!
+            ! mpirun -n 6 build/comm_test.o 3 6 2
+            ! [l40369:4114492] *** An error occurred in MPI_Gather
+            ! [l40369:4114492] *** reported by process [2337013761,1]
+            ! [l40369:4114492] *** on communicator MPI COMMUNICATOR 5 SPLIT FROM 3
+            ! [l40369:4114492] *** MPI_ERR_ROOT: invalid root
+            ! [l40369:4114492] *** MPI_ERRORS_ARE_FATAL (processes in this communicator will now abort,
+            ! [l40369:4114492] ***    and potentially your MPI job)
+            ! [l40369.lvt.dkrz.de:4114483] 4 more processes have sent help message help-mpi-errors.txt / mpi_errors_are_fatal
+            ! [l40369.lvt.dkrz.de:4114483] Set MCA parameter "orte_base_help_aggregate" to 0 to see all help / error messages
 
         end do
 

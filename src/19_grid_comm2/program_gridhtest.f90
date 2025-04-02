@@ -54,7 +54,7 @@ program comm_test
     call grid_comm_handler%init(world_size, subgrid_xyz_dims(state_xyz(1)))
 
     ! Init grid_handler derived types-------------------------------------------
-    overhead_factor = 20
+    overhead_factor = 2
     call grid_handler%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
     call grid_handler_rcv%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
 
