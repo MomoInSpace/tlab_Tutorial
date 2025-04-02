@@ -57,7 +57,7 @@ contains
         class(Grid3D)           :: self
         integer, intent(in), &
                  dimension(3)   :: state_xyz, grid_xyz_dims
-        integer, dimension(3)   :: subgrid_factors
+        !integer, dimension(3)   :: subgrid_factors
         integer, intent(in), &
                  dimension(2)   :: MPI_Cart_Dims
         integer                 :: overhead_factor, max_area
@@ -67,18 +67,19 @@ contains
         ! Body======================================================================
 
         self%state_xyz = state_xyz
-        subgrid_factors = [MPI_Cart_Dims(1), 1, 1]
-        self%grid_xyz_dims = grid_xyz_dims*subgrid_factors
+        !subgrid_factors = [MPI_Cart_Dims(1), 1, 1] !Shouldn't there be MPI_Cart_Dims(3) there in the last 1?
+        self%grid_xyz_dims = grid_xyz_dims!*subgrid_factors  ! Just Remove subgrid factors?
         self%overhead_factor = overhead_factor
 
         ! Calculate complete_grid_xyz_dims--------------------------------------
         self%complete_grid_xyz_dims = [grid_xyz_dims(1), &                                    
                                        grid_xyz_dims(2), &
-                                       grid_xyz_dims(3)]
+                                       grid_xyz_dims(3)] ! Here I need to multiply the subgrid_factors correctly.
 
         ! Now we multiply the last two dimensions of the grid with 
         ! the dimensions of the tasks in said direction
-        self%complete_grid_xyz_dims(state_xyz(2)) = self%complete_grid_xyz_dims(state_xyz(2))*MPI_Cart_Dims(2)
+        self%complete_grid_xyz_dims(state_xyz(2)) = self%complete_grid_xyz_dims(state_xyz(2))*MPI_Cart_Dims(2)  ! Is this correct, 
+                                                                                                                ! why 2, 2 | 3, 1?
         self%complete_grid_xyz_dims(state_xyz(3)) = self%complete_grid_xyz_dims(state_xyz(3))*MPI_Cart_Dims(1)
         max_area = max(prod(self%grid_xyz_dims(1:2)), &
                        prod(self%grid_xyz_dims(2:3)), &
