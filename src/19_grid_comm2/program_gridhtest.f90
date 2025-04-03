@@ -13,18 +13,30 @@ program comm_test
     INTEGER:: i 
     CHARACTER(len = 32):: arg
 
-    integer:: world_size, my_rank
-    type(Grid3D_Comm_Handler):: grid_comm_handler
-    type(Grid3D_cpu):: grid_handler, grid_handler_rcv
+    integer                     :: world_size, my_rank
+    type(Grid3D_Comm_Handler)   :: grid_comm_handler
+    type(Grid3D_cpu)            :: grid_handler, grid_handler_rcv
     type(Complete_grid_debugger):: testgrid_handler
-    integer, dimension(3)                  :: state_xyz
-    integer, dimension(3)                  :: subgrid_xyz_dims
-    integer, dimension(2)                  :: task_state
+    integer, dimension(3)       :: state_xyz  = [2, 1, 3],
+                                   ! Pertubation of [1, 2, 3]. 
+                                   ! Describes the orientation of our array/grid. 
+                                   block_xyz_dims, 
+                                   ! Describes the size of the smallest grid_unit.
+                                   block_multiplication_xyz_state = [12, 1, 2], 
+                                   ! The block_xyz_dims get multiplied by the 
+                                   ! threads as indicated by this state.
+                                   ! Depending on the communication algorithm used, 
+                                   ! the programm needs different states!
+                                   subgrid_xyz_dims
+                                   ! The size of the subgrid for each thread as 
+                                   ! indicated by block_multiplication_xyz_state
+    integer                     :: column_upper_limit
+    integer, dimension(2)       :: task_state
 
     ! Error Integer
-    INTEGER, dimension(100):: ierr  = 0
+    INTEGER, dimension(100)     :: ierr  = 0
 
-    integer                                :: send_num, overhead_factor
+    integer                     :: send_num, overhead_factor
 
     ! Body======================================================================
     ! Initialisation------------------------------------------------------------
@@ -39,7 +51,7 @@ program comm_test
         do i = 1, COMMAND_ARGUMENT_COUNT()  ! Should be 3
             ! Get Arguments:
             call getarg(i, arg)
-                READ(arg, '(I10)') subgrid_xyz_dims(i)
+            READ(arg, '(I10)') block_xyz_dims(i)
             end do
      end if
 
@@ -47,11 +59,13 @@ program comm_test
     ! Broadcast Input Parameters and use pointers for better readability
     call MPI_BCAST(subgrid_xyz_dims, 3, MPI_INTEGER, 0, MPI_COMM_WORLD)
 
-    ! Define The Initial Sate of the grid--------------------------------------
-    state_xyz  = [2, 1, 3]
-
     !Init grid_comm_handler-----------------------------------------------------
-    call grid_comm_handler%init(world_size, subgrid_xyz_dims(state_xyz(1)))
+    ! Four possible states: [0, 1, 2, 12].
+    call grid_comm_handler%init(world_size, 
+            block_xyz_dims,         
+            block_multiplication_xyz_state, 
+            column_upper_limit, 
+            subgrid_xyz_dims)  ! OUT: subgrid_xyz_dims
 
     ! Init grid_handler derived types-------------------------------------------
     overhead_factor = 2

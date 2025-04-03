@@ -26,23 +26,49 @@ module grid_comm_module
 
 contains
 
-    subroutine init(self, world_size, vertical_dimension)
+    subroutine init(self, world_size, 
+                          block_xyz_dims,  
+                          block_multiplication_xyz_state, 
+                          column_upper_limit, 
+                          subgrid_xyz_dims)
+
+        ! Parameters============================================================
         class(Grid3D_Comm_Handler):: self
         integer              :: world_size, rank, vertical_dimension, max_area
         integer, dimension(2):: task_dims  
+        integer, dimension(3):: block_xyz_dims, 
+                                ! Describes the size of the smallest grid_unit.
+                                block_multiplication_xyz_state = [12, 1, 2], 
+                                ! The block_xyz_dims get multiplied by the 
+                                ! threads as indicated by this state.
+                                ! Depending on the communication algorithm used, 
+                                ! the programm needs different states!
+                                subgrid_xyz_dims
+                                ! The size of the subgrid for each thread as 
+                                ! indicated by block_multiplication_xyz_state
+        integer              :: column_upper_limit
         logical, dimension(2):: periods = [.false., .false.]
         ! Error integer:
         integer, dimension(100):: ierr  = 0
         ! integer, dimension(3), intent(out):: subgrid_xyz_dims
 
-        call get_task_dims(world_size, vertical_dimension, self%MPI_Cart_Dims)
+        ! Body==================================================================
+        self%block_xyz_dims = block_xyz_dims
+        self%block_multiplication_xyz_state = block_multiplication_xyz_state
 
+        ! Calculate Grid and Task Structure------------------------------------
+        call get_task_dims(world_size, column_upper_limit, self%MPI_Cart_Dims)
+        call calculate_subgrid_dims(self, subgrid_xyz_dism)
+
+        ! Create MPI Cart (Global) Communicator---------------------------------
         call MPI_CART_CREATE(MPI_COMM_WORLD, 2, self%MPI_Cart_Dims, periods, .true., self%MPI_COMM_CART, ierr(1)) 
 
         call MPI_Comm_rank(self%MPI_COMM_CART, self%cart_rank)
         call MPI_CART_COORDS(self%MPI_COMM_CART, self%cart_rank, 2, self%MPI_Cart_Coords, ierr(2))
 
-        self%column_size = self%MPI_Cart_Dims(1)
+        ! Define Row and Column Communicators----------------------------------
+        ! Column size is always <= row size
+        self%column_size = self%MPI_Cart_Dims(1)   
         self%column_rank = self%MPI_Cart_Coords(1)
         self%row_size = self%MPI_Cart_Dims(2)
         self%row_rank = self%MPI_Cart_Coords(2)
@@ -61,6 +87,95 @@ contains
                             ierror   = ierr(4))
 
     end subroutine init
+
+               
+    subroutine calculate_subgrid_dims(self, subgrid_xyz_dims)
+        ! Parameters============================================================
+        type(Grid3D_Comm_Handler):: self
+        integer, dimension(3):: subgrid_xyz_dims
+        integer:: i
+        ! Body =================================================================
+
+        do i, 3
+            select case (self%block_multiplication_xyz_state(i))
+            case(0)
+                subgrid_xyz_dims(i) = self%block_xyz_dims(i)
+            case(1)
+                subgrid_xyz_dims(i) = self%block_xyz_dims(i)*self%column_size
+            case(2) 
+                subgrid_xyz_dims(i) = self%block_xyz_dims(i)*self%row_size
+            case(12) 
+                subgrid_xyz_dims(i) = &
+                    self%block_xyz_dims(i)*self%row_size*self%column_size
+            case default
+                error stop "block_multiplication_xyz_state has invalid values"
+            end select
+        end do
+
+
+    end subroutine
+
+    ! TODO: Change to function
+    subroutine get_task_dims(world_size, column_upper_limit, task_dims)
+    ! Minimizes max(dims_task_2d), 
+    !   while keeping in mind, that dims_task_2d(1) <= column_upper_limit
+    !   and sum(task_dims) = world_size.
+    !   For flat grids, this leads to task_dims(1) = column_upper_limit
+
+    ! Parameters================================================================
+    integer, intent(in):: world_size, column_upper_limit
+    ! task_dims are the dimensions of the cartesian tasks 
+    integer, dimension(2), intent(out):: task_dims  
+    integer:: i, j, fac, m_num, n_num, factor_diff, my_rank
+    integer, allocatable:: m_arr(:), n_arr(:)
+    integer, allocatable:: factors_ys(:), factors_wsize(:)
+
+    ! Body======================================================================
+    ! Compute factors of column_upper_limit
+
+    factors_ys = get_factors(column_upper_limit)
+    factors_wsize = get_factors(world_size)
+
+    n_num = world_size
+    m_num = 1
+    do i = 1, size(factors_ys)
+        fac = factors_ys(i)
+        if (any(factors_wsize == fac) .and. (fac+world_size/fac <= n_num+m_num) )then
+            n_num = fac
+            m_num = world_size/n_num
+            end if
+    end do
+
+    call MPI_Comm_rank(MPI_COMM_WORLD, my_rank)
+    if (my_rank == 0) then
+        if (n_num /= column_upper_limit) print *, &
+                "Note: n_num not divisible by column_upper_limit. n_num <= y_s. Try to bring n_num and m_num as close to each other as possible. To reduce communication delay."
+        if (n_num /= column_upper_limit) print *, "y_s: ", y_s, "n_num: ", n_num,  ', m_num', m_num
+    end if
+    
+    if (n_num == 1 .or. m_num == 1) error stop &
+            "Fatal: world_size ist not divisible by facors of column_upper_limit, except 1, or calc error. Check code"
+    if (n_num == 0) error stop &
+            "Fatal: Something went terribly wrong. n_num in get_task_dims shouldn't be zero!!"
+
+    task_dims = [m_num, n_num]
+
+    end subroutine get_task_dims
+
+    function get_factors(n) result(factors)
+        integer, intent(in):: n
+        integer, allocatable:: factors(:)
+        integer:: i, count
+
+        count = 0
+        allocate(factors(0))
+        do i = 1, n
+            if (mod(n, i) == 0) then
+                count = count+1
+                factors = [factors, i]
+            endif
+        enddo
+    end function get_factors
 
     subroutine rotate_grid_row_213_cpu(self, grid_handler_send, grid_handler_rcv, overwrite)
         class(Grid3D_Comm_Handler)         :: self
@@ -180,7 +295,7 @@ contains
         real(kind = wp), pointer, dimension(:):: send_buf_pointer, work_space_send
         logical:: overwrite
         TYPE(MPI_Comm):: my_comm
-        TYPE(MPI_Request) :: request
+        TYPE(MPI_Request):: request
 
         pertubation = [3, 2, 1]
         comm_dim = 1
@@ -265,7 +380,7 @@ contains
 
             if (my_rank == 0) then
                 write(*,*) root(j)
-                write(*,*) work_space3D_send(1,k,j)
+                write(*,*) work_space3D_send(1, k, j)
             end if
 
             call MPI_Gather(SENDBUF   = WORK_SPACE3d_SEND(:,K, J), &
@@ -281,15 +396,15 @@ contains
             end do
 
             !ERROR!
-            ! mpirun -n 6 build/comm_test.o 3 6 2
+            ! mpirun-n 6 build/comm_test.o 3 6 2
             ! [l40369:4114492] *** An error occurred in MPI_Gather
-            ! [l40369:4114492] *** reported by process [2337013761,1]
+            ! [l40369:4114492] *** reported by process [2337013761, 1]
             ! [l40369:4114492] *** on communicator MPI COMMUNICATOR 5 SPLIT FROM 3
             ! [l40369:4114492] *** MPI_ERR_ROOT: invalid root
-            ! [l40369:4114492] *** MPI_ERRORS_ARE_FATAL (processes in this communicator will now abort,
+            ! [l40369:4114492] *** MPI_ERRORS_ARE_FATAL (processes in this communicator will now abort, 
             ! [l40369:4114492] ***    and potentially your MPI job)
-            ! [l40369.lvt.dkrz.de:4114483] 4 more processes have sent help message help-mpi-errors.txt / mpi_errors_are_fatal
-            ! [l40369.lvt.dkrz.de:4114483] Set MCA parameter "orte_base_help_aggregate" to 0 to see all help / error messages
+            ! [l40369.lvt.dkrz.de:4114483] 4 more processes have sent help message help-mpi-errors.txt/mpi_errors_are_fatal
+            ! [l40369.lvt.dkrz.de:4114483] Set MCA parameter "orte_base_help_aggregate" to 0 to see all help/error messages
 
         end do
 
@@ -309,68 +424,5 @@ contains
         if (allocated(root)) deallocate(root, stat = ierr0)
         if (ierr0 /= 0) print *, "ierr: Deallocation request denied, grid_row_213"
     end subroutine rotate_grid_col_321_cpu
-               
-    subroutine get_task_dims(world_size, y_s, task_dims)
-    ! Minimizes max(dims_task_2d), 
-    !   while keeping in mind, that dims_task_2d(1) <= y_s
-    !   and sum(task_dims) = world_size.
-    !   For flat grids, this leads to task_dims(1) = y_s
-
-    ! Parameters================================================================
-    integer, intent(in):: world_size, y_s
-    ! task_dims are the dimensions of the cartesian tasks 
-    integer, dimension(2), intent(out):: task_dims  
-    integer:: i, j, fac, m_num, n_num, factor_diff, my_rank
-    integer, allocatable:: m_arr(:), n_arr(:)
-    integer, allocatable:: factors_ys(:), factors_wsize(:)
-
-    ! Body======================================================================
-    ! Compute factors of y_s
-
-    factors_ys = get_factors(y_s)
-    factors_wsize = get_factors(world_size)
-
-    n_num = world_size
-    m_num = 1
-    do i = 1, size(factors_ys)
-        fac = factors_ys(i)
-        if (any(factors_wsize == fac) .and. (fac+world_size/fac <= n_num+m_num) )then
-            n_num = fac
-            m_num = world_size/n_num
-            end if
-    end do
-
-    call MPI_Comm_rank(MPI_COMM_WORLD, my_rank)
-    if (my_rank == 0) then
-        if (n_num /= y_s) print *, &
-                "Note: n_num not divisible by y_s. n_num <= y_s. Try to bring n_num and m_num as close to each other as possible. To reduce communication delay."
-        if (n_num /= y_s) print *, "y_s: ", y_s, "n_num: ", n_num,  ', m_num', m_num
-    end if
-    
-    if (n_num == 1 .or. m_num == 1) error stop &
-            "Fatal: world_size ist not divisible by facors of y_s, except 1, or calc error. Check code"
-    if (n_num == 0) error stop &
-            "Fatal: Something went terribly wrong. n_num in get_task_dims shouldn't be zero!!"
-
-    task_dims = [m_num, n_num]
-
-    end subroutine get_task_dims
-
-    function get_factors(n) result(factors)
-        integer, intent(in):: n
-        integer, allocatable:: factors(:)
-        integer:: i, count
-
-        count = 0
-        allocate(factors(0))
-        do i = 1, n
-            if (mod(n, i) == 0) then
-                count = count+1
-                factors = [factors, i]
-            endif
-        enddo
-    end function get_factors
-
-
 
 end module grid_comm_module
