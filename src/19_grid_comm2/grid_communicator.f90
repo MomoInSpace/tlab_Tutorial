@@ -204,6 +204,9 @@ contains
         send_count = dims_send(pertubation(1))  ! surface_area/self%row_size
 
         allocate(root(dims_send(pertubation(3))), stat = ierr0)   ! Change of pertubation from 2->3
+        if (my_rank == 0) then
+            write(*,*) root
+        end if
         allocate(rcv_j(dims_send(pertubation(3))), stat = ierr0)  ! Change of pertubation from 2->3
 
         k = 0
@@ -218,9 +221,9 @@ contains
             end do
         end do
 
-        ! if (my_rank == 0) then
-        !     write(*,*) root
-        ! end if
+        if (my_rank == 0) then
+            write(*,*) root
+        end if
 
         ! Later For Comm Checking
         allocate(ierr(dims_send(pertubation(3))*self%MPI_Cart_Dims(comm_dim)), stat = ierr0)
@@ -259,6 +262,11 @@ contains
 
             ! work_space_send = (((i-1)*dims_send(pertubation(1))+1)*j*((k-1)*dims_send(pertubation(3))-1))
             ! work_space3D_send(:,j, k)
+
+            if (my_rank == 0) then
+                write(*,*) root(j)
+                write(*,*) work_space3D_send(1,k,j)
+            end if
 
             call MPI_Gather(SENDBUF   = WORK_SPACE3d_SEND(:,K, J), &
                             sendcount  = send_count, &
