@@ -4,6 +4,8 @@ module grid_debug
 
     use grid_handler
     use grid_comm_module
+    use TLAB_ARRAYS 
+    use TLAB_POINTERS_3D
     implicit none
 
     ! private:: prod
@@ -42,7 +44,13 @@ module grid_debug
             procedure:: allocate_arrays_wbuffer
             procedure:: reorder_gatherv
             procedure:: gather_compgrid
+            procedure:: visualize_grid
     end type Complete_Grid_debugger
+
+    real(kind = wp), &
+                     asynchronous, &
+                     dimension(:), &
+                     allocatable, target   :: testgrid_array, testbuffer_array
 
 contains
 
@@ -377,35 +385,53 @@ contains
             end do
         end do
 
-
-        ! write(*,*) "topmost xz-surface of total grid, with shape:"
-        write(*,*) "=========================================================="
-        write(*,*) "State:   ", self%state_xyz
-        call self%get_sub_dims(dims)
-        write(*,*) "Subgrid: ", dims
-        call self%get_dims(dims)
-        write(*,*) "Dims:    ", dims
-        ! write(*,*) "Dims2:"
-
-        write(*,*) "Dims (1, :,:)"
-        write(fmt, '(A, I0, A)') '(', dims(2), 'F4.0)'
-        write(*,fmt) self%grid_pointer_3d(1, :,:)
-
-        write(*,*) "Dims (:,1, :)"
-        write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
-        write(*,fmt) self%grid_pointer_3d(:, 1, :)
-
-        write(*,*) "Dims (:,:,1)"
-        write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
-        write(*,fmt) self%grid_pointer_3d(:, :, 1)
-        ! write(*,*) ".........................................................."
-        ! write(*,*) "Dims3:"
-        ! write(fmt, '(A, I0, A)') '(', dims(3), 'F4.0)'
-        ! write(*,fmt) self%grid_pointer_3d(1, :,:)
-        ! write(*,*) self%grid_pointer_3d(1, :,:)
-        ! write(*,*) shape(self%grid_pointer_3d(1, :,:))
-
     end subroutine reorder_gatherv
+
+    subroutine visualize_grid(self, my_rank)!, dims_tasks_2d, grid_xyz_dims)!, state, grid_array, buffer_array)
+        class(Complete_Grid_debugger), intent(in)          :: self
+        integer, dimension(3)           :: dims
+        integer:: i, j, k, m, n, p, n_max, m_max
+        ! integer, dimension(2):: dims_tasks_2d
+        ! integer, dimension(3):: grid_xyz_dims
+        integer, dimension(2)               :: ierr
+        character(len = 100):: fmt
+        integer                                 ::  my_rank
+        
+        p = 1
+        n_max = self%task_dims(self%task_state(1))
+        m_max = self%task_dims(self%task_state(2))
+        call self%get_sub_dims(dims)
+
+        if (my_rank == 0) then
+            ! write(*,*) "topmost xz-surface of total grid, with shape:"
+            write(*,*) "=========================================================="
+            write(*,*) "State:   ", self%state_xyz
+            call self%get_sub_dims(dims)
+            write(*,*) "Subgrid: ", dims
+            call self%get_dims(dims)
+            write(*,*) "Dims:    ", dims
+            ! write(*,*) "Dims2:"
+
+            write(*,*) "Dims (1, :,:)"
+            write(fmt, '(A, I0, A)') '(', dims(2), 'F4.0)'
+            write(*,fmt) self%grid_pointer_3d(1, :,:)
+
+            write(*,*) "Dims (:,1, :)"
+            write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
+            write(*,fmt) self%grid_pointer_3d(:, 1, :)
+
+            write(*,*) "Dims (:,:,1)"
+            write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
+            write(*,fmt) self%grid_pointer_3d(:, :, 1)
+            ! write(*,*) ".........................................................."
+            ! write(*,*) "Dims3:"
+            ! write(fmt, '(A, I0, A)') '(', dims(3), 'F4.0)'
+            ! write(*,fmt) self%grid_pointer_3d(1, :,:)
+            ! write(*,*) self%grid_pointer_3d(1, :,:)
+            ! write(*,*) shape(self%grid_pointer_3d(1, :,:))
+        end if
+
+    end subroutine visualize_grid 
 
     ! function prod(arr)
     !     integer, dimension(:), intent(in):: arr
@@ -431,10 +457,6 @@ contains
         integer                                 ::  my_rank
 
         ! Debug arrays
-        real(kind = wp), &
-                         asynchronous, &
-                         dimension(:), &
-                         allocatable, target   :: testgrid_array, testbuffer_array
         INTEGER, DIMENSION(2):: dims_tasks_2d
         integer                                :: send_num, err
         real(kind = wp), pointer, &
@@ -461,6 +483,13 @@ contains
                                             [2, 1])  ! The [2, 1] value is always the same.
                                                      ! this should be removed.
 
+        ! Allocate testgrid and testbuffer . . . . . . . . . . . . . . . . . . . . 
+        if (allocated(testgrid_array)) deallocate(testgrid_array, stat = err)
+        if (err /= 0) print *, "array: Deallocation request denied"
+
+        if (allocated(testbuffer_array)) deallocate(testbuffer_array, stat = err)
+        if (err /= 0) print *, "array: Deallocation request denied"
+
         call testgrid_handler%allocate_arrays_wbuffer(testgrid_array, testbuffer_array)
 
         ! Gather complete Grid-----------------------------------------------------
@@ -480,14 +509,43 @@ contains
             call testgrid_handler%reorder_gatherv()
          end if
 
-        ! Allocate testgrid and testbuffer . . . . . . . . . . . . . . . . . . . . 
-        if (allocated(testgrid_array)) deallocate(testgrid_array, stat = err)
-        if (err /= 0) print *, "array: Deallocation request denied"
-
-        if (allocated(testbuffer_array)) deallocate(testbuffer_array, stat = err)
-        if (err /= 0) print *, "array: Deallocation request denied"
 
     end subroutine gather_compgrid
+
+    subroutine calc_checksum(rank)
+      integer :: ierr, rank, wsize
+      integer :: my_value   ! Adjust size as necessary
+      integer :: root = 0
+      integer, &
+               dimension(:), &
+               allocatable :: gathered_values 
+
+      ! Initialize the MPI environment
+      !call MPI_Init(ierr)
+      !call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierr)
+      call MPI_Comm_size(MPI_COMM_WORLD, wsize, ierr)
+      allocate( &
+             gathered_values(wsize), stat = ierr &
+      )
+
+      ! Each task sets its own value
+      my_value = sum(u)! For demonstration: each task sends its rank as its value
+
+      ! Gather the values at the root task
+      call MPI_Gather(my_value, 1, MPI_INTEGER, gathered_values, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+
+      ! Only the root will print the gathered values
+      if (rank == root) then
+        print *, "Gathered values from all tasks:"
+        print *, gathered_values(1:wsize)  ! Print only filled elements
+      end if
+        
+      if (allocated(gathered_values)) deallocate(gathered_values, stat = ierr)
+      if (ierr /= 0) print *, "array: Deallocation request denied"
+
+
+
+    end subroutine calc_checksum 
 
 end module grid_debug 
 
