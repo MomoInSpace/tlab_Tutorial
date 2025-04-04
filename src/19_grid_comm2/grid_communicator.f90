@@ -13,7 +13,18 @@ module grid_comm_module
         integer              :: world_size, row_size, column_size
         integer              :: cart_rank, row_rank, column_rank
         integer, dimension(2):: MPI_Cart_Dims, MPI_Cart_Coords
-        integer, dimension(3):: complete_grid_xyz_dims
+        integer, dimension(3):: complete_grid_xyz_dims, &
+                                ! Dimensions of the complete grid
+                                block_xyz_dims, &
+                                ! Describes the size of the smallest grid_unit.
+                                block_multiplication_xyz_state = [12, 1, 2], &
+                                ! The block_xyz_dims get multiplied by the 
+                                ! threads as indicated by this state.
+                                ! Depending on the communication algorithm used, 
+                                ! the programm needs different states!
+                                subgrid_xyz_dims
+                                ! The size of the subgrid for each thread as 
+                                ! indicated by block_multiplication_xyz_state
         ! grid_xyz_dims saves the length of each dimension x, y and z
 
     contains
@@ -26,19 +37,18 @@ module grid_comm_module
 
 contains
 
-    subroutine init(self, world_size, 
-                          block_xyz_dims,  
-                          block_multiplication_xyz_state, 
-                          column_upper_limit, 
-                          subgrid_xyz_dims)
+    subroutine init(self, world_size,     &
+                          block_xyz_dims, &
+                          block_multiplication_xyz_state, &
+                          column_upper_limit) 
 
         ! Parameters============================================================
         class(Grid3D_Comm_Handler):: self
         integer              :: world_size, rank, vertical_dimension, max_area
         integer, dimension(2):: task_dims  
-        integer, dimension(3):: block_xyz_dims, 
+        integer, dimension(3):: block_xyz_dims, &
                                 ! Describes the size of the smallest grid_unit.
-                                block_multiplication_xyz_state = [12, 1, 2], 
+                                block_multiplication_xyz_state, &
                                 ! The block_xyz_dims get multiplied by the 
                                 ! threads as indicated by this state.
                                 ! Depending on the communication algorithm used, 
@@ -56,9 +66,8 @@ contains
         self%block_xyz_dims = block_xyz_dims
         self%block_multiplication_xyz_state = block_multiplication_xyz_state
 
-        ! Calculate Grid and Task Structure------------------------------------
+        ! Calculate Task Structure------------------------------------
         call get_task_dims(world_size, column_upper_limit, self%MPI_Cart_Dims)
-        call calculate_subgrid_dims(self, subgrid_xyz_dism)
 
         ! Create MPI Cart (Global) Communicator---------------------------------
         call MPI_CART_CREATE(MPI_COMM_WORLD, 2, self%MPI_Cart_Dims, periods, .true., self%MPI_COMM_CART, ierr(1)) 
@@ -86,31 +95,36 @@ contains
                             newcomm = self%MPI_Comm_Column, &
                             ierror   = ierr(4))
 
+        ! Calculate Grid Structure------------------------------------
+        call calculate_subgrid_dims(self)
+
     end subroutine init
 
                
-    subroutine calculate_subgrid_dims(self, subgrid_xyz_dims)
+    subroutine calculate_subgrid_dims(self)
         ! Parameters============================================================
         type(Grid3D_Comm_Handler):: self
-        integer, dimension(3):: subgrid_xyz_dims
         integer:: i
         ! Body =================================================================
 
-        do i, 3
+        !write(*,*) self%block_xyz_dims
+        do i=1, 3
             select case (self%block_multiplication_xyz_state(i))
             case(0)
-                subgrid_xyz_dims(i) = self%block_xyz_dims(i)
+                self%subgrid_xyz_dims(i) = self%block_xyz_dims(i)
             case(1)
-                subgrid_xyz_dims(i) = self%block_xyz_dims(i)*self%column_size
+                self%subgrid_xyz_dims(i) = self%block_xyz_dims(i)*self%column_size
             case(2) 
-                subgrid_xyz_dims(i) = self%block_xyz_dims(i)*self%row_size
+                self%subgrid_xyz_dims(i) = self%block_xyz_dims(i)*self%row_size
             case(12) 
-                subgrid_xyz_dims(i) = &
+                self%subgrid_xyz_dims(i) = &
                     self%block_xyz_dims(i)*self%row_size*self%column_size
             case default
                 error stop "block_multiplication_xyz_state has invalid values"
             end select
         end do
+        !write(*,*) self%subgrid_xyz_dims
+
 
 
     end subroutine
@@ -136,6 +150,7 @@ contains
     factors_ys = get_factors(column_upper_limit)
     factors_wsize = get_factors(world_size)
 
+
     n_num = world_size
     m_num = 1
     do i = 1, size(factors_ys)
@@ -149,8 +164,8 @@ contains
     call MPI_Comm_rank(MPI_COMM_WORLD, my_rank)
     if (my_rank == 0) then
         if (n_num /= column_upper_limit) print *, &
-                "Note: n_num not divisible by column_upper_limit. n_num <= y_s. Try to bring n_num and m_num as close to each other as possible. To reduce communication delay."
-        if (n_num /= column_upper_limit) print *, "y_s: ", y_s, "n_num: ", n_num,  ', m_num', m_num
+                "Note: n_num not divisible by column_upper_limit. n_num <= column_upper_limit. Try to bring n_num and m_num as close to each other as possible. To reduce communication delay."
+        if (n_num /= column_upper_limit) print *, "column_upper_limit: ", column_upper_limit, "n_num: ", n_num,  ', m_num', m_num
     end if
     
     if (n_num == 1 .or. m_num == 1) error stop &
@@ -319,9 +334,9 @@ contains
         send_count = dims_send(pertubation(1))  ! surface_area/self%row_size
 
         allocate(root(dims_send(pertubation(3))), stat = ierr0)   ! Change of pertubation from 2->3
-        if (my_rank == 0) then
-            write(*,*) root
-        end if
+        !if (my_rank == 0) then
+        !    write(*,*) root
+        !end if
         allocate(rcv_j(dims_send(pertubation(3))), stat = ierr0)  ! Change of pertubation from 2->3
 
         k = 0
@@ -336,9 +351,9 @@ contains
             end do
         end do
 
-        if (my_rank == 0) then
-            write(*,*) root
-        end if
+        !if (my_rank == 0) then
+        !    write(*,*) root
+        !end if
 
         ! Later For Comm Checking
         allocate(ierr(dims_send(pertubation(3))*self%MPI_Cart_Dims(comm_dim)), stat = ierr0)
@@ -378,10 +393,10 @@ contains
             ! work_space_send = (((i-1)*dims_send(pertubation(1))+1)*j*((k-1)*dims_send(pertubation(3))-1))
             ! work_space3D_send(:,j, k)
 
-            if (my_rank == 0) then
-                write(*,*) root(j)
-                write(*,*) work_space3D_send(1, k, j)
-            end if
+            !if (my_rank == 0) then
+            !    write(*,*) root(j)
+            !    write(*,*) work_space3D_send(1, k, j)
+            !end if
 
             call MPI_Gather(SENDBUF   = WORK_SPACE3d_SEND(:,K, J), &
                             sendcount  = send_count, &
