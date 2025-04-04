@@ -99,9 +99,8 @@ program comm_test
 
     ! Visualize Complete Grid--------------------------------------------------
 
-    call gather_compgrid(grid_handler, grid_comm_handler, &
-                         subgrid_xyz_dims, &
-                         testgrid_handler, my_rank)
+    call testgrid_handler%gather_compgrid(grid_handler, grid_comm_handler, &
+                         subgrid_xyz_dims, my_rank)
     !call grid_handler%get_pointer_3D(u)
     !if (my_rank == 0) write(*,*) u(:,1, 1)
 
@@ -109,9 +108,8 @@ program comm_test
     call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler, grid_handler_rcv, .true.)
 
     ! Visualize Complete Grid--------------------------------------------------
-    call gather_compgrid(grid_handler_rcv, grid_comm_handler, &
-                         subgrid_xyz_dims, &
-                         testgrid_handler, my_rank)
+    call testgrid_handler%gather_compgrid(grid_handler, grid_comm_handler, &
+                         subgrid_xyz_dims, my_rank)
     !call grid_handler_rcv%get_pointer_3D(u)
     !if (my_rank == 0) write(*,*) u(:,1, 1)
 
@@ -120,9 +118,8 @@ program comm_test
 
 
     ! Visualize Complete Grid--------------------------------------------------
-    call gather_compgrid(grid_handler, grid_comm_handler, &
-                         subgrid_xyz_dims, &
-                         testgrid_handler, my_rank)
+    call testgrid_handler%gather_compgrid(grid_handler, grid_comm_handler, &
+                         subgrid_xyz_dims, my_rank)
     !call grid_handler%get_pointer_3D(u)
     !if (my_rank == 0) write(*,*) u(:,1, 1)
 
@@ -133,9 +130,9 @@ program comm_test
     call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler_rcv, grid_handler, .false.)
 
     ! ! Visualize Complete Grid--------------------------------------------------
-    call gather_compgrid(grid_handler, grid_comm_handler, &
-                         subgrid_xyz_dims, &
-                         testgrid_handler, my_rank)
+    call testgrid_handler%gather_compgrid(grid_handler, grid_comm_handler, &
+                         subgrid_xyz_dims, my_rank)
+
     call grid_handler%get_pointer_3D(u)
     !if (my_rank == 0) write(*,*) u(:,1, 1)
 

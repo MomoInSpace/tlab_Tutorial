@@ -41,6 +41,7 @@ module grid_debug
             procedure:: get_sub_dims
             procedure:: allocate_arrays_wbuffer
             procedure:: reorder_gatherv
+            procedure:: gather_compgrid
     end type Complete_Grid_debugger
 
 contains
@@ -418,14 +419,13 @@ contains
     !     end do
     ! end function prod
 
-    subroutine gather_compgrid(grid_handler, grid_comm_handler, &
-                               subgrid_xyz_dims,      &
-                               testgrid_handler, my_rank)
+    subroutine gather_compgrid(testgrid_handler, grid_handler, grid_comm_handler, &
+                               subgrid_xyz_dims, my_rank)
                                ! testgrid_array  , testbuffer_array, &
 
         type(Grid3D_cpu)                        :: grid_handler
         type(Grid3D_Comm_Handler)               :: grid_comm_handler
-        type(Complete_grid_debugger)            :: testgrid_handler
+        Class(Complete_grid_debugger)            :: testgrid_handler
         integer, dimension(3)                   :: state_xyz
         integer, dimension(3)                   :: subgrid_xyz_dims, grid_xyz_dims 
         integer                                 ::  my_rank
