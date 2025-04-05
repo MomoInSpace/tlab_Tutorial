@@ -67,7 +67,6 @@ contains
         ! Body======================================================================
 
         self%state_xyz = state_xyz
-        !subgrid_factors = [MPI_Cart_Dims(1), 1, 1] !Shouldn't there be MPI_Cart_Dims(3) there in the last 1?
         self%grid_xyz_dims = grid_xyz_dims!*subgrid_factors  ! Just Remove subgrid factors?
         self%overhead_factor = overhead_factor
 
@@ -242,22 +241,14 @@ contains
         !
         ! We also switch the dimensions 1 and 2.
         ! Body======================================================================
-        ! pertubation = [2, 1, 3]
-
         dims = self%get_dims()
         call self%get_pointer_3D(grid_3D_pointer)
 
         work_space3D(1:dims(pertubation(1)), &
                      1:dims(pertubation(2)), &
-                     1:dims(pertubation(3))) => self%allocated_space!&
-            ! self%allocated_space(1+self%free_space-dims(pertubation(1))*dims(pertubation(2)): &
-            !                      1+self%free_space+dims(pertubation(1))*dims(pertubation(2))*(dims(pertubation(3))-1))
+                     1:dims(pertubation(3))) => self%allocated_space
 
-        work_space(1:prod(dims)) => self%allocated_space!&
-            ! self%allocated_space(1+self%free_space-dims(pertubation(1))*dims(pertubation(2)): &
-            !                      1+self%free_space+dims(pertubation(1))*dims(pertubation(2))*(dims(pertubation(3))-1))
-
-        ! write(*,*) size(work_space), size(self%grid_space)
+        work_space(1:prod(dims)) => self%allocated_space
  
     end subroutine get_switch_dims_workspace
 

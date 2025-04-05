@@ -386,19 +386,19 @@ contains
         end do
 
         ! Communication loop ---------------------------------------------------
-        do j = 1, dims_send(1)  
-            do k = 1, dims_send(2)       
+        do k = 1, dims_send(1)  
+            do j = 1, dims_send(2)       
                 do i = 1, dims_send(3)  
-                    work_space3D_send(i, k, j) =  grid3D_pointer_send(j, k, i)
+                    work_space3D_send(i, j, k) =  grid3D_pointer_send(k, j, i)
                 end do
 
-            call MPI_Gather(SENDBUF   = WORK_SPACE3d_SEND(:,K, J), &
+            call MPI_Gather(SENDBUF   = WORK_SPACE3d_SEND(:,j, k), &
                             sendcount = send_count, &
                             sendtype  = MPI_DOUBLE, &
-                            recvbuf   = grid3D_pointer_rcv(:, k, rcv_j(j)), &
+                            recvbuf   = grid3D_pointer_rcv(:, j, rcv_j(k)), &
                             recvcount = send_count, &
                             recvtype  = MPI_DOUBLE, &
-                            root      = root(j), &
+                            root      = root(k), &
                             comm      = self%MPI_Comm_Column, &
                             ierror    = ierr0)
             end do
