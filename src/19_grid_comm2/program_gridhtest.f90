@@ -69,7 +69,7 @@ program comm_test
     subgrid_xyz_dims = grid_comm_handler%subgrid_xyz_dims  
 
     ! Init grid_handler derived types-------------------------------------------
-    overhead_factor = 20
+    overhead_factor = 2
     call grid_handler%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
     call grid_handler_rcv%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
 
@@ -152,9 +152,9 @@ program comm_test
     contains
 
     subroutine debug_values()
-        !call testgrid_handler%gather_compgrid(grid_handler, grid_comm_handler, subgrid_xyz_dims, my_rank)
-        !call testgrid_handler%visualize_grid(my_rank)
-        call calc_checksum(my_rank)
+        call testgrid_handler%gather_compgrid(grid_handler, grid_comm_handler, subgrid_xyz_dims, my_rank)
+        call testgrid_handler%visualize_grid(my_rank)
+        !call calc_checksum(my_rank)
     end subroutine debug_values
 
 

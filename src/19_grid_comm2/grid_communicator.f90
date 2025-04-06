@@ -224,6 +224,7 @@ contains
                          dimension(:,:,:):: work_space3D_send, &
                                             grid3D_pointer_send, &
                                             grid3D_pointer_rcv
+        !character(len = 100):: fmt ! Debug
         ! Notes=====================================================================
             ! Each process A, B, C has to scatter their data 
             !  to all other processes in its row:
@@ -280,7 +281,17 @@ contains
         end do
 
         ! Communication loop ---------------------------------------------------
+        !if (self%cart_rank == 0) write(*,*) "Start of Comm -------------------"
         do k = 1, dims_send(pertubation(3)) 
+            if (self%cart_rank == 0) then
+            !write(*,*) "SendData Dims (1, :,:)"
+            !write(fmt, '(A, I0, A)') '(', dims_send(pertubation(3)), 'F4.0)'
+            !write(*,fmt) grid3D_pointer_send(k, :, :) 
+
+            !write(*,*) "SendWork Dims (1, :,:)"
+            !write(fmt, '(A, I0, A)') '(', dims_send(pertubation(3)), 'F4.0)'
+            !write(*,fmt) work_space3D_send(k, :, :) 
+            end if
             do j = 1, dims_send(pertubation(2)) 
                 do i = 1, dims_send(pertubation(1)) 
                     work_space3D_send(i, j, k) =  grid3D_pointer_send(j, i, k)
@@ -295,7 +306,8 @@ contains
                                 comm      = self%MPI_Comm_Row, &
                                 ierror    = ierr0)
             end do
-        end do
+            end do
+            !if (self%cart_rank == 0) write(*,*) "End of Comm ---------------------"
 
         ! Cleanup --------------------------------------------------------------
         if (sum(ierr) /= 0) error stop "Grid Row 213 Failed"
@@ -329,8 +341,11 @@ contains
                                             subgrid_dividers_xyz = [1, 1, 1]
         integer, dimension(:), &
                  allocatable             :: ierr, root, rcv_j
-        real(kind = wp), pointer, dimension(:):: send_buf_pointer, work_space_send
+        real(kind = wp), pointer, dimension(:):: send_buf_pointer, &
+                                                 work_space_send, &
+                                                 stencil_send
         TYPE(MPI_Request):: request
+        character(len = 100):: fmt ! Debug
         ! Notes=====================================================================
         ! Each process A, B, C has to scatter their data to all other processes in its row:
         ! Look at one (1, 2)-surface:
@@ -373,6 +388,7 @@ contains
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
         ierr = 0
 
+        ! TODO:Rmove k and n in loop, not needed here.
         k = 0
         j = dims_send(pertubation(3))/self%column_size
         do i = 1, dims_send(pertubation(3)), j
@@ -386,13 +402,32 @@ contains
         end do
 
         ! Communication loop ---------------------------------------------------
+        !if (self%cart_rank == 0) write(*,*) "Start of Comm -------------------"
         do k = 1, dims_send(1)  
+            if (self%cart_rank == 0) then
+            !write(*,*) "SendData Dims (1, :,:)"
+            !write(fmt, '(A, I0, A)') '(', dims_send(pertubation(3)), 'F4.0)'
+            !write(*,fmt) grid3D_pointer_send(k, :, :) 
+
+            !write(*,*) "SendWork Dims (1, :,:)"
+            !write(fmt, '(A, I0, A)') '(', dims_send(pertubation(3)), 'F4.0)'
+            !write(*,fmt) work_space3D_send(k, :, :) 
+            end if
             do j = 1, dims_send(2)       
                 do i = 1, dims_send(3)  
-                    work_space3D_send(i, j, k) =  grid3D_pointer_send(k, j, i)
+                    ! work_space3D_send(i, j, k)
+                    work_space3D_send(i, &
+                        modulo(k, grid_handler_send%overhead_factor)+1, &
+                        modulo(modulo(k, grid_handler_send%overhead_factor), &
+                               dims_send(2))+1) &
+                    = grid3D_pointer_send(k, j, i)
                 end do
 
-            call MPI_Gather(SENDBUF   = WORK_SPACE3d_SEND(:,j, k), &
+            call MPI_Gather(SENDBUF   = &
+                                        work_space3D_send(:, &
+                                        modulo(k, grid_handler_send%overhead_factor)+1, &
+                                        modulo(modulo(k, grid_handler_send%overhead_factor), &
+                                               dims_send(2))+1), &
                             sendcount = send_count, &
                             sendtype  = MPI_DOUBLE, &
                             recvbuf   = grid3D_pointer_rcv(:, j, rcv_j(k)), &
@@ -403,6 +438,7 @@ contains
                             ierror    = ierr0)
             end do
         end do
+        !if (self%cart_rank == 0) write(*,*) "End of Comm -------------------"
 
         ! Cleanup --------------------------------------------------------------
         if (sum(ierr) /= 0) error stop "Grid Row 213 Failed"
