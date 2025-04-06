@@ -80,15 +80,16 @@ contains
         self%complete_grid_xyz_dims(state_xyz(2)) = self%complete_grid_xyz_dims(state_xyz(2))*MPI_Cart_Dims(2)  ! Is this correct, 
                                                                                                                 ! why 2, 2 | 3, 1?
         self%complete_grid_xyz_dims(state_xyz(3)) = self%complete_grid_xyz_dims(state_xyz(3))*MPI_Cart_Dims(1)
-        max_area = max(prod(self%grid_xyz_dims(1:2)), &
-                       prod(self%grid_xyz_dims(2:3)), &
-                       prod(self%grid_xyz_dims(1:3:2)), &
-                       self%complete_grid_xyz_dims(1), &
-                       self%complete_grid_xyz_dims(2), &
-                       self%complete_grid_xyz_dims(3))
+
+        self%free_space = max( &
+                    prod(self%grid_xyz_dims(1:2)), &
+                    prod(self%grid_xyz_dims(2:3)), &
+                    prod(self%grid_xyz_dims(1:3:2)), &
+                    self%complete_grid_xyz_dims(1)*self%overhead_factor, &
+                    self%complete_grid_xyz_dims(2)*self%overhead_factor, &
+                    self%complete_grid_xyz_dims(3)*self%overhead_factor)
 
         ! Calculate Free Space-------------------------------------------------
-        self%free_space = max_area*self%overhead_factor
         self%total_space = self%free_space+prod(self%grid_xyz_dims)
 
     end subroutine init
