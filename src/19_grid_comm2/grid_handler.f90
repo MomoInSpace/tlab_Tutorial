@@ -19,8 +19,8 @@ implicit none
 
         integer:: overhead_factor, free_space, total_space
         ! overhead gives you the factor of the overhead that needs to be
-        !  there for a fast communication. A factor of 2 means that we need
-        !  2 surfaces space, i.e. structured_grid(:,:,:+2)
+        !  there for a fast communication. A factor of 2 means that when we communicate
+        ! the 321, we will switch between 2 stencils and then wait until the next write.
         ! free_space is the differene of indices between 
         !  grid_space and allocated_space
 
