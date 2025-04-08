@@ -19,8 +19,8 @@ implicit none
 
         integer:: overhead_factor, free_space, total_space
         ! overhead gives you the factor of the overhead that needs to be
-        !  there for a fast communication. A factor of 2 means that we need
-        !  2 surfaces space, i.e. structured_grid(:,:,:+2)
+        !  there for a fast communication. A factor of 2 means that when we communicate
+        ! the 321, we will switch between 2 stencils and then wait until the next write.
         ! free_space is the differene of indices between 
         !  grid_space and allocated_space
 
@@ -67,7 +67,6 @@ contains
         ! Body======================================================================
 
         self%state_xyz = state_xyz
-        !subgrid_factors = [MPI_Cart_Dims(1), 1, 1] !Shouldn't there be MPI_Cart_Dims(3) there in the last 1?
         self%grid_xyz_dims = grid_xyz_dims!*subgrid_factors  ! Just Remove subgrid factors?
         self%overhead_factor = overhead_factor
 
@@ -81,15 +80,16 @@ contains
         self%complete_grid_xyz_dims(state_xyz(2)) = self%complete_grid_xyz_dims(state_xyz(2))*MPI_Cart_Dims(2)  ! Is this correct, 
                                                                                                                 ! why 2, 2 | 3, 1?
         self%complete_grid_xyz_dims(state_xyz(3)) = self%complete_grid_xyz_dims(state_xyz(3))*MPI_Cart_Dims(1)
-        max_area = max(prod(self%grid_xyz_dims(1:2)), &
-                       prod(self%grid_xyz_dims(2:3)), &
-                       prod(self%grid_xyz_dims(1:3:2)), &
-                       self%complete_grid_xyz_dims(1), &
-                       self%complete_grid_xyz_dims(2), &
-                       self%complete_grid_xyz_dims(3))
+
+        self%free_space = max( &
+                    prod(self%grid_xyz_dims(1:2)), &
+                    prod(self%grid_xyz_dims(2:3)), &
+                    prod(self%grid_xyz_dims(1:3:2)), &
+                    self%complete_grid_xyz_dims(1)*self%overhead_factor, &
+                    self%complete_grid_xyz_dims(2)*self%overhead_factor, &
+                    self%complete_grid_xyz_dims(3)*self%overhead_factor)
 
         ! Calculate Free Space-------------------------------------------------
-        self%free_space = max_area*self%overhead_factor
         self%total_space = self%free_space+prod(self%grid_xyz_dims)
 
     end subroutine init
@@ -242,22 +242,14 @@ contains
         !
         ! We also switch the dimensions 1 and 2.
         ! Body======================================================================
-        ! pertubation = [2, 1, 3]
-
         dims = self%get_dims()
         call self%get_pointer_3D(grid_3D_pointer)
 
         work_space3D(1:dims(pertubation(1)), &
                      1:dims(pertubation(2)), &
-                     1:dims(pertubation(3))) => self%allocated_space!&
-            ! self%allocated_space(1+self%free_space-dims(pertubation(1))*dims(pertubation(2)): &
-            !                      1+self%free_space+dims(pertubation(1))*dims(pertubation(2))*(dims(pertubation(3))-1))
+                     1:dims(pertubation(3))) => self%allocated_space
 
-        work_space(1:prod(dims)) => self%allocated_space!&
-            ! self%allocated_space(1+self%free_space-dims(pertubation(1))*dims(pertubation(2)): &
-            !                      1+self%free_space+dims(pertubation(1))*dims(pertubation(2))*(dims(pertubation(3))-1))
-
-        ! write(*,*) size(work_space), size(self%grid_space)
+        work_space(1:prod(dims)) => self%allocated_space
  
     end subroutine get_switch_dims_workspace
 

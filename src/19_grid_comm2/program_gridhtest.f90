@@ -13,7 +13,7 @@ program comm_test
     INTEGER:: i 
     CHARACTER(len = 32):: arg
 
-    integer                     :: world_size, my_rank
+    integer                     :: world_size, my_rank 
     type(Grid3D_Comm_Handler)   :: grid_comm_handler
     type(Grid3D_cpu)            :: grid_handler, grid_handler_rcv
     type(Complete_grid_debugger):: testgrid_handler
@@ -69,7 +69,7 @@ program comm_test
     subgrid_xyz_dims = grid_comm_handler%subgrid_xyz_dims  
 
     ! Init grid_handler derived types-------------------------------------------
-    overhead_factor = 20
+    overhead_factor = 3
     call grid_handler%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
     call grid_handler_rcv%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
 
@@ -95,48 +95,44 @@ program comm_test
         end do
     end if 
 
+    call grid_handler%get_pointer_3D(u)
     ! if (my_rank == 0) write(*,*) x
 
-    ! Visualize Complete Grid--------------------------------------------------
+    ! Visualize Complete Grid---------------------------------------------------
+    call debug_values()
 
-    call gather_compgrid(grid_handler, grid_comm_handler, &
-                         subgrid_xyz_dims, &
-                         testgrid_handler, my_rank)
-    !call grid_handler%get_pointer_3D(u)
-    !if (my_rank == 0) write(*,*) u(:,1, 1)
-
-    ! Rotation 1------------------------------------------------------=========
-    call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler, grid_handler_rcv, .true.)
-
-    ! Visualize Complete Grid--------------------------------------------------
-    call gather_compgrid(grid_handler_rcv, grid_comm_handler, &
-                         subgrid_xyz_dims, &
-                         testgrid_handler, my_rank)
+    ! Rotation 1----------------------------------------------------------------
+    !call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler, grid_handler_rcv, .true.)
+    call grid_comm_handler%rotate_grid_cpu(grid_handler, grid_handler_rcv, .true., [2,1,3])
     !call grid_handler_rcv%get_pointer_3D(u)
-    !if (my_rank == 0) write(*,*) u(:,1, 1)
-
-    ! Rotation 2------------------------------------------------------=========
-    call grid_comm_handler%rotate_grid_col_321_cpu(grid_handler_rcv, grid_handler, .false.)
-
 
     ! Visualize Complete Grid--------------------------------------------------
-    call gather_compgrid(grid_handler, grid_comm_handler, &
-                         subgrid_xyz_dims, &
-                         testgrid_handler, my_rank)
+    call debug_values()
+
+    ! Rotation 2---------------------------------------------------------------
+    !call grid_comm_handler%rotate_grid_col_321_cpu(grid_handler_rcv, grid_handler, .false.)
+    call grid_comm_handler%rotate_grid_cpu(grid_handler_rcv, grid_handler, .true., [3,2,1])
     !call grid_handler%get_pointer_3D(u)
-    !if (my_rank == 0) write(*,*) u(:,1, 1)
 
-    ! Rotation 3------------------------------------------------------=========
-    call grid_comm_handler%rotate_grid_col_321_cpu(grid_handler, grid_handler_rcv,  .false.)
+    ! Visualize Complete Grid--------------------------------------------------
+    call debug_values()
 
-    ! ! Rotation 4------------------------------------------------------=========
-    call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler_rcv, grid_handler, .false.)
+    ! Rotation 3---------------------------------------------------------------
+    !call grid_comm_handler%rotate_grid_col_321_cpu(grid_handler, grid_handler_rcv,  .false.)
+    call grid_comm_handler%rotate_grid_cpu(grid_handler, grid_handler_rcv, .true., [3,2,1])
+    !call grid_handler%get_pointer_3D(u)
+
+    ! ! Rotation 4---------------------------------------------------------------
+    !call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler_rcv, grid_handler, .false.)
+    call grid_comm_handler%rotate_grid_cpu(grid_handler_rcv, grid_handler, .true., [2,1,3])
+    !call grid_handler%get_pointer_3D(u)
 
     ! ! Visualize Complete Grid--------------------------------------------------
-    call gather_compgrid(grid_handler, grid_comm_handler, &
-                         subgrid_xyz_dims, &
-                         testgrid_handler, my_rank)
-    call grid_handler%get_pointer_3D(u)
+    call debug_values()
+
+    
+
+    !call grid_handler%get_pointer_3D(u)
     !if (my_rank == 0) write(*,*) u(:,1, 1)
 
     ! Cleanup ==================================================================
@@ -146,8 +142,25 @@ program comm_test
     if (allocated(x )) deallocate(x, stat = ierr(1))
     if (ierr(1) /= 0) print *, "q(1, grid_handler%total_space), : Deallocation request denied"
 
+    ! Allocate testgrid and testbuffer . . . . . . . . . . . . . . . . . . . . 
+    if (allocated(testgrid_array)) deallocate(testgrid_array, stat = ierr(1))
+    if (ierr(1) /= 0) print *, "array: Deallocation request denied"
+
+    if (allocated(testbuffer_array)) deallocate(testbuffer_array, stat = ierr(1))
+    if (ierr(1) /= 0) print *, "array: Deallocation request denied"
+
     call MPI_Comm_free(grid_comm_handler%MPI_COMM_CART, ierr(1))
     call MPI_Comm_free(grid_comm_handler%MPI_COMM_Row, ierr(1))
     call MPI_Comm_free(grid_comm_handler%MPI_COMM_Column, ierr(1))
 
+    contains
+
+    subroutine debug_values()
+        call testgrid_handler%gather_compgrid(grid_handler, grid_comm_handler, subgrid_xyz_dims, my_rank)
+        call testgrid_handler%visualize_grid(my_rank)
+        !call calc_checksum(my_rank)
+    end subroutine debug_values
+
+
 end program comm_test
+
