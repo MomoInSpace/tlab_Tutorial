@@ -273,7 +273,6 @@ contains
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
         allocate(ierr(dims_send(pertubation(3))*comm_dim), stat = ierr0)
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
-        ierr = 0
 
         ! TODO:Rmove k and n in loop, not needed here.
         k = 0
@@ -289,20 +288,19 @@ contains
         end do
 
         ! Communication loop---------------------------------------------------
+        ierr = 0
         if (pertubation(1) == 2) call rotate_213()
         if (pertubation(1) == 3) call rotate_321() 
 
         ! Cleanup--------------------------------------------------------------
-        if (sum(ierr) /= 0) error stop "Grid Row 213 Failed"
-
         if (allocated(ierr)) deallocate(ierr, stat = ierr0)
-        if (ierr0 /= 0) print *, "ierr: Deallocation request denied, grid_row_213"
+        if (ierr0 /= 0) print *, "ierr: Deallocation request denied rotate_grid"
 
         if (allocated(root)) deallocate(root, stat = ierr0)
-        if (ierr0 /= 0) print *, "ierr: Deallocation request denied, grid_row_213"
+        if (ierr0 /= 0) print *, "ierr: Deallocation request denied rotate_grid"
 
         if (allocated(rcv_j)) deallocate(rcv_j, stat = ierr0)
-        if (ierr0 /= 0) print *, "ierr: Deallocation request denied, grid_row_213"
+        if (ierr0 /= 0) print *, "ierr: Deallocation request denied rotate_grid"
 
         contains
 
@@ -324,6 +322,8 @@ contains
                                     ierror    = ierr0)
                 end do
             end do
+
+            if (sum(ierr) /= 0) error stop "Grid Row 213 Failed"
         end subroutine rotate_213
 
         subroutine rotate_321()
@@ -333,7 +333,7 @@ contains
 
             do k = 1, dims_send(1)  
                 m = modulo(k, grid_handler_send%overhead_factor)+1
-                stencil_send => work_space3D_send(:,m,1)
+                stencil_send => work_space3D_send(:,m, 1)
                 do j = 1, dims_send(2)       
                     do i = 1, dims_send(3)  
                         stencil_send(i) = grid3D_pointer_send(k, j, i)
@@ -350,6 +350,8 @@ contains
                                 ierror    = ierr0)
                 end do
             end do
+
+            if (sum(ierr) /= 0) error stop "Grid Col 321 Failed"
         end subroutine rotate_321
 
     end subroutine rotate_grid_cpu
