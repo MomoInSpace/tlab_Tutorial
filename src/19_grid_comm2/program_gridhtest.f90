@@ -93,7 +93,7 @@ program comm_test
 
     if (my_rank == 0 ) then
         do i = 1, size(grid_handler%grid_space)
-            grid_handler%grid_space(i) = i
+            grid_handler%grid_space(i) = i-1
         end do
     end if 
 
