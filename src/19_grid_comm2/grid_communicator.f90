@@ -348,14 +348,11 @@ contains
             if (dims_send(1) < grid_handler_send%overhead_factor) error stop &
                 "Use a smaller overhead factor, the stencils go over multiple surfaces, which is not supported."
 
-            do k = 1, dims_send(pertubation(3))  
-                m = modulo(k, grid_handler_send%overhead_factor)+1
-                stencil_send => work_space3D_send(:,m, 1)
+            do n = 0, dims_send(pertubation(3))/grid_handler_send%overhead_factor-1
+                do m = 1, grid_handler_send%overhead_factor + 1
+                    k = m+ n*grid_handler_send%overhead_factor
+                    stencil_send => work_space3D_send(:,m, 1)
                 
-                if (m == 0) then
-                        call MPI_WaitAll(dims_send(pertubation(2)), request(:,k), comm_status(:,k), ierr0)
-            end if
-
                 do j = 1, dims_send(pertubation(2))       
                     do i = 1, dims_send(pertubation(1))  
                         stencil_send(i) = grid3D_pointer_send(k, j, i)
@@ -372,6 +369,11 @@ contains
                                 request   = request(j,k), &
                                 ierror    = ierr0)
                 end do
+            end do
+                ! there are only overhead_factor requests needed to be checked
+                ! instead of dims_send(pertubation(3)),
+                ! but for better readability we do it this way.
+                call MPI_WaitAll(dims_send(pertubation(2)), request(:,k), comm_status(:,k), ierr0)
             end do
 
             if (sum(ierr) /= 0) error stop "Grid Col 321 Failed"
