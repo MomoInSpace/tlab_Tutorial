@@ -30,6 +30,7 @@ module grid_comm_module
     contains
         procedure:: init
         procedure:: rotate_grid_cpu
+        procedure:: calculate_subgrid_dims
 
     end type Grid3D_Comm_Handler
 
@@ -102,7 +103,7 @@ contains
                
     subroutine calculate_subgrid_dims(self)
         ! Parameters============================================================
-        type(Grid3D_Comm_Handler):: self
+        class(Grid3D_Comm_Handler):: self
         integer:: i
         ! Body =================================================================
 
@@ -191,13 +192,14 @@ contains
         enddo
     end function get_factors
 
-    subroutine rotate_grid_cpu(self, grid_handler_send, grid_handler_rcv, overwrite, pertubation)
+    subroutine rotate_grid_cpu(self, grid_handler_send, grid_handler_rcv, pertubation, grid_handler_tmp)
         ! IO =======================================================================
         class(Grid3D_Comm_Handler)         :: self
         type(Grid3D_cpu), intent(inout)    :: grid_handler_send, grid_handler_rcv
+        type(Grid3D_cpu), intent(inout), &
+                          optional         :: grid_handler_tmp
         integer, dimension(3), intent(in)  :: pertubation
         ! Parameters================================================================
-        logical                          :: overwrite
         integer                          :: comm_dim, &
                                             send_count, &
                                             my_rank, &
@@ -349,12 +351,17 @@ contains
             do k = 1, dims_send(pertubation(3))  
                 m = modulo(k, grid_handler_send%overhead_factor)+1
                 stencil_send => work_space3D_send(:,m, 1)
+                
+                if (m == 0) then
+                        call MPI_WaitAll(dims_send(pertubation(2)), request(:,k), comm_status(:,k), ierr0)
+            end if
+
                 do j = 1, dims_send(pertubation(2))       
                     do i = 1, dims_send(pertubation(1))  
                         stencil_send(i) = grid3D_pointer_send(k, j, i)
                     end do
 
-                call MPI_Gather(SENDBUF   = stencil_send, &
+                call MPI_Igather(SENDBUF   = stencil_send, &
                                 sendcount = send_count, &
                                 sendtype  = MPI_DOUBLE, &
                                 recvbuf   = grid3D_pointer_rcv(:, j, rcv_j(k)), &
@@ -362,6 +369,7 @@ contains
                                 recvtype  = MPI_DOUBLE, &
                                 root      = root(k), &
                                 comm      = self%MPI_Comm_Column, &
+                                request   = request(j,k), &
                                 ierror    = ierr0)
                 end do
             end do
