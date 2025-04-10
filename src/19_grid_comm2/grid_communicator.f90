@@ -253,15 +253,15 @@ contains
                 grid3D_pointer_send, &
                 pertubation)
 
-        !if (present(grid_handler_tmp)) then
-        !    write(*,*) "Yeaeaeaeae"
-        !    call grid_handler_send%get_switch_dims_workspace( &
-        !            dims_send, &
-        !            work_space3D_send, &
-        !            work_space_send, &
-        !            grid3D_pointer_tmp, &
-        !            pertubation)
-        !end if
+        if (present(grid_handler_tmp)) then
+            write(*,*) "Yeaeaeaeae"
+            call grid_handler_send%get_switch_dims_workspace( &
+                    dims_send, &
+                    work_space3D_send, &
+                    work_space_send, &
+                    grid3D_pointer_tmp, &
+                    pertubation)
+        end if
 
         if (pertubation(1) == 2) comm_dim = self%row_size
         if (pertubation(1) == 3) comm_dim = self%column_size
@@ -365,11 +365,13 @@ contains
                 do m = 1, grid_handler_send%overhead_factor
                     call inner_loop_321()
                 end do
+                call MPI_WaitAll(dims_send(pertubation(2)), request(:,m), comm_status(:,m), ierr0)
             end do
 
             do m = 1, modulo(dims_send(pertubation(3)),grid_handler_send%overhead_factor)
                 call inner_loop_321()
             end do
+            call MPI_WaitAll(dims_send(pertubation(2)), request(:,m), comm_status(:,m), ierr0)
 
             if (sum(ierr) /= 0) error stop "Grid Col 321 Failed"
 
@@ -395,7 +397,6 @@ contains
                                 comm      = self%MPI_Comm_Column, &
                                 request   = request(j,m), &
                                 ierror    = ierr0)
-                call MPI_WaitAll(dims_send(pertubation(2)), request(:,m), comm_status(:,m), ierr0)
             end do
         end subroutine inner_loop_321
 
