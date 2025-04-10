@@ -220,8 +220,12 @@ contains
                                             root, &
                                             rcv_j, &
                                             m_max
+        TYPE(MPI_Request), dimension(:), &
+                           target, &
+                           allocatable   :: request_arr
         TYPE(MPI_Request), dimension(:,:), &
-                           allocatable   :: request
+                           pointer       :: request  => null()
+
         TYPE(MPI_Status), dimension(:,:), &
                           allocatable    :: comm_status
         real(kind = wp), pointer, &
@@ -293,8 +297,9 @@ contains
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
         allocate(comm_status(dims_send(pertubation(2)), dims_send(pertubation(3))), stat = ierr0)
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
-        allocate(request(dims_send(pertubation(2)),dims_send(pertubation(3))), stat = ierr0)
+        allocate(request_arr(dims_send(pertubation(2))*dims_send(pertubation(3))), stat = ierr0)
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
+        request(dims_send(pertubation(2)), dims_send(pertubation(3))) => request_arr
 
         ! TODO:Rmove k and n in loop, not needed here.
         k = 0
@@ -312,7 +317,13 @@ contains
         ! Communication loop---------------------------------------------------
         ierr = 0
         if (pertubation(1) == 2) call rotate_213()
-        if (pertubation(1) == 3) call rotate_321() 
+        if (pertubation(1) == 3) then
+            if (present(grid_handler_tmp)) then
+                call rotate_321() 
+            else
+                call rotate_321_tmp()
+            end if
+        end if
 
         ! Cleanup--------------------------------------------------------------
         if (allocated(ierr)) deallocate(ierr, stat = ierr0)
@@ -399,6 +410,34 @@ contains
                                 ierror    = ierr0)
             end do
         end subroutine inner_loop_321
+
+        subroutine rotate_321_tmp()
+            ! Body======================================================================
+            do k = 1, dims_send(pertubation(3)) 
+                do j = 1, dims_send(pertubation(2)) 
+                    do i = 1, dims_send(pertubation(1)) 
+                        work_space3D_send(i, j, k) =  grid3D_pointer_send(k, j, i)
+                    end do
+                    call MPI_Igather(sendbuf   = work_space3D_send(:,j, k), &
+                                    sendcount = send_count, &
+                                    sendtype  = MPI_DOUBLE, &
+                                    recvbuf   = grid3D_pointer_rcv(:,rcv_j(j), k), &
+                                    recvcount = send_count, &
+                                    recvtype  = MPI_DOUBLE, &
+                                    root      = root(j), &
+                                    comm      = self%MPI_Comm_Row, &
+                                    request   = request(j,k), &
+                                    ierror    = ierr(i))
+                end do
+            end do
+
+            ! Deallocation of request is done in MPI_WaitAll
+            call MPI_WaitAll(dims_send(pertubation(2))*dims_send(pertubation(3)), request_arr, comm_status(:,k), ierr0)
+
+            if (sum(ierr) /= 0) error stop "Grid Row 321 tmp Failed"
+            !call MPI_Barrier(MPI_Comm_World, ierr0)
+
+        end subroutine rotate_321_tmp
 
     end subroutine rotate_grid_cpu
     

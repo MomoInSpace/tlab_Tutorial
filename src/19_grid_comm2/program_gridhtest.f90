@@ -105,7 +105,7 @@ program comm_test
 
     ! Rotation 1----------------------------------------------------------------
     !call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler, grid_handler_rcv, .true.)
-    call grid_comm_handler%rotate_grid_cpu(grid_handler, grid_handler_rcv, [2,1,3])
+    call grid_comm_handler%rotate_grid_cpu(grid_handler, grid_handler_rcv, [2,1,3], grid_handler_tmp)
     !call grid_handler_rcv%get_pointer_3D(u)
 
     ! Visualize Complete Grid--------------------------------------------------
@@ -113,7 +113,7 @@ program comm_test
 
     ! Rotation 2---------------------------------------------------------------
     !call grid_comm_handler%rotate_grid_col_321_cpu(grid_handler_rcv, grid_handler, .false.)
-    call grid_comm_handler%rotate_grid_cpu(grid_handler_rcv, grid_handler, [3,2,1])!grid_handler_tmp)
+    call grid_comm_handler%rotate_grid_cpu(grid_handler_rcv, grid_handler, [3,2,1],grid_handler_tmp)
     !call grid_handler%get_pointer_3D(u)
 
     ! Visualize Complete Grid--------------------------------------------------
@@ -121,12 +121,12 @@ program comm_test
 
     ! Rotation 3---------------------------------------------------------------
     !call grid_comm_handler%rotate_grid_col_321_cpu(grid_handler, grid_handler_rcv,  .false.)
-    call grid_comm_handler%rotate_grid_cpu(grid_handler, grid_handler_rcv, [3,2,1])
+    call grid_comm_handler%rotate_grid_cpu(grid_handler, grid_handler_rcv, [3,2,1], grid_handler_tmp)
     !call grid_handler%get_pointer_3D(u)
 
     ! ! Rotation 4---------------------------------------------------------------
     !call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler_rcv, grid_handler, .false.)
-    call grid_comm_handler%rotate_grid_cpu(grid_handler_rcv, grid_handler, [2,1,3])
+    call grid_comm_handler%rotate_grid_cpu(grid_handler_rcv, grid_handler, [2,1,3],grid_handler_tmp)
     !call grid_handler%get_pointer_3D(u)
 
     ! ! Visualize Complete Grid--------------------------------------------------
