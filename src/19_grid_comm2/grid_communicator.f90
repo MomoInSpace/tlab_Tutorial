@@ -218,7 +218,8 @@ contains
         integer, dimension(:), &
                  allocatable             :: ierr, &
                                             root, &
-                                            rcv_j
+                                            rcv_j, &
+                                            m_max
         TYPE(MPI_Request), dimension(:,:), &
                            allocatable   :: request
         TYPE(MPI_Status), dimension(:,:), &
@@ -230,7 +231,8 @@ contains
         real(kind = wp), pointer, &
                          dimension(:,:,:):: work_space3D_send, &
                                             grid3D_pointer_send, &
-                                            grid3D_pointer_rcv
+                                            grid3D_pointer_rcv, &
+                                            grid3D_pointer_tmp
         !character(len = 100):: fmt  ! Debug
         ! Notes=====================================================================
         ! Each process A, B, C has to scatter their data to all other processes in its row:
@@ -243,12 +245,23 @@ contains
         !    |1 1 1|2 2 2|3 3 3|    C |1 1 1 2 2 2 3 3 3|
         ! Body======================================================================
         call MPI_Comm_rank(self%MPI_COMM_CART, my_rank)
+
         call grid_handler_send%get_switch_dims_workspace( &
                 dims_send, &
                 work_space3D_send, &
                 work_space_send, &
                 grid3D_pointer_send, &
                 pertubation)
+
+        !if (present(grid_handler_tmp)) then
+        !    write(*,*) "Yeaeaeaeae"
+        !    call grid_handler_send%get_switch_dims_workspace( &
+        !            dims_send, &
+        !            work_space3D_send, &
+        !            work_space_send, &
+        !            grid3D_pointer_tmp, &
+        !            pertubation)
+        !end if
 
         if (pertubation(1) == 2) comm_dim = self%row_size
         if (pertubation(1) == 3) comm_dim = self%column_size
@@ -349,14 +362,28 @@ contains
                 "Use a smaller overhead factor, the stencils go over multiple surfaces, which is not supported."
 
             do n = 0, dims_send(pertubation(3))/grid_handler_send%overhead_factor-1
-                do m = 1, grid_handler_send%overhead_factor + 1
-                    k = m+ n*grid_handler_send%overhead_factor
-                    stencil_send => work_space3D_send(:,m, 1)
-                
-                do j = 1, dims_send(pertubation(2))       
-                    do i = 1, dims_send(pertubation(1))  
-                        stencil_send(i) = grid3D_pointer_send(k, j, i)
-                    end do
+                do m = 1, grid_handler_send%overhead_factor
+                    call inner_loop_321()
+                end do
+            end do
+
+            do m = 1, modulo(dims_send(pertubation(3)),grid_handler_send%overhead_factor)
+                call inner_loop_321()
+            end do
+
+            if (sum(ierr) /= 0) error stop "Grid Col 321 Failed"
+
+        end subroutine rotate_321
+
+        subroutine inner_loop_321()
+            k = m+ n*grid_handler_send%overhead_factor
+            call MPI_Barrier(MPI_COMM_WORLD)
+            stencil_send => work_space3D_send(:,m, 1)
+            
+            do j = 1, dims_send(pertubation(2))       
+                do i = 1, dims_send(pertubation(1))  
+                    stencil_send(i) = grid3D_pointer_send(k, j, i)
+                end do
 
                 call MPI_Igather(SENDBUF   = stencil_send, &
                                 sendcount = send_count, &
@@ -366,18 +393,11 @@ contains
                                 recvtype  = MPI_DOUBLE, &
                                 root      = root(k), &
                                 comm      = self%MPI_Comm_Column, &
-                                request   = request(j,k), &
+                                request   = request(j,m), &
                                 ierror    = ierr0)
-                end do
+                call MPI_WaitAll(dims_send(pertubation(2)), request(:,m), comm_status(:,m), ierr0)
             end do
-                ! there are only overhead_factor requests needed to be checked
-                ! instead of dims_send(pertubation(3)),
-                ! but for better readability we do it this way.
-                call MPI_WaitAll(dims_send(pertubation(2)), request(:,k), comm_status(:,k), ierr0)
-            end do
-
-            if (sum(ierr) /= 0) error stop "Grid Col 321 Failed"
-        end subroutine rotate_321
+        end subroutine inner_loop_321
 
     end subroutine rotate_grid_cpu
     
