@@ -309,11 +309,16 @@ contains
             perturbation_xyz     = pertubation) 
 
         call grid_handler_rcv%get_pointer_3D(grid3D_pointer_rcv)
-        dims_rcv = grid_handler_rcv%get_dims()
 
+        ! Defining rcv dimensions ----------------------------------------------
+        ! I'm not using grid_handler_rcv%get_dims() because 
+        ! the array dimensions need to be in a different place
+        dims_rcv = (/dims_send(pertubation(1)),&
+                     dims_send(pertubation(2)),&
+                     dims_send(pertubation(3))/)
         send_count = dims_rcv(1)  ! surface area/self%row_size
 
-        ! Allocating ierr, comm_status and GRID_COMM_REQUESTS
+        ! Allocating ierr, comm_status and GRID_COMM_REQUESTS-------------------
         ! ierr
         allocate(ierr(dims_rcv(3)*comm_dim), stat = ierr0)
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
@@ -321,9 +326,11 @@ contains
         ! comm_status
         if (allocated(GRID_COMM_STATUS)) deallocate(comm_status, stat = ierr0)
         if (ierr0 /= 0) print *, "ierr: Deallocation request denied GRID_COMM_STATUS"
+        
         allocate(GRID_COMM_STATUS(dims_rcv(2)*&
                                   dims_rcv(3)), stat = ierr0)
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
+
         comm_status(dims_rcv(2), &
                     dims_rcv(3)) => GRID_COMM_STATUS
 
@@ -357,7 +364,7 @@ contains
             end do
         end do
 
-        ! Communication loop---------------------------------------------------
+        ! Communication loop----------------------------------------------------
         ierr = 0
         if (pertubation(1) == 2) call rotate_213()
         if (pertubation(1) == 3) then
