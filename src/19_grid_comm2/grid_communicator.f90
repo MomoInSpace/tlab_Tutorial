@@ -6,6 +6,17 @@ module grid_comm_module
     private:: get_factors
     private:: get_task_dims
 
+    TYPE(MPI_Request), dimension(:), &
+                       target, &
+                       allocatable   :: GRID_COMM_REQUESTS
+    TYPE(MPI_Request), dimension(:,:), &
+                       pointer       :: request  => null()
+    TYPE(MPI_Status), dimension(:), &
+                      target, &
+                      allocatable    :: GRID_COMM_STATUS
+    TYPE(MPI_Status), dimension(:,:), &
+                      pointer        :: comm_status => null()
+
     type:: Grid3D_Comm_Handler
         ! Grid3D_Communicator  handles the communication of the 3D grid.
 
@@ -116,6 +127,9 @@ contains
 
         call MPI_Comm_free(self%MPI_COMM_CART, ierr)
         if (ierr /= 0) print *, "array: Deallocation request denied for MPI_COMM_CART"
+
+        if (allocated(comm_status)) deallocate(comm_status, stat = ierr)
+        if (ierr /= 0) print *, "ierr: Deallocation request denied comm_status"
 
     end subroutine free
 
@@ -239,14 +253,6 @@ contains
                                             root, &
                                             rcv_j, &
                                             m_max
-        TYPE(MPI_Request), dimension(:), &
-                           target, &
-                           allocatable   :: request_arr
-        TYPE(MPI_Request), dimension(:,:), &
-                           pointer       :: request  => null()
-
-        TYPE(MPI_Status), dimension(:,:), &
-                          allocatable    :: comm_status
         real(kind = wp), pointer, &
                          dimension(:)    :: send_buf_pointer, &
                                             work_space_send, &
@@ -306,18 +312,36 @@ contains
 
         send_count = dims_send(pertubation(1))  ! surface area/self%row_size
 
-        ! Defining root and rcv_j and ierr for the communication later---------
-        allocate(root(dims_send(1)), stat = ierr0)
-        if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
-        allocate(rcv_j(dims_send(1)), stat = ierr0)
-        if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
+        ! Allocating ierr, comm_status and GRID_COMM_REQUESTS
+        ! ierr
         allocate(ierr(dims_send(pertubation(3))*comm_dim), stat = ierr0)
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
-        allocate(comm_status(dims_send(pertubation(2)), dims_send(pertubation(3))), stat = ierr0)
+
+        ! comm_status
+        if (allocated(GRID_COMM_STATUS)) deallocate(comm_status, stat = ierr0)
+        if (ierr0 /= 0) print *, "ierr: Deallocation request denied GRID_COMM_STATUS"
+        allocate(GRID_COMM_STATUS(dims_send(pertubation(2))*&
+                                  dims_send(pertubation(3))), stat = ierr0)
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
-        allocate(request_arr(dims_send(pertubation(2))*dims_send(pertubation(3))), stat = ierr0)
+        comm_status(dims_send(pertubation(2)), &
+                    dims_send(pertubation(3))) => GRID_COMM_STATUS
+
+        ! GRID_COMM_REQUESTS
+        allocate(GRID_COMM_REQUESTS(dims_send(pertubation(2))*&
+                             dims_send(pertubation(3))), stat = ierr0)
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
-        request(dims_send(pertubation(2)), dims_send(pertubation(3))) => request_arr
+
+        ! request pointer
+        request(dims_send(pertubation(2)), dims_send(pertubation(3))) => GRID_COMM_REQUESTS
+
+        ! Defining root and rcv_j and ierr for the communication later---------
+        ! root
+        allocate(root(dims_send(1)), stat = ierr0)
+        if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
+
+        ! rcv_j
+        allocate(rcv_j(dims_send(1)), stat = ierr0)
+        if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
 
         ! TODO:Rmove k and n in loop, not needed here.
         k = 0
@@ -346,9 +370,6 @@ contains
         ! Cleanup--------------------------------------------------------------
         if (allocated(ierr)) deallocate(ierr, stat = ierr0)
         if (ierr0 /= 0) print *, "ierr: Deallocation request denied rotate_grid 1"
-
-        if (allocated(comm_status)) deallocate(root, stat = ierr0)
-        if (ierr0 /= 0) print *, "ierr: Deallocation request denied rotate_grid 2"
 
         if (allocated(rcv_j)) deallocate(rcv_j, stat = ierr0)
         if (ierr0 /= 0) print *, "ierr: Deallocation request denied rotate_grid 3"
@@ -450,7 +471,7 @@ contains
             end do
 
             ! Deallocation of request is done in MPI_WaitAll
-            call MPI_WaitAll(dims_send(pertubation(2))*dims_send(pertubation(3)), request_arr, comm_status(:,k), ierr0)
+            call MPI_WaitAll(dims_send(pertubation(2))*dims_send(pertubation(3)), GRID_COMM_REQUESTS, comm_status(:,k), ierr0)
 
             if (sum(ierr) /= 0) error stop "Grid Row 321 tmp Failed"
             !call MPI_Barrier(MPI_Comm_World, ierr0)
