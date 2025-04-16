@@ -105,6 +105,9 @@ program comm_test
 
     ! Rotation 1----------------------------------------------------------------
     !call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler, grid_handler_rcv, .true.)
+    if (my_rank == 0) write(*,*) "Before Rot 1"
+    call MPI_BARRIER(MPI_COMM_WORLD)    
+
     call grid_comm_handler%rotate_grid_cpu(grid_handler, grid_handler_rcv, [2,1,3], grid_handler_tmp)
     !call grid_handler_rcv%get_pointer_3D(u)
 
@@ -113,6 +116,9 @@ program comm_test
 
     ! Rotation 2---------------------------------------------------------------
     !call grid_comm_handler%rotate_grid_col_321_cpu(grid_handler_rcv, grid_handler, .false.)
+    if (my_rank == 0) write(*,*) "Before Rot 2"
+    call MPI_BARRIER(MPI_COMM_WORLD)    
+
     call grid_comm_handler%rotate_grid_cpu(grid_handler_rcv, grid_handler, [3,2,1],grid_handler_tmp)
     !call grid_handler%get_pointer_3D(u)
 
@@ -121,16 +127,26 @@ program comm_test
 
     ! Rotation 3---------------------------------------------------------------
     !call grid_comm_handler%rotate_grid_col_321_cpu(grid_handler, grid_handler_rcv,  .false.)
+    if (my_rank == 0) write(*,*) "Before Rot 3"
+    call MPI_BARRIER(MPI_COMM_WORLD)    
+
     call grid_comm_handler%rotate_grid_cpu(grid_handler, grid_handler_rcv, [3,2,1], grid_handler_tmp)
     !call grid_handler%get_pointer_3D(u)
 
     ! ! Rotation 4---------------------------------------------------------------
     !call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler_rcv, grid_handler, .false.)
+    if (my_rank == 0) write(*,*) "Before Rot 4"
+    call MPI_BARRIER(MPI_COMM_WORLD)    
+
     call grid_comm_handler%rotate_grid_cpu(grid_handler_rcv, grid_handler, [2,1,3],grid_handler_tmp)
     !call grid_handler%get_pointer_3D(u)
 
     ! ! Visualize Complete Grid--------------------------------------------------
+    call MPI_BARRIER(MPI_COMM_WORLD)    
+    if (my_rank == 0) write(*,*) "After Rots 5"
     call debug_values()
+    call MPI_BARRIER(MPI_COMM_WORLD)    
+    if (my_rank == 0) write(*,*) "After Last Visual"
 
     
 
@@ -141,8 +157,8 @@ program comm_test
     if (allocated(x )) deallocate(x, stat = ierr(1))
     if (ierr(1) /= 0) print *, "q(1, grid_handler%total_space), : Deallocation request denied"
 
-    ! if (allocated(q )) deallocate(q, stat = ierr(1))
-    ! if (ierr(1) /= 0) print *, "q(1, grid_handler%total_space), : Deallocation request denied"
+     if (allocated(q )) deallocate(q, stat = ierr(1))
+     if (ierr(1) /= 0) print *, "q(1, grid_handler%total_space), : Deallocation request denied"
 
     ! Allocate testgrid and testbuffer . . . . . . . . . . . . . . . . . . . . 
     if (allocated(testgrid_array)) deallocate(testgrid_array, stat = ierr(1))
@@ -151,9 +167,8 @@ program comm_test
     if (allocated(testbuffer_array)) deallocate(testbuffer_array, stat = ierr(1))
     if (ierr(1) /= 0) print *, "array: Deallocation request denied"
 
-    call MPI_Comm_free(grid_comm_handler%MPI_COMM_CART, ierr(1))
-    call MPI_Comm_free(grid_comm_handler%MPI_COMM_Row, ierr(1))
-    call MPI_Comm_free(grid_comm_handler%MPI_COMM_Column, ierr(1))
+    ! Calling 
+    !call grid_comm_handler%free()
 
     contains
 

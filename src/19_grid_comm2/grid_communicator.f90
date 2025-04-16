@@ -29,6 +29,7 @@ module grid_comm_module
 
     contains
         procedure:: init
+        procedure:: free
         procedure:: rotate_grid_cpu
         procedure:: calculate_subgrid_dims
 
@@ -99,6 +100,24 @@ contains
         call calculate_subgrid_dims(self)
 
     end subroutine init
+
+    subroutine free(self)
+        ! Parameters============================================================
+        class(Grid3D_Comm_Handler):: self
+        integer                   :: ierr
+
+        ! Body =================================================================
+        ierr = 0
+        call MPI_Comm_free(self%MPI_COMM_Row, ierr)
+        if (ierr /= 0) print *, "array: Deallocation request denied for MPI_COMM_Row"
+
+        call MPI_Comm_free(self%MPI_COMM_Column, ierr)
+        if (ierr /= 0) print *, "array: Deallocation request denied for MPI_COMM_Column"
+
+        call MPI_Comm_free(self%MPI_COMM_CART, ierr)
+        if (ierr /= 0) print *, "array: Deallocation request denied for MPI_COMM_CART"
+
+    end subroutine free
 
                
     subroutine calculate_subgrid_dims(self)
@@ -377,7 +396,7 @@ contains
                 end do
                 call MPI_WaitAll(dims_send(pertubation(2)), request(:,m), comm_status(:,m), ierr0)
             end do
-
+            
             do m = 1, modulo(dims_send(pertubation(3)),grid_handler_send%overhead_factor)
                 call inner_loop_321()
             end do
