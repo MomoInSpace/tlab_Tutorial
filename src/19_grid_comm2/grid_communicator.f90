@@ -250,10 +250,11 @@ contains
                                             ! squashed and stretched 
                                             ! in each xyz dimension
         integer, dimension(:), &
-                 allocatable             :: ierr, &
-                                            root, &
+                 allocatable             :: root, &
                                             rcv_j, &
                                             m_max
+        integer, dimension(:,:), &
+                 allocatable             :: ierr
         real(kind = wp), pointer, &
                          dimension(:)    :: send_buf_pointer, &
                                             work_space_send, &
@@ -320,7 +321,8 @@ contains
 
         ! Allocating ierr, comm_status and GRID_COMM_REQUESTS-------------------
         ! ierr
-        allocate(ierr(dims_rcv(3)*comm_dim), stat = ierr0)
+        allocate(ierr(dims_rcv(2),&
+                      dims_rcv(3)), stat = ierr0)
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
 
         ! comm_status
@@ -376,6 +378,7 @@ contains
         end if
 
         ! Cleanup--------------------------------------------------------------
+        if (any(ierr /= MPI_SUCCESS)) error stop "ERROR in MPI_Igather" 
         if (allocated(ierr)) deallocate(ierr, stat = ierr0)
         if (ierr0 /= 0) print *, "ierr: Deallocation request denied rotate_grid 1"
 
@@ -400,7 +403,7 @@ contains
                                     root      = root(j), &
                                     comm      = self%MPI_Comm_Row, &
                                     request   = request(j, k), &
-                                    ierror    = ierr(i))
+                                    ierror    = ierr(j,k))
                 end do
             end do
 
@@ -456,7 +459,7 @@ contains
                                 root      = root(k), &
                                 comm      = self%MPI_Comm_Column, &
                                 request   = request(j, m), &
-                                ierror    = ierr0)
+                                ierror    = ierr(j,k))
             end do
         end subroutine inner_loop_321
 
@@ -476,7 +479,7 @@ contains
                                     root      = root(j), &
                                     comm      = self%MPI_Comm_Row, &
                                     request   = request(j, k), &
-                                    ierror    = ierr(i))
+                                    ierror    = ierr(j,k))
                 end do
             end do
 
@@ -499,7 +502,7 @@ contains
 
         dims = grid_handler_rcv%get_dims()
         call MPI_WaitAll(dims(2)*dims(3), GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr)
-        if (ierr0 /= MPI_SUCCESS) error stop "Grid_Waitall Failed"
+        if (ierr /= MPI_SUCCESS) error stop "Grid_Waitall Failed"
 
     end subroutine grid_waitall
     
