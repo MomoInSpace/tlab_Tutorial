@@ -415,7 +415,7 @@ contains
             !call MPI_WaitAll(dims_rcv(2)*dims_rcv(3), GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr0)
             !if (ierr0 /= MPI_SUCCESS) error stop "Grid Row 213 Failed"
             !call MPI_Barrier(MPI_Comm_World, ierr0)
-            call self%grid_waitall(grid_handler_rcv)
+            !call self%grid_waitall(grid_handler_rcv)
 
         end subroutine rotate_213
 
@@ -488,7 +488,7 @@ contains
             !call MPI_WaitAll(dims_rcv(2)*dims_rcv(3), GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr0)
             !if (ierr0 /= MPI_SUCCESS) error stop "Grid Row 321 tmp Failed"
             !call MPI_Barrier(MPI_Comm_World, ierr0)
-            call self%grid_waitall(grid_handler_rcv)
+            !call self%grid_waitall(grid_handler_rcv)
 
         end subroutine rotate_321_tmp
 

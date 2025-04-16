@@ -104,51 +104,33 @@ program comm_test
     call debug_values()
 
     ! Rotation 1----------------------------------------------------------------
-    !call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler, grid_handler_rcv, .true.)
-    if (my_rank == 0) write(*,*) "Before Rot 1"
-    call MPI_BARRIER(MPI_COMM_WORLD)    
-
     call grid_comm_handler%rotate_grid_cpu(grid_handler, grid_handler_rcv, [2,1,3], grid_handler_tmp)
+    call grid_comm_handler%grid_waitall(grid_handler_rcv)
     !call grid_handler_rcv%get_pointer_3D(u)
 
     ! Visualize Complete Grid--------------------------------------------------
     call debug_values()
 
     ! Rotation 2---------------------------------------------------------------
-    !call grid_comm_handler%rotate_grid_col_321_cpu(grid_handler_rcv, grid_handler, .false.)
-    !if (my_rank == 0) write(*,*) "Before Rot 2"
-    !call MPI_BARRIER(MPI_COMM_WORLD)    
-
     call grid_comm_handler%rotate_grid_cpu(grid_handler_rcv, grid_handler, [3,2,1],grid_handler_tmp)
+    call grid_comm_handler%grid_waitall(grid_handler)
     !call grid_handler%get_pointer_3D(u)
 
     ! Visualize Complete Grid--------------------------------------------------
     call debug_values()
 
     ! Rotation 3---------------------------------------------------------------
-    !call grid_comm_handler%rotate_grid_col_321_cpu(grid_handler, grid_handler_rcv,  .false.)
-    !if (my_rank == 0) write(*,*) "Before Rot 3"
-    !call MPI_BARRIER(MPI_COMM_WORLD)    
-
     call grid_comm_handler%rotate_grid_cpu(grid_handler, grid_handler_rcv, [3,2,1], grid_handler_tmp)
+    call grid_comm_handler%grid_waitall(grid_handler_rcv)
     !call grid_handler%get_pointer_3D(u)
 
     ! ! Rotation 4---------------------------------------------------------------
-    !call grid_comm_handler%rotate_grid_row_213_cpu(grid_handler_rcv, grid_handler, .false.)
-    !if (my_rank == 0) write(*,*) "Before Rot 4"
-    !call MPI_BARRIER(MPI_COMM_WORLD)    
-
     call grid_comm_handler%rotate_grid_cpu(grid_handler_rcv, grid_handler, [2,1,3],grid_handler_tmp)
+    call grid_comm_handler%grid_waitall(grid_handler)
     !call grid_handler%get_pointer_3D(u)
 
     ! ! Visualize Complete Grid--------------------------------------------------
-    !call MPI_BARRIER(MPI_COMM_WORLD)    
-    !if (my_rank == 0) write(*,*) "After Rots 5"
     call debug_values()
-    !call MPI_BARRIER(MPI_COMM_WORLD)    
-    !if (my_rank == 0) write(*,*) "After Last Visual"
-
-    
 
     !call grid_handler%get_pointer_3D(u)
     !if (my_rank == 0) write(*,*) u(:,1, 1)
