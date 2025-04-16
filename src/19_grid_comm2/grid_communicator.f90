@@ -43,6 +43,7 @@ module grid_comm_module
         procedure:: free
         procedure:: rotate_grid_cpu
         procedure:: calculate_subgrid_dims
+        procedure:: grid_waitall
 
     end type Grid3D_Comm_Handler
 
@@ -397,9 +398,10 @@ contains
             end do
 
             ! Deallocation of request is done in MPI_WaitAll
-            do k = 1, dims_send(pertubation(3))
-                call MPI_WaitAll(dims_send(pertubation(2)), request(:,k), comm_status(:,k), ierr0)
-            end do
+            !do k = 1, dims_send(pertubation(3))
+            !    call MPI_WaitAll(dims_send(pertubation(2)), request(:,k), comm_status(:,k), ierr0)
+            !end do
+            call MPI_WaitAll(dims_send(pertubation(2))*dims_send(pertubation(3)), GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr0)
 
             if (sum(ierr) /= 0) error stop "Grid Row 213 Failed"
             !call MPI_Barrier(MPI_Comm_World, ierr0)
@@ -471,7 +473,7 @@ contains
             end do
 
             ! Deallocation of request is done in MPI_WaitAll
-            call MPI_WaitAll(dims_send(pertubation(2))*dims_send(pertubation(3)), GRID_COMM_REQUESTS, comm_status(:,k), ierr0)
+            call MPI_WaitAll(dims_send(pertubation(2))*dims_send(pertubation(3)), GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr0)
 
             if (sum(ierr) /= 0) error stop "Grid Row 321 tmp Failed"
             !call MPI_Barrier(MPI_Comm_World, ierr0)
@@ -479,5 +481,15 @@ contains
         end subroutine rotate_321_tmp
 
     end subroutine rotate_grid_cpu
+
+    subroutine grid_waitall(self, grid_handler_rcv)
+        class(Grid3D_Comm_Handler)         :: self
+        type(Grid3D_cpu), intent(inout)    :: grid_handler_rcv
+        integer, dimension(3)            :: dims
+
+        dims = grid_handler_rcv%get_dims()
+        !call MPI_WaitAll(dims(2)*dims(3), GRID_COMM_REQUESTS, comm_status(:,k), ierr0)
+
+    end subroutine grid_waitall
     
 end module grid_comm_module
