@@ -258,7 +258,6 @@ contains
                 pertubation)
 
         if (present(grid_handler_tmp)) then
-            write(*,*) "Yeaeaeaeae"
             call grid_handler_send%get_switch_dims_workspace( &
                     dims_send, &
                     work_space3D_send, &
