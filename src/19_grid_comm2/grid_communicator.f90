@@ -408,10 +408,11 @@ contains
             !do k = 1, dims_rcv(3)
             !    call MPI_WaitAll(dims_rcv(2), request(:,k), comm_status(:,k), ierr0)
             !end do
-            call MPI_WaitAll(dims_rcv(2)*dims_rcv(3), GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr0)
-
-            if (sum(ierr) /= 0) error stop "Grid Row 213 Failed"
+            !ierr0 = 0
+            !call MPI_WaitAll(dims_rcv(2)*dims_rcv(3), GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr0)
+            !if (ierr0 /= MPI_SUCCESS) error stop "Grid Row 213 Failed"
             !call MPI_Barrier(MPI_Comm_World, ierr0)
+            call self%grid_waitall(grid_handler_rcv)
 
         end subroutine rotate_213
 
@@ -480,10 +481,11 @@ contains
             end do
 
             ! Deallocation of request is done in MPI_WaitAll
-            call MPI_WaitAll(dims_rcv(2)*dims_rcv(3), GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr0)
-
-            if (sum(ierr) /= 0) error stop "Grid Row 321 tmp Failed"
+            !ierr0 = 0
+            !call MPI_WaitAll(dims_rcv(2)*dims_rcv(3), GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr0)
+            !if (ierr0 /= MPI_SUCCESS) error stop "Grid Row 321 tmp Failed"
             !call MPI_Barrier(MPI_Comm_World, ierr0)
+            call self%grid_waitall(grid_handler_rcv)
 
         end subroutine rotate_321_tmp
 
@@ -493,9 +495,11 @@ contains
         class(Grid3D_Comm_Handler)         :: self
         type(Grid3D_cpu), intent(inout)    :: grid_handler_rcv
         integer, dimension(3)            :: dims
+        integer                            :: ierr
 
         dims = grid_handler_rcv%get_dims()
-        !call MPI_WaitAll(dims(2)*dims(3), GRID_COMM_REQUESTS, comm_status(:,k), ierr0)
+        call MPI_WaitAll(dims(2)*dims(3), GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr)
+        if (ierr0 /= MPI_SUCCESS) error stop "Grid_Waitall Failed"
 
     end subroutine grid_waitall
     
