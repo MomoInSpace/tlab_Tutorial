@@ -121,13 +121,13 @@ contains
         ! Body =================================================================
         ierr = 0
         call MPI_Comm_free(self%MPI_COMM_Row, ierr)
-        if (ierr /= 0) print *, "array: Deallocation request denied for MPI_COMM_Row"
+        if (ierr /= MPI_SUCCESS) print *, "array: Deallocation request denied for MPI_COMM_Row"
 
         call MPI_Comm_free(self%MPI_COMM_Column, ierr)
-        if (ierr /= 0) print *, "array: Deallocation request denied for MPI_COMM_Column"
+        if (ierr /= MPI_SUCCESS) print *, "array: Deallocation request denied for MPI_COMM_Column"
 
         call MPI_Comm_free(self%MPI_COMM_CART, ierr)
-        if (ierr /= 0) print *, "array: Deallocation request denied for MPI_COMM_CART"
+        if (ierr /= MPI_SUCCESS) print *, "array: Deallocation request denied for MPI_COMM_CART"
 
         if (allocated(comm_status)) deallocate(comm_status, stat = ierr)
         if (ierr /= 0) print *, "ierr: Deallocation request denied comm_status"

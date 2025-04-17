@@ -150,7 +150,7 @@ program comm_test
     if (ierr(1) /= 0) print *, "array: Deallocation request denied"
 
     ! Calling 
-    !call grid_comm_handler%free()
+    call grid_comm_handler%free()
 
     contains
 
