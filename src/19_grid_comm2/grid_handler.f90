@@ -126,6 +126,11 @@ contains
         !   self%allocated_space can be disregarded and overwritten.
         ! Body======================================================================
 
+        ! Perturbation of xyz-axes:
+        do i = 1, 3
+            self%state_xyz(i) = state_xyz(perturbation_xyz(i))
+        end do
+
         ! Resizing of the xyz-axes:
         self%grid_xyz_dims(state_xyz(1)) = &
             grid_xyz_dims(state_xyz(1))*subgrid_factors_xyz(1)/subgrid_dividers_xyz(1)
@@ -135,11 +140,6 @@ contains
 
         self%grid_xyz_dims(state_xyz(3)) = &
             grid_xyz_dims(state_xyz(3))*subgrid_factors_xyz(3)/subgrid_dividers_xyz(3)
-
-        ! Perturbation of xyz-axes:
-        do i = 1, 3
-            self%state_xyz(i) = state_xyz(perturbation_xyz(i))
-        end do
 
     end subroutine perturb_state
 
