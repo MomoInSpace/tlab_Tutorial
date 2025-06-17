@@ -9,13 +9,9 @@ module grid_comm_module
     TYPE(MPI_Request), dimension(:), &
                        target, &
                        allocatable   :: GRID_COMM_REQUESTS
-    TYPE(MPI_Request), dimension(:,:), &
-                       pointer       :: request  => null()
     TYPE(MPI_Status), dimension(:), &
                       target, &
                       allocatable    :: GRID_COMM_STATUS
-    TYPE(MPI_Status), dimension(:,:), &
-                      pointer        :: comm_status => null()
 
     integer :: comm_steps
 
@@ -131,8 +127,8 @@ contains
         call MPI_Comm_free(self%MPI_COMM_CART, ierr)
         if (ierr /= MPI_SUCCESS) print *, "array: Deallocation request denied for MPI_COMM_CART"
 
-        if (allocated(comm_status)) deallocate(comm_status, stat = ierr)
-        if (ierr /= 0) print *, "ierr: Deallocation request denied comm_status"
+        !if (allocated(comm_status)) deallocate(comm_status, stat = ierr)
+        !if (ierr /= 0) print *, "ierr: Deallocation request denied comm_status"
 
     end subroutine free
 
@@ -291,11 +287,9 @@ contains
 
         if (present(grid_handler_tmp)) then
 
+            ! Clean Copy of State
             grid_handler_tmp%state_xyz = grid_handler_send%state_xyz
             grid_handler_tmp%grid_xyz_dims =  grid_handler_send%grid_xyz_dims
-            !grid_handler_tmp%state_xyz(1) = grid_handler_send%state_xyz(1)
-            !grid_handler_tmp%state_xyz(2) = grid_handler_send%state_xyz(2)
-            !grid_handler_tmp%state_xyz(3) = grid_handler_send%state_xyz(3)
             call grid_handler_tmp%get_switch_dims_workspace( &
                     dims_tmp, &
                     work_space3D_tmp, &
@@ -338,15 +332,15 @@ contains
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
 
         ! comm_status
-        if (allocated(GRID_COMM_STATUS)) deallocate(comm_status, stat = ierr0)
+        if (allocated(GRID_COMM_STATUS)) deallocate(GRID_COMM_STATUS, stat = ierr0)
         if (ierr0 /= 0) print *, "ierr: Deallocation request denied GRID_COMM_STATUS"
         
         allocate(GRID_COMM_STATUS(dims_rcv(2)*&
                                   dims_rcv(3)), stat = ierr0)
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
 
-        comm_status(dims_rcv(2), &
-                    dims_rcv(3)) => GRID_COMM_STATUS
+        !comm_status(dims_rcv(2), &
+        !            dims_rcv(3)) => GRID_COMM_STATUS
 
         ! GRID_COMM_REQUESTS
         allocate(GRID_COMM_REQUESTS(dims_rcv(2)*&
@@ -354,7 +348,7 @@ contains
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
 
         ! request pointer
-        request(dims_rcv(2), dims_rcv(3)) => GRID_COMM_REQUESTS
+        !request(dims_rcv(2), dims_rcv(3)) => GRID_COMM_REQUESTS
 
         ! Defining root and rcv_j and ierr for the communication later---------
         ! root
@@ -416,9 +410,10 @@ contains
                                     recvtype  = MPI_DOUBLE, &
                                     root      = root(j), &
                                     comm      = self%MPI_Comm_Row, &
-                                    request   = request(j, k), &
-                                    !request   = GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
+                                    !request   = request(j, k), &
+                                    request   = GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
                                     ierror    = ierr(j,k))
+                                    !request(dims_rcv(2), dims_rcv(3)) => GRID_COMM_REQUESTS
                 end do
             end do
 
@@ -453,22 +448,28 @@ contains
                 do m = 1, grid_handler_send%overhead_factor
                     call inner_loop_321()
                 end do
-                call MPI_WaitAll(dims_rcv(2), request(:,m), comm_status(:,m), ierr0)
-                !GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1))
+                call MPI_WaitAll(dims_rcv(2), &
+                    GRID_COMM_REQUESTS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), & !request(:,m)
+                    GRID_COMM_STATUS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), &   !comm_status(:,m)
+                    ierr0)
+                    if (ierr0 /= MPI_SUCCESS) error stop "Grid Col 321 Failed in rotate_321"
             end do
             
             do m = 1, modulo(dims_rcv(3), grid_handler_send%overhead_factor)
                 call inner_loop_321()
             end do
-            call MPI_WaitAll(dims_rcv(2), request(:,m), comm_status(:,m), ierr0)
+            call MPI_WaitAll(dims_rcv(2), &
+                    GRID_COMM_REQUESTS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), & !request(:,m)
+                    GRID_COMM_STATUS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), &   !comm_status(:,m)
+                    ierr0)
 
-            if (sum(ierr) /= 0) error stop "Grid Col 321 Failed"
+            if (ierr0 /= MPI_SUCCESS) error stop "Grid Col 321 Failed in rotate_321"
 
         end subroutine rotate_321
 
         subroutine inner_loop_321()
             k = m+n*grid_handler_send%overhead_factor
-            call MPI_Barrier(MPI_COMM_WORLD)
+            !call MPI_Barrier(MPI_COMM_WORLD)
             stencil_send => work_space3D_send(:,m, 1)
             
             do j = 1, dims_rcv(2)       
@@ -484,14 +485,13 @@ contains
                                 recvtype  = MPI_DOUBLE, &
                                 root      = root(k), &
                                 comm      = self%MPI_Comm_Column, &
-                                request   = request(j, m), &
+                                request   = GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
                                 ierror    = ierr(j,k))
             end do
         end subroutine inner_loop_321
 
         subroutine rotate_321_tmp()
             ! Body======================================================================
-            call MPI_BARRIER(MPI_COMM_WORLD)
             do k = 1, dims_rcv(3) 
                 do j = 1, dims_rcv(2) 
                     do i = 1, dims_rcv(1) 
@@ -506,10 +506,9 @@ contains
                                 recvtype  = MPI_DOUBLE, &
                                 root      = root(k), &
                                 comm      = self%MPI_Comm_Column, &
-                                request   = request(j, k), &
+                                request   = GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
                                 ierror    = ierr(j,k))
                             
-                call MPI_BARRIER(MPI_COMM_WORLD)
                 end do
             end do
 
@@ -517,7 +516,6 @@ contains
             ierr0 = 0
             call MPI_WaitAll(dims_rcv(2)*dims_rcv(3), GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr0)
             if (ierr0 /= MPI_SUCCESS) error stop "Grid Row 321 tmp Failed"
-            call MPI_BARRIER(MPI_COMM_WORLD)
             !call MPI_Barrier(MPI_Comm_World, ierr0)
             !call MPI_Comm_rank(MPI_COMM_WORLD, ierr0)
             !if (ierr0 ==0) then
@@ -551,7 +549,7 @@ contains
         call MPI_WaitAll(comm_steps, GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr)
         if (ierr /= MPI_SUCCESS) error stop "Grid_Waitall Failed"
 
-        call MPI_Barrier(MPI_Comm_World, ierr)
+        !call MPI_Barrier(MPI_Comm_World, ierr)
 
     end subroutine grid_waitall
     
