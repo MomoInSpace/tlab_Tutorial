@@ -88,7 +88,7 @@ program comm_test
 
 
     ! Set Values For visualization----------------------------------------------
-    grid_handler%grid_space = my_rank
+    grid_handler%grid_space = my_rank + 1
     grid_handler_rcv%grid_space = 99
 
     if (my_rank == 0 ) then
