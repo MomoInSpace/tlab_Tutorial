@@ -101,7 +101,7 @@ program comm_test
     ! if (my_rank == 0) write(*,*) x
 
     ! Visualize Complete Grid---------------------------------------------------
-    call debug_values()
+    call debug_values(grid_handler)
 
     ! Rotation 1----------------------------------------------------------------
     call grid_comm_handler%rotate_grid_cpu(grid_handler, grid_handler_rcv, [2,1,3], grid_handler_tmp)
@@ -109,20 +109,24 @@ program comm_test
     !call grid_handler_rcv%get_pointer_3D(u)
 
     ! Visualize Complete Grid--------------------------------------------------
-    call debug_values()
+    call debug_values(grid_handler_rcv)
 
     ! Rotation 2---------------------------------------------------------------
     call grid_comm_handler%rotate_grid_cpu(grid_handler_rcv, grid_handler, [3,2,1],grid_handler_tmp)
-    call grid_comm_handler%grid_waitall(grid_handler)
+    !call grid_comm_handler%rotate_grid_cpu(grid_handler_rcv, grid_handler, [3,2,1])
+    !call grid_comm_handler%grid_waitall(grid_handler)
     !call grid_handler%get_pointer_3D(u)
 
     ! Visualize Complete Grid--------------------------------------------------
-    call debug_values()
+    call debug_values(grid_handler)
 
     ! Rotation 3---------------------------------------------------------------
     call grid_comm_handler%rotate_grid_cpu(grid_handler, grid_handler_rcv, [3,2,1], grid_handler_tmp)
+    !call grid_comm_handler%rotate_grid_cpu(grid_handler, grid_handler_rcv, [3,2,1])
     call grid_comm_handler%grid_waitall(grid_handler_rcv)
     !call grid_handler%get_pointer_3D(u)
+
+    call MPI_Barrier(MPI_COMM_WORLD)
 
     ! ! Rotation 4---------------------------------------------------------------
     call grid_comm_handler%rotate_grid_cpu(grid_handler_rcv, grid_handler, [2,1,3],grid_handler_tmp)
@@ -130,7 +134,7 @@ program comm_test
     !call grid_handler%get_pointer_3D(u)
 
     ! ! Visualize Complete Grid--------------------------------------------------
-    call debug_values()
+    call debug_values(grid_handler)
 
     !call grid_handler%get_pointer_3D(u)
     !if (my_rank == 0) write(*,*) u(:,1, 1)
@@ -154,8 +158,9 @@ program comm_test
 
     contains
 
-    subroutine debug_values()
-        call testgrid_handler%gather_compgrid(grid_handler, grid_comm_handler, subgrid_xyz_dims, my_rank)
+    subroutine debug_values(current_grid_handler)
+        type(Grid3D_cpu)            :: current_grid_handler
+        call testgrid_handler%gather_compgrid(current_grid_handler, grid_comm_handler, subgrid_xyz_dims, my_rank)
         call testgrid_handler%visualize_grid(my_rank)
         !call calc_checksum(my_rank)
     end subroutine debug_values
