@@ -422,9 +422,9 @@ contains
             !do k = 1, dims_rcv(3)
             !    call MPI_WaitAll(dims_rcv(2), request(:,k), comm_status(:,k), ierr0)
             !end do
-            ierr0 = 0
-            call MPI_WaitAll(dims_rcv(2)*dims_rcv(3), GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr0)
-            if (ierr0 /= MPI_SUCCESS) error stop "Grid Row 213 Failed"
+            !ierr0 = 0
+            !call MPI_WaitAll(dims_rcv(2)*dims_rcv(3), GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr0)
+            !if (ierr0 /= MPI_SUCCESS) error stop "Grid Row 213 Failed"
             
             !call MPI_Comm_rank(MPI_COMM_WORLD, ierr0)
             !if (ierr0 ==0) then
@@ -434,7 +434,7 @@ contains
             !end if 
 
             !call MPI_Barrier(MPI_Comm_World, ierr0)
-            call self%grid_waitall(grid_handler_rcv)
+            !call self%grid_waitall(grid_handler_rcv)
             !call MPI_Barrier(MPI_Comm_World, ierr0)
 
         end subroutine rotate_213
@@ -469,7 +469,6 @@ contains
 
         subroutine inner_loop_321()
             k = m+n*grid_handler_send%overhead_factor
-            !call MPI_Barrier(MPI_COMM_WORLD)
             stencil_send => work_space3D_send(:,m, 1)
             
             do j = 1, dims_rcv(2)       
@@ -513,9 +512,9 @@ contains
             end do
 
             ! Deallocation of request is done in MPI_WaitAll
-            ierr0 = 0
-            call MPI_WaitAll(dims_rcv(2)*dims_rcv(3), GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr0)
-            if (ierr0 /= MPI_SUCCESS) error stop "Grid Row 321 tmp Failed"
+            !ierr0 = 0
+            !call MPI_WaitAll(dims_rcv(2)*dims_rcv(3), GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr0)
+            !if (ierr0 /= MPI_SUCCESS) error stop "Grid Row 321 tmp Failed"
             !call MPI_Barrier(MPI_Comm_World, ierr0)
             !call MPI_Comm_rank(MPI_COMM_WORLD, ierr0)
             !if (ierr0 ==0) then
@@ -524,7 +523,7 @@ contains
             !    write(*,*) "getdims 321", dims_rcv(1), dims_rcv(2), dims_rcv(3)
             !end if 
             !call MPI_Barrier(MPI_Comm_World, ierr0)
-            call self%grid_waitall(grid_handler_rcv)
+            !call self%grid_waitall(grid_handler_rcv)
             !call MPI_Barrier(MPI_Comm_World, ierr0)
 
         end subroutine rotate_321_tmp
@@ -549,7 +548,6 @@ contains
         call MPI_WaitAll(comm_steps, GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr)
         if (ierr /= MPI_SUCCESS) error stop "Grid_Waitall Failed"
 
-        !call MPI_Barrier(MPI_Comm_World, ierr)
 
     end subroutine grid_waitall
     
