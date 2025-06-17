@@ -15,7 +15,7 @@ program comm_test
 
     integer                     :: world_size, my_rank 
     type(Grid3D_Comm_Handler)   :: grid_comm_handler
-    type(Grid3D_cpu)            :: grid_handler, grid_handler_rcv, grid_handler_tmp
+    type(Grid3D_cpu)            :: grid_handler_A, grid_handler_B, grid_handler_tmp
     type(Complete_grid_debugger):: testgrid_handler
     integer, dimension(3)       :: state_xyz  = [2, 1, 3], &
                                    ! Pertubation of [1, 2, 3]. 
@@ -70,81 +70,73 @@ program comm_test
 
     ! Init grid_handler derived types-------------------------------------------
     overhead_factor = 3
-    call grid_handler%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
-    call grid_handler_rcv%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
+    call grid_handler_A%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
+    call grid_handler_B%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
     call grid_handler_tmp%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
 
-    allocate(x(grid_handler%total_space, 3), stat = ierr(1))
+    allocate(x(grid_handler_A%total_space, 3), stat = ierr(1))
     if (ierr(1) /= 0) print *, "q(1, grid_handler%total_space), : Allocation request denied"
     ! allocate(q(grid_handler%total_space, 1), stat = ierr(1))
     ! if (ierr(1) /= 0) print *, "q(1, grid_handler%total_space), : Allocation request denied"
 
-    call grid_handler%set_pointer_1D(x(:,1))
-    call grid_handler_rcv%set_pointer_1D(x(:,2))
+    call grid_handler_A%set_pointer_1D(x(:,1))
+    call grid_handler_B%set_pointer_1D(x(:,2))
     call grid_handler_tmp%set_pointer_1D(x(:,3))
 
     ! Example: For later use
-    call grid_handler%get_pointer_3D(u)
+    call grid_handler_A%get_pointer_3D(u)
 
 
     ! Set Values For visualization----------------------------------------------
-    grid_handler%grid_space = my_rank + 1
-    grid_handler_rcv%grid_space = 99
+    grid_handler_A%grid_space = my_rank + 1
+    grid_handler_B%grid_space = 99
 
     if (my_rank == 0 ) then
-        do i = 1, size(grid_handler%grid_space)
-            grid_handler%grid_space(i) = i-1
+        do i = 1, size(grid_handler_A%grid_space)
+            grid_handler_A%grid_space(i) = i-1
         end do
     end if 
 
-    call grid_handler%get_pointer_3D(u)
+    call grid_handler_A%get_pointer_3D(u)
     ! if (my_rank == 0) write(*,*) x
 
     ! Visualize Complete Grid---------------------------------------------------
-    call debug_values(grid_handler)
+    call debug_values(grid_handler_A)
 
     ! Rotation 1----------------------------------------------------------------
-    call grid_comm_handler%rotate_grid_cpu(grid_handler, grid_handler_rcv, [2,1,3], grid_handler_tmp)
-    call grid_comm_handler%grid_waitall(grid_handler_rcv)
-    !call grid_handler_rcv%get_pointer_3D(u)
+    call grid_comm_handler%rotate_grid_cpu(grid_handler_A, grid_handler_B, [2,1,3], grid_handler_tmp)
+    call grid_comm_handler%grid_waitall(grid_handler_B)
+    !call grid_handler_B%get_pointer_3D(u)
 
     ! Visualize Complete Grid--------------------------------------------------
-    call debug_values(grid_handler_rcv)
+    call debug_values(grid_handler_B)
 
     ! Rotation 2---------------------------------------------------------------
-    call grid_comm_handler%rotate_grid_cpu(grid_handler_rcv, grid_handler, [3,2,1],grid_handler_tmp)
-    !call grid_comm_handler%rotate_grid_cpu(grid_handler_rcv, grid_handler, [3,2,1])
-    !call grid_comm_handler%grid_waitall(grid_handler)
-    !call grid_handler%get_pointer_3D(u)
+    call grid_comm_handler%rotate_grid_cpu(grid_handler_B, grid_handler_A, [3,2,1],grid_handler_tmp)
+    call grid_comm_handler%grid_waitall(grid_handler_A)
 
     ! Visualize Complete Grid--------------------------------------------------
-    call debug_values(grid_handler)
+    call debug_values(grid_handler_A)
 
     ! Rotation 3---------------------------------------------------------------
-    call grid_comm_handler%rotate_grid_cpu(grid_handler, grid_handler_rcv, [3,2,1], grid_handler_tmp)
-    !call grid_comm_handler%rotate_grid_cpu(grid_handler, grid_handler_rcv, [3,2,1])
-    call grid_comm_handler%grid_waitall(grid_handler_rcv)
-    !call grid_handler%get_pointer_3D(u)
+    call grid_comm_handler%rotate_grid_cpu(grid_handler_A, grid_handler_B, [3,2,1], grid_handler_tmp)
+    call grid_comm_handler%grid_waitall(grid_handler_B)
 
     call MPI_Barrier(MPI_COMM_WORLD)
 
     ! ! Rotation 4---------------------------------------------------------------
-    call grid_comm_handler%rotate_grid_cpu(grid_handler_rcv, grid_handler, [2,1,3],grid_handler_tmp)
-    call grid_comm_handler%grid_waitall(grid_handler)
-    !call grid_handler%get_pointer_3D(u)
+    call grid_comm_handler%rotate_grid_cpu(grid_handler_B, grid_handler_A, [2,1,3],grid_handler_tmp)
+    call grid_comm_handler%grid_waitall(grid_handler_A)
 
     ! ! Visualize Complete Grid--------------------------------------------------
-    call debug_values(grid_handler)
-
-    !call grid_handler%get_pointer_3D(u)
-    !if (my_rank == 0) write(*,*) u(:,1, 1)
+    call debug_values(grid_handler_A)
 
     ! Cleanup ==================================================================
     if (allocated(x )) deallocate(x, stat = ierr(1))
-    if (ierr(1) /= 0) print *, "q(1, grid_handler%total_space), : Deallocation request denied"
+    if (ierr(1) /= 0) print *, "q(1, grid_handler_A%total_space), : Deallocation request denied"
 
      if (allocated(q )) deallocate(q, stat = ierr(1))
-     if (ierr(1) /= 0) print *, "q(1, grid_handler%total_space), : Deallocation request denied"
+     if (ierr(1) /= 0) print *, "q(1, grid_handler_A%total_space), : Deallocation request denied"
 
     ! Allocate testgrid and testbuffer . . . . . . . . . . . . . . . . . . . . 
     if (allocated(testgrid_array)) deallocate(testgrid_array, stat = ierr(1))
