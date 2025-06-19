@@ -15,7 +15,7 @@ program comm_test
 
     integer                     :: world_size, my_rank 
     type(Grid3D_Comm_Handler)   :: grid_comm_handler
-    type(Grid3D_cpu)            :: grid_handler_A, grid_handler_B, grid_handler_tmp
+    type(Grid3D_cpu), target    :: grid_handler_A, grid_handler_B, grid_handler_tmp
     type(Complete_grid_debugger):: testgrid_handler
     integer, dimension(3)       :: state_xyz  = [2, 1, 3], &
                                    ! Pertubation of [1, 2, 3]. 

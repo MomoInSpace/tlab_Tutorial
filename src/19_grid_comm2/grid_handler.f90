@@ -1,7 +1,10 @@
 module grid_handler 
 
 use TLAB_CONSTANTS, only: wp
+use mpi_f08
+
 implicit none
+
 
     ! private:: prod
 
@@ -28,6 +31,12 @@ implicit none
                          dimension(:):: grid_space, allocated_space
         ! grid_space points to the space of the grid.
         ! allocated_space points to the grid AND the overhead.
+
+        TYPE(MPI_Request), dimension(:), &
+                           allocatable   :: GRID_COMM_REQUESTS
+        TYPE(MPI_Status), dimension(:), &
+                          allocatable    :: GRID_COMM_STATUS
+
 
     contains
         procedure:: init

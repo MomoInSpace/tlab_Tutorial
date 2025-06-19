@@ -5,15 +5,8 @@ module grid_comm_module
 
     private:: get_factors
     private:: get_task_dims
-
-    TYPE(MPI_Request), dimension(:), &
-                       target, &
-                       allocatable   :: GRID_COMM_REQUESTS
-    TYPE(MPI_Status), dimension(:), &
-                      target, &
-                      allocatable    :: GRID_COMM_STATUS
-
     integer :: comm_steps
+
 
     type:: Grid3D_Comm_Handler
         ! Grid3D_Communicator  handles the communication of the 3D grid.
@@ -227,8 +220,10 @@ contains
     subroutine rotate_grid_cpu(self, grid_handler_send, grid_handler_rcv, pertubation, grid_handler_tmp)
         ! IO =======================================================================
         class(Grid3D_Comm_Handler)         :: self
-        type(Grid3D_cpu), intent(inout)    :: grid_handler_send, grid_handler_rcv
-        type(Grid3D_cpu), intent(inout), &
+        type(Grid3D_cpu), target, & 
+                          intent(inout)    :: grid_handler_send, grid_handler_rcv
+        type(Grid3D_cpu), target, &
+                          intent(inout), &
                           optional         :: grid_handler_tmp
         integer, dimension(3), intent(in)  :: pertubation
         ! Parameters================================================================
@@ -265,6 +260,12 @@ contains
                                             grid3D_pointer_send, &
                                             grid3D_pointer_rcv, &
                                             grid3D_pointer_tmp
+        ! MPI_PARAMS                                
+        TYPE(MPI_Request), dimension(:), &
+                           pointer :: GRID_COMM_REQUESTS_tmp
+        TYPE(MPI_Status), dimension(:), &
+                          pointer  :: GRID_COMM_STATUS_tmp
+
         !character(len = 100):: fmt  ! Debug
         ! Notes=====================================================================
         ! Each process A, B, C has to scatter their data to all other processes in its row:
@@ -332,23 +333,22 @@ contains
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
 
         ! comm_status
-        if (allocated(GRID_COMM_STATUS)) deallocate(GRID_COMM_STATUS, stat = ierr0)
+        if (allocated(grid_handler_rcv%GRID_COMM_STATUS)) deallocate(grid_handler_rcv%GRID_COMM_STATUS, stat = ierr0)
         if (ierr0 /= 0) print *, "ierr: Deallocation request denied GRID_COMM_STATUS"
         
-        allocate(GRID_COMM_STATUS(dims_rcv(2)*&
+        allocate(grid_handler_rcv%GRID_COMM_STATUS(dims_rcv(2)*&
                                   dims_rcv(3)), stat = ierr0)
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
 
-        !comm_status(dims_rcv(2), &
-        !            dims_rcv(3)) => GRID_COMM_STATUS
+        !GRID_COMM_STATUS_tmp(dims_rcv(2)*dims_rcv(3)) => grid_handler_rcv%GRID_COMM_STATUS
 
         ! GRID_COMM_REQUESTS
-        allocate(GRID_COMM_REQUESTS(dims_rcv(2)*&
+        allocate(grid_handler_rcv%GRID_COMM_REQUESTS(dims_rcv(2)*&
                              dims_rcv(3)), stat = ierr0)
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
 
         ! request pointer
-        !request(dims_rcv(2), dims_rcv(3)) => GRID_COMM_REQUESTS
+        !GRID_COMM_REQUESTS_tmp(dims_rcv(2)*dims_rcv(3)) => grid_handler_rcv%GRID_COMM_REQUESTS
 
         ! Defining root and rcv_j and ierr for the communication later---------
         ! root
@@ -411,7 +411,7 @@ contains
                                     root      = root(j), &
                                     comm      = self%MPI_Comm_Row, &
                                     !request   = request(j, k), &
-                                    request   = GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
+                                    request   = grid_handler_rcv%GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
                                     ierror    = ierr(j,k))
                                     !request(dims_rcv(2), dims_rcv(3)) => GRID_COMM_REQUESTS
                 end do
@@ -449,8 +449,8 @@ contains
                     call inner_loop_321()
                 end do
                 call MPI_WaitAll(dims_rcv(2), &
-                    GRID_COMM_REQUESTS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), & !request(:,m)
-                    GRID_COMM_STATUS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), &   !comm_status(:,m)
+                    grid_handler_rcv%GRID_COMM_REQUESTS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), & !request(:,m)
+                    grid_handler_rcv%GRID_COMM_STATUS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), &   !comm_status(:,m)
                     ierr0)
                     if (ierr0 /= MPI_SUCCESS) error stop "Grid Col 321 Failed in rotate_321"
             end do
@@ -459,8 +459,8 @@ contains
                 call inner_loop_321()
             end do
             call MPI_WaitAll(dims_rcv(2), &
-                    GRID_COMM_REQUESTS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), & !request(:,m)
-                    GRID_COMM_STATUS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), &   !comm_status(:,m)
+                    grid_handler_rcv%GRID_COMM_REQUESTS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), & !request(:,m)
+                    grid_handler_rcv%GRID_COMM_STATUS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), &   !comm_status(:,m)
                     ierr0)
 
             if (ierr0 /= MPI_SUCCESS) error stop "Grid Col 321 Failed in rotate_321"
@@ -484,7 +484,7 @@ contains
                                 recvtype  = MPI_DOUBLE, &
                                 root      = root(k), &
                                 comm      = self%MPI_Comm_Column, &
-                                request   = GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
+                                request   = grid_handler_rcv%GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
                                 ierror    = ierr(j,k))
             end do
         end subroutine inner_loop_321
@@ -505,7 +505,7 @@ contains
                                 recvtype  = MPI_DOUBLE, &
                                 root      = root(k), &
                                 comm      = self%MPI_Comm_Column, &
-                                request   = GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
+                                request   = grid_handler_rcv%GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
                                 ierror    = ierr(j,k))
                             
                 end do
@@ -545,7 +545,7 @@ contains
         !    write(*,*) "waitall", dims(1), dims(2), dims(3)
         !end if 
         ! ----------
-        call MPI_WaitAll(comm_steps, GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr)
+        call MPI_WaitAll(comm_steps, grid_handler_rcv%GRID_COMM_REQUESTS, grid_handler_rcv%GRID_COMM_STATUS, ierr)
         if (ierr /= MPI_SUCCESS) error stop "Grid_Waitall Failed"
 
 
