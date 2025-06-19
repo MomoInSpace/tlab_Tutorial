@@ -20,7 +20,7 @@ implicit none
         integer, dimension(3):: grid_xyz_dims, complete_grid_xyz_dims 
         ! grid_xyz_dims saves the length of each dimension x, y and z
 
-        integer:: overhead_factor, free_space, total_space
+        integer:: overhead_factor, free_space, total_space, comm_steps
         ! overhead gives you the factor of the overhead that needs to be
         !  there for a fast communication. A factor of 2 means that when we communicate
         ! the 321, we will switch between 2 stencils and then wait until the next write.
@@ -48,6 +48,8 @@ implicit none
         procedure:: get_switch_dims_workspace
         ! procedure:: switch_dims_132_step
         procedure:: print_state
+        procedure::init_comm_requests
+        procedure::grid_waitall
     end type Grid3D
 
   ! Define the Point type
@@ -297,6 +299,39 @@ contains
         write(*,fmt) grid3D_pointer(:, :, 1)
 
     end subroutine print_state 
+
+    subroutine init_comm_requests(self, comm_steps)
+        ! NOT DONE, NEEDS TO BE FINNISHED
+        class(Grid3D) :: self
+        integer       :: comm_steps, ierr
+
+        self%comm_steps = comm_steps
+        ierr = 0
+
+        ! waitall should be called before init_comm_request, so this should
+        ! throw an error if it is already allocated
+        if (allocated(self%GRID_COMM_STATUS)) deallocate(self%GRID_COMM_STATUS, stat = ierr)
+        if (ierr /= 0) print *, "ierr: Deallocation request denied self%GRID_COMM_STATUS"
+
+        if (allocated(self%GRID_COMM_REQUESTS)) deallocate(self%GRID_COMM_REQUESTS, stat = ierr)
+        if (ierr /= 0) print *, "ierr: Deallocation request denied self%GRID_COMM_STATUS"
+
+        allocate(self%GRID_COMM_STATUS(comm_steps), stat = ierr)
+        if (ierr /= 0) print *, "ierr(dim(3)): Allocation request denied"
+
+        allocate(self%GRID_COMM_REQUESTS(comm_steps), stat = ierr)
+        if (ierr /= 0) print *, "ierr(dim(3)): Allocation request denied"
+
+    end subroutine init_comm_requests
+
+    subroutine grid_waitall(self)
+        class(Grid3D) :: self
+        integer       :: ierr
+
+        call MPI_WaitAll(self%comm_steps, self%GRID_COMM_REQUESTS, self%GRID_COMM_STATUS, ierr)
+        if (ierr /= MPI_SUCCESS) error stop "Grid_Waitall Failed"
+
+    end subroutine grid_waitall
 
     ! Private Subourtines and Functions ========================================
     ! ==========================================================================

@@ -416,13 +416,13 @@ contains
             write(fmt, '(A, I0, A)') '(', dims(2), 'F4.0)'
             write(*,fmt) self%grid_pointer_3d(1, :,:)
 
-            write(*,*) "Dims (:,1, :)"
-            write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
-            write(*,fmt) self%grid_pointer_3d(:, 1, :)
+            !write(*,*) "Dims (:,1, :)"
+            !write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
+            !write(*,fmt) self%grid_pointer_3d(:, 1, :)
 
-            write(*,*) "Dims (:,:,1)"
-            write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
-            write(*,fmt) self%grid_pointer_3d(:, :, 1)
+            !write(*,*) "Dims (:,:,1)"
+            !write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
+            !write(*,fmt) self%grid_pointer_3d(:, :, 1)
             ! write(*,*) ".........................................................."
             ! write(*,*) "Dims3:"
             ! write(fmt, '(A, I0, A)') '(', dims(3), 'F4.0)'

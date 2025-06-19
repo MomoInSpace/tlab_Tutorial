@@ -5,7 +5,6 @@ module grid_comm_module
 
     private:: get_factors
     private:: get_task_dims
-    integer :: comm_steps
 
 
     type:: Grid3D_Comm_Handler
@@ -34,7 +33,7 @@ module grid_comm_module
         procedure:: free
         procedure:: rotate_grid_cpu
         procedure:: calculate_subgrid_dims
-        procedure:: grid_waitall
+        !procedure:: grid_waitall
 
     end type Grid3D_Comm_Handler
 
@@ -229,6 +228,7 @@ contains
         ! Parameters================================================================
         integer                          :: comm_dim, &
                                             send_count, &
+                                            comm_steps, &
                                             my_rank, &
                                             ierr0, i, j, k, m, n
         integer, dimension(3)            :: dims_send, &
@@ -326,6 +326,7 @@ contains
         send_count = dims_rcv(1)  ! surface area/self%row_size
         comm_steps = dims_rcv(2)*dims_rcv(3)
 
+        call MPI_BARRIER(MPI_COMM_WORLD)
         ! Allocating ierr, comm_status and GRID_COMM_REQUESTS-------------------
         ! ierr
         allocate(ierr(dims_rcv(2),&
@@ -333,19 +334,20 @@ contains
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
 
         ! comm_status
-        if (allocated(grid_handler_rcv%GRID_COMM_STATUS)) deallocate(grid_handler_rcv%GRID_COMM_STATUS, stat = ierr0)
-        if (ierr0 /= 0) print *, "ierr: Deallocation request denied GRID_COMM_STATUS"
-        
-        allocate(grid_handler_rcv%GRID_COMM_STATUS(dims_rcv(2)*&
-                                  dims_rcv(3)), stat = ierr0)
-        if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
+        call grid_handler_rcv%init_comm_requests(comm_steps)
+        !if (allocated(grid_handler_rcv%GRID_COMM_STATUS)) deallocate(grid_handler_rcv%GRID_COMM_STATUS, stat = ierr0)
+        !if (ierr0 /= 0) print *, "ierr: Deallocation request denied GRID_COMM_STATUS"
+        !
+        !allocate(grid_handler_rcv%GRID_COMM_STATUS(dims_rcv(2)*&
+        !                          dims_rcv(3)), stat = ierr0)
+        !if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
 
-        !GRID_COMM_STATUS_tmp(dims_rcv(2)*dims_rcv(3)) => grid_handler_rcv%GRID_COMM_STATUS
+        !!GRID_COMM_STATUS_tmp(dims_rcv(2)*dims_rcv(3)) => grid_handler_rcv%GRID_COMM_STATUS
 
-        ! GRID_COMM_REQUESTS
-        allocate(grid_handler_rcv%GRID_COMM_REQUESTS(dims_rcv(2)*&
-                             dims_rcv(3)), stat = ierr0)
-        if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
+        !! GRID_COMM_REQUESTS
+        !allocate(grid_handler_rcv%GRID_COMM_REQUESTS(dims_rcv(2)*&
+        !                     dims_rcv(3)), stat = ierr0)
+        !if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
 
         ! request pointer
         !GRID_COMM_REQUESTS_tmp(dims_rcv(2)*dims_rcv(3)) => grid_handler_rcv%GRID_COMM_REQUESTS
@@ -530,25 +532,25 @@ contains
 
     end subroutine rotate_grid_cpu
 
-    subroutine grid_waitall(self, grid_handler_rcv)
-        class(Grid3D_Comm_Handler)         :: self
-        type(Grid3D_cpu), intent(inout)    :: grid_handler_rcv
-        integer, dimension(3)            :: dims
-        integer                            :: ierr
+    !subroutine grid_waitall(self, grid_handler_rcv)
+    !    class(Grid3D_Comm_Handler)         :: self
+    !    type(Grid3D_cpu), intent(inout)    :: grid_handler_rcv
+    !    integer, dimension(3)            :: dims
+    !    integer                            :: ierr
 
 
 
-        !dims = grid_handler_rcv%get_dims()
-        ! DEBUG ----
-        !call MPI_Comm_rank(MPI_COMM_WORLD, ierr)
-        !if (ierr ==0) then
-        !    write(*,*) "waitall", dims(1), dims(2), dims(3)
-        !end if 
-        ! ----------
-        call MPI_WaitAll(comm_steps, grid_handler_rcv%GRID_COMM_REQUESTS, grid_handler_rcv%GRID_COMM_STATUS, ierr)
-        if (ierr /= MPI_SUCCESS) error stop "Grid_Waitall Failed"
+    !    !dims = grid_handler_rcv%get_dims()
+    !    ! DEBUG ----
+    !    !call MPI_Comm_rank(MPI_COMM_WORLD, ierr)
+    !    !if (ierr ==0) then
+    !    !    write(*,*) "waitall", dims(1), dims(2), dims(3)
+    !    !end if 
+    !    ! ----------
+    !    call MPI_WaitAll(comm_steps, grid_handler_rcv%GRID_COMM_REQUESTS, grid_handler_rcv%GRID_COMM_STATUS, ierr)
+    !    if (ierr /= MPI_SUCCESS) error stop "Grid_Waitall Failed"
 
 
-    end subroutine grid_waitall
+    !end subroutine grid_waitall
     
 end module grid_comm_module
