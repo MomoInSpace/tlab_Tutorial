@@ -1,7 +1,7 @@
 program comm_test
     use mpi_f08
     use TLAB_CONSTANTS, only: wp
-    use TLAB_ARRAYS_GPU
+    use TLAB_ARRAYS 
     use TLAB_POINTERS_3D
     use grid_handler
     use grid_comm_module
@@ -10,7 +10,6 @@ program comm_test
 
     ! Parameters================================================================
     ! Input Grid Data
-    real(4), allocatable, pinned :: a_pinned(:), b_pinned(:)
     INTEGER:: i 
     CHARACTER(len = 32):: arg
 

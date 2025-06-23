@@ -11,7 +11,7 @@
 #--exclusive
 
 # Start of script ========================================
-export gpu_profile="$HOME/fortran_projs/tlab_Tutorial/src/20_grid_comm_gpu"
+export gpu_profile="$HOME/fortran_projs/tlab_Tutorial/src/19_grid_comm2"
 cd $gpu_profile
 mkdir build -p
 cd build
@@ -22,13 +22,7 @@ cd build
 
 #mpifort $gpu_profile/tlab_constants.f90 $gpu_profile/tlab_arrays.f90 $gpu_profile/export_values.f90 $gpu_profile/timer.f90 $gpu_profile/ring_timer_module.cuf -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -o test_ring_times_cpu_only.o
 
-#mpifort $gpu_profile/tlab_constants.f90 $gpu_profile/tlab_arrays.f90 $gpu_profile/tlab_arrays_gpu.f90 $gpu_profile/grid_handler.f90 $gpu_profile/grid_communicator.f90 $gpu_profile/grid_debug.f90  $gpu_profile/program_gridhtest.f90 -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -o comm_test.o
-
-#mpifort $gpu_profile/bandwidth.f90 -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -o bandwidth.o
-
-#mpifort ./ring-irecv_30.f90  ./ring_std.o
-
-mpifort  $gpu_profile/tlab_constants.f90 $gpu_profile/tlab_arrays.cuf $gpu_profile/grid_handler.f90 $gpu_profile/grid_communicator.f90 $gpu_profile/grid_debug.f90  $gpu_profile/program_gridhtest.cuf -acc=gpu -target=gpu -Minfo=accel,inline -gpu=lineinfo,cc80 -cpp -o comm_test.o
+mpifort $gpu_profile/tlab_constants.cuf $gpu_profile/tlab_arrays.cuf $gpu_profile/grid_handler.cuf $gpu_profile/grid_communicator.cuf $gpu_profile/grid_debug.cuf  $gpu_profile/program_gridhtest.cuf -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -o comm_test.o
 
 
 # Test
