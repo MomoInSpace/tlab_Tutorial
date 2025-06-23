@@ -399,11 +399,21 @@ contains
 
         subroutine rotate_213()
             ! Body======================================================================
+            !$acc kernels
+            !$acc loop independent
             do k = 1, dims_rcv(3) 
+                !$acc loop independent
                 do j = 1, dims_rcv(2) 
+                    !$acc loop independent
                     do i = 1, dims_rcv(1) 
                         work_space3D_tmp(i, j, k) =  grid3D_pointer_send(j, i, k)
                     end do
+                end do
+            end do
+            !$acc end kernels 
+
+            do k = 1, dims_rcv(3) 
+                do j = 1, dims_rcv(2) 
                     call MPI_Igather(sendbuf   = work_space3D_tmp(:,j, k), &
                                     sendcount = send_count, &
                                     sendtype  = MPI_DOUBLE, &
@@ -493,12 +503,23 @@ contains
 
         subroutine rotate_321_tmp()
             ! Body======================================================================
+            !deviceptr(x_dev, y_dev, z_dev, my_rank_dev)
+
+            !$acc kernels
+            !$acc loop independent
             do k = 1, dims_rcv(3) 
+                !$acc loop independent
                 do j = 1, dims_rcv(2) 
+                    !$acc loop independent
                     do i = 1, dims_rcv(1) 
                         work_space3D_tmp(i, j, k) =  grid3D_pointer_send(k, j, i)
                     end do
+                end do
+            end do
+            !$acc end kernels
 
+            do k = 1, dims_rcv(3) 
+                do j = 1, dims_rcv(2) 
                 call MPI_Igather(SENDBUF   = work_space3D_tmp(:,j,k), &
                                 sendcount = send_count, &
                                 sendtype  = MPI_DOUBLE, &
@@ -509,7 +530,6 @@ contains
                                 comm      = self%MPI_Comm_Column, &
                                 request   = grid_handler_rcv%GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
                                 ierror    = ierr(j,k))
-                            
                 end do
             end do
 
