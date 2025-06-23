@@ -11,7 +11,7 @@
 #--exclusive
 
 # Start of script ========================================
-export gpu_profile="$HOME/fortran_projs/tlab_Tutorial/src/19_grid_comm2"
+export gpu_profile="$HOME/fortran_projs/tlab_Tutorial/src/20_grid_comm_gpu"
 cd $gpu_profile
 mkdir build -p
 cd build
