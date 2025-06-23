@@ -402,9 +402,9 @@ contains
             do k = 1, dims_rcv(3) 
                 do j = 1, dims_rcv(2) 
                     do i = 1, dims_rcv(1) 
-                        work_space3D_send(i, j, k) =  grid3D_pointer_send(j, i, k)
+                        work_space3D_tmp(i, j, k) =  grid3D_pointer_send(j, i, k)
                     end do
-                    call MPI_Igather(sendbuf   = work_space3D_send(:,j, k), &
+                    call MPI_Igather(sendbuf   = work_space3D_tmp(:,j, k), &
                                     sendcount = send_count, &
                                     sendtype  = MPI_DOUBLE, &
                                     recvbuf   = grid3D_pointer_rcv(:,rcv_j(j), k), &
