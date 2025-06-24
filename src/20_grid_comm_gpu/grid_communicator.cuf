@@ -281,7 +281,7 @@ contains
         ! Body======================================================================
         call MPI_Comm_rank(self%MPI_COMM_CART, my_rank)
 
-        call grid_handler_send%get_switch_dims_workspace( &
+        call grid_handler_send%get_switch_dims_workspace_gpu( &
                 dims_send, &
                 work_space3D_send_gpu, &
                 work_space_send_gpu, & ! Could Be Empty TODO
@@ -293,7 +293,7 @@ contains
             ! Clean Copy of State
             grid_handler_tmp%state_xyz = grid_handler_send%state_xyz
             grid_handler_tmp%grid_xyz_dims =  grid_handler_send%grid_xyz_dims
-            call grid_handler_tmp%get_switch_dims_workspace( &
+            call grid_handler_tmp%get_switch_dims_workspace_gpu( &
                     dims_tmp, &
                     work_space3D_tmp_gpu, &
                     work_space_tmp_gpu, &
@@ -401,7 +401,7 @@ contains
 
         subroutine rotate_213()
             ! Body======================================================================
-            !$acc kernels deviceptr(work_space3D_tmp, grid3D_pointer_send)
+            !$acc kernels deviceptr(work_space3D_tmp_gpu, grid3D_pointer_send_gpu)
             !$acc loop independent
             do k = 1, dims_rcv(3) 
                 !$acc loop independent
@@ -511,7 +511,7 @@ contains
             ! Body======================================================================
             !deviceptr(x_dev, y_dev, z_dev, my_rank_dev)
 
-            !$acc kernels deviceptr(work_space3D_tmp, grid3D_pointer_send)
+            !$acc kernels deviceptr(work_space3D_tmp_gpu, grid3D_pointer_send_gpu)
             !$acc loop independent
             do k = 1, dims_rcv(3) 
                 !$acc loop independent

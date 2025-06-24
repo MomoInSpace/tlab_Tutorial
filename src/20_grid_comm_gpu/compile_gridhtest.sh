@@ -25,6 +25,7 @@ cd build
 mpifort $gpu_profile/tlab_constants.cuf $gpu_profile/tlab_arrays.cuf $gpu_profile/grid_handler.cuf $gpu_profile/grid_communicator.cuf $gpu_profile/grid_debug.cuf  $gpu_profile/program_gridhtest.cuf -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -Minfo=accel,inline -o comm_test.o
 
 
+
 # Test
 #mpirun -np 5 $gpu_profile/build/test_ring_times.o 3000 250 5 "5only5"
 

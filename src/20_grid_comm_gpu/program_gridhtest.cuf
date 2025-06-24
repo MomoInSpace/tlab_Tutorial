@@ -84,21 +84,21 @@ program comm_test
     ! allocate(q(grid_handler%total_space, 1), stat = ierr(1))
     ! if (ierr(1) /= 0) print *, "q(1, grid_handler%total_space), : Allocation request denied"
 
-    call grid_handler_A%set_pointer_1D(x_d(:,1))
-    call grid_handler_B%set_pointer_1D(x_d(:,2))
-    call grid_handler_tmp%set_pointer_1D(x_d(:,3))
+    call grid_handler_A%set_pointer_1D(x(:,1), x_d(:,1))
+    call grid_handler_B%set_pointer_1D(x(:,2), x_d(:,2))
+    call grid_handler_tmp%set_pointer_1D(x(:,3), x_d(:,3))
 
     ! Example: For later use
     !call grid_handler_A%get_pointer_3D(u)
 
 
     ! Set Values For visualization----------------------------------------------
-    grid_handler_A%grid_space = my_rank + 1
-    grid_handler_B%grid_space = 99
+    grid_handler_A%grid_space_cpu = my_rank + 1
+    grid_handler_B%grid_space_cpu = 99
 
     if (my_rank == 0 ) then
-        do i = 1, size(grid_handler_A%grid_space)
-            grid_handler_A%grid_space(i) = i-1
+        do i = 1, size(grid_handler_A%grid_space_cpu)
+            grid_handler_A%grid_space_cpu(i) = i-1
         end do
     end if 
 
@@ -107,10 +107,8 @@ program comm_test
 
     ! Testing CUDA
 
-    if(my_rank == 0) then
-        x = x_d
-        write(*,*) x(:, 1)
-    end if
+    call debug_values(grid_handler_A)
+    x_d = x
 
     ! Visualize Complete Grid---------------------------------------------------
     !call debug_values(grid_handler_A)
@@ -121,6 +119,7 @@ program comm_test
     !call grid_handler_B%get_pointer_3D(u_d)
 
     ! Visualize Complete Grid--------------------------------------------------
+    !x = x_d
     !call debug_values(grid_handler_B)
 
 
@@ -129,28 +128,20 @@ program comm_test
     call grid_handler_A%grid_waitall()
 
     ! Visualize Complete Grid--------------------------------------------------
+    !x = x_d
     !call debug_values(grid_handler_A)
-    if(my_rank == 0) then
-        x = x_d
-        write(*,*) x(:, 1)
-    end if
 
     ! Rotation 3---------------------------------------------------------------
     call grid_comm_handler%rotate_grid_cpu(grid_handler_A, grid_handler_B, [3,2,1], grid_handler_tmp)
     call grid_handler_B%grid_waitall()
 
-    !call MPI_Barrier(MPI_COMM_WORLD)
-
     ! ! Rotation 4---------------------------------------------------------------
     call grid_comm_handler%rotate_grid_cpu(grid_handler_B, grid_handler_A, [2,1,3],grid_handler_tmp)
     call grid_handler_A%grid_waitall()
-    if(my_rank == 0) then
-        x = x_d
-        write(*,*) x(:, 1)
-    end if
 
     ! ! Visualize Complete Grid--------------------------------------------------
-    !call debug_values(grid_handler_A)
+    x = x_d
+    call debug_values(grid_handler_A)
 
     ! Cleanup ==================================================================
     if (allocated(x )) deallocate(x, stat = ierr(1))
@@ -163,8 +154,8 @@ program comm_test
     if (allocated(testgrid_array)) deallocate(testgrid_array, stat = ierr(1))
     if (ierr(1) /= 0) print *, "array: Deallocation request denied"
 
-    if (allocated(testbuffer_array)) deallocate(testbuffer_array, stat = ierr(1))
-    if (ierr(1) /= 0) print *, "array: Deallocation request denied"
+    !if (allocated(testbuffer_array)) deallocate(testbuffer_array, stat = ierr(1))
+    !if (ierr(1) /= 0) print *, "array: Deallocation request denied"
 
     ! Calling 
     call grid_comm_handler%free()
@@ -175,7 +166,7 @@ program comm_test
         type(Grid3D_cpu)            :: current_grid_handler
         call testgrid_handler%gather_compgrid(current_grid_handler, grid_comm_handler, subgrid_xyz_dims, my_rank)
         call testgrid_handler%visualize_grid(my_rank)
-        !call calc_checksum(my_rank)
+        call calc_checksum(my_rank)
     end subroutine debug_values
 
 

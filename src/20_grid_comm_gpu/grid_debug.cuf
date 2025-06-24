@@ -494,7 +494,7 @@ contains
 
         ! Gather complete Grid-----------------------------------------------------
         send_num = prod(grid_handler%grid_xyz_dims)
-        call MPI_Gather(sendbuf    = grid_handler%grid_space, &
+        call MPI_Gather(sendbuf    = grid_handler%grid_space_cpu, &
                         sendcount  = send_num, &
                         sendtype   = MPI_DOUBLE, &
                         recvbuf    = testgrid_handler%buffer_pointer_1d, &
