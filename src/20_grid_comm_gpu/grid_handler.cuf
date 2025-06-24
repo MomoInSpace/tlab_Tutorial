@@ -29,7 +29,7 @@ implicit none
 
         real(kind = wp), pointer, &
                          device,  &
-                         dimension(:):: grid_space, allocated_space
+                         dimension(:):: grid_space_gpu, allocated_space_gpu
         ! grid_space points to the space of the grid.
         ! allocated_space points to the grid AND the overhead.
 
@@ -155,7 +155,7 @@ contains
 
     end subroutine perturb_state
 
-    subroutine allocate_array(self, grid_array)
+    subroutine allocate_array(self, grid_array_gpu)
         ! Parameters================================================================
             class(Grid3D),   intent(inout)  :: self
             integer                         :: total_space
@@ -163,7 +163,7 @@ contains
                              allocatable,   &
                              device,  &
                              dimension(:),  &
-                             target         :: grid_array
+                             target         :: grid_array_gpu
             ! Error handling
             integer                         :: ierr
         ! Notes=====================================================================
@@ -173,45 +173,45 @@ contains
 
 
         ! Allocate the grid_array with length prod(grid_xyz_dims)
-        allocate(grid_array(self%total_space), stat = ierr)
+        allocate(grid_array_gpu(self%total_space), stat = ierr)
         if (ierr /= 0) error stop "subgrid grid_array: Allocation request denied"
 
-        call self%set_pointer_1D(grid_array)
+        call self%set_pointer_1D(grid_array_gpu)
 
     end subroutine allocate_array
 
-    subroutine set_pointer_1D(self, grid_array)
+    subroutine set_pointer_1D(self, grid_array_gpu)
         ! Parameters================================================================
         class(Grid3D), intent(inout)          :: self
         real(kind = wp), pointer, &
                          device, &
-                         dimension(:):: grid_space, allocated_space
+                         dimension(:):: grid_space_gpu, allocated_space_gpu
         real(kind = wp), intent(in),   &
                          device, &
                          dimension(:), &
-                         target        :: grid_array 
+                         target        :: grid_array_gpu 
         integer                        :: total_space
         ! Notes=====================================================================
         ! Body======================================================================
 
         total_space = self%free_space+prod(self%grid_xyz_dims)
-        if (size(grid_array) < total_space) then 
-            write(*,*) "Array is too small for grid", size(grid_array), "< ",total_space
+        if (size(grid_array_gpu) < total_space) then 
+            write(*,*) "Array is too small for grid", size(grid_array_gpu), "< ",total_space
             error stop 
         end if
 
-        self%grid_space => grid_array(self%free_space+1:)  ! INDEXING MIGHT BE WRONG
-        self%allocated_space => grid_array
+        self%grid_space_gpu => grid_array_gpu(self%free_space+1:)  ! INDEXING MIGHT BE WRONG
+        self%allocated_space_gpu => grid_array_gpu
 
     end subroutine set_pointer_1D
 
-    subroutine get_pointer_3D(self, grid3D_pointer)  
+    subroutine get_pointer_3D(self, grid3D_pointer_gpu)  
         ! Parameters================================================================
         class(Grid3D), intent(in)          :: self
         real(kind = wp), intent(inout), &
                          pointer, &
                          device, &
-                         dimension(:,:,:):: grid3D_pointer
+                         dimension(:,:,:):: grid3D_pointer_gpu
         integer, dimension(3)            :: dims
         ! Notes=====================================================================
         ! In each state, the cuboids have the same volume. This is why we can
@@ -221,12 +221,12 @@ contains
 
         dims = self%get_dims()
 
-        grid3D_pointer(1:dims(1), &
+        grid3D_pointer_gpu(1:dims(1), &
                        1:dims(2), &
-                       1:dims(3)) => self%grid_space
+                       1:dims(3)) => self%grid_space_gpu
     end subroutine get_pointer_3D
 
-    subroutine get_switch_dims_workspace(self, dims, work_space3D, work_space, grid_3D_pointer, pertubation)
+    subroutine get_switch_dims_workspace(self, dims, work_space3D_gpu, work_space, grid_3D_pointer_gpu, pertubation)
         ! Parameters================================================================
         class(Grid3D),   intent(in)   :: self
         integer,         intent(out), &
@@ -236,7 +236,7 @@ contains
         real(kind = wp), intent(out), &
              device, &
              pointer, &
-             dimension(:,:,:)         :: work_space3D, grid_3D_pointer
+             dimension(:,:,:)         :: work_space3D_gpu, grid_3D_pointer_gpu
         real(kind = wp), intent(out), &
              device, &
              pointer, &
@@ -259,13 +259,13 @@ contains
         ! We also switch the dimensions 1 and 2.
         ! Body======================================================================
         dims = self%get_dims()
-        call self%get_pointer_3D(grid_3D_pointer)
+        call self%get_pointer_3D(grid_3D_pointer_gpu)
 
-        work_space3D(1:dims(pertubation(1)), &
+        work_space3D_gpu(1:dims(pertubation(1)), &
                      1:dims(pertubation(2)), &
-                     1:dims(pertubation(3))) => self%allocated_space
+                     1:dims(pertubation(3))) => self%allocated_space_gpu
 
-        work_space(1:prod(dims)) => self%allocated_space
+        work_space(1:prod(dims)) => self%allocated_space_gpu
  
     end subroutine get_switch_dims_workspace
 
@@ -276,10 +276,10 @@ contains
         integer, dimension(3)       :: dims
         real(kind = wp), pointer, &
                          device, &
-                         dimension(:,:,:):: grid3D_pointer 
+                         dimension(:,:,:):: grid3D_pointer_gpu 
         real(kind = wp), allocatable, &
                          pinned, &
-                         dimension(:,:,:):: grid3D_pointer_pinned
+                         dimension(:,:,:):: grid3D_pointer_pinned_gpu
         ! Formating:
         character(len = 100):: fmt
         ! Notes=====================================================================
@@ -287,7 +287,7 @@ contains
         ! Body======================================================================
 
         dims = self%get_dims()
-        call self%get_pointer_3D(grid3D_pointer )
+        call self%get_pointer_3D(grid3D_pointer_gpu )
 
         state_string(dims(1):dims(1)) = "x"
         state_string(dims(2):dims(2)) = "y"

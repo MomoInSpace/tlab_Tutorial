@@ -251,17 +251,17 @@ contains
                  allocatable             :: ierr
         real(kind = wp), pointer, &
                          device, &
-                         dimension(:)    :: send_buf_pointer, &
-                                            work_space_send, &
-                                            work_space_tmp, &
-                                            stencil_send
+                         dimension(:)    :: send_buf_pointer_gpu, &
+                                            work_space_send_gpu, &
+                                            work_space_tmp_gpu, &
+                                            stencil_send_gpu
         real(kind = wp), pointer, &
                          device, &
-                         dimension(:,:,:):: work_space3D_send, &
-                                            work_space3D_tmp, &
-                                            grid3D_pointer_send, &
-                                            grid3D_pointer_rcv, &
-                                            grid3D_pointer_tmp
+                         dimension(:,:,:):: work_space3D_send_gpu, &
+                                            work_space3D_tmp_gpu, &
+                                            grid3D_pointer_send_gpu, &
+                                            grid3D_pointer_rcv_gpu, &
+                                            grid3D_pointer_tmp_gpu
         ! MPI_PARAMS                                
         TYPE(MPI_Request), dimension(:), &
                            pointer :: GRID_COMM_REQUESTS_tmp
@@ -283,9 +283,9 @@ contains
 
         call grid_handler_send%get_switch_dims_workspace( &
                 dims_send, &
-                work_space3D_send, &
-                work_space_send, &
-                grid3D_pointer_send, &
+                work_space3D_send_gpu, &
+                work_space_send_gpu, & ! Could Be Empty TODO
+                grid3D_pointer_send_gpu, &
                 pertubation)
 
         if (present(grid_handler_tmp)) then
@@ -295,9 +295,9 @@ contains
             grid_handler_tmp%grid_xyz_dims =  grid_handler_send%grid_xyz_dims
             call grid_handler_tmp%get_switch_dims_workspace( &
                     dims_tmp, &
-                    work_space3D_tmp, &
-                    work_space_tmp, &
-                    grid3D_pointer_tmp, &
+                    work_space3D_tmp_gpu, &
+                    work_space_tmp_gpu, &
+                    grid3D_pointer_tmp_gpu, &
                     pertubation)
         end if
 
@@ -317,7 +317,7 @@ contains
             subgrid_dividers_xyz = subgrid_dividers_xyz, &
             perturbation_xyz     = pertubation) 
 
-        call grid_handler_rcv%get_pointer_3D(grid3D_pointer_rcv)
+        call grid_handler_rcv%get_pointer_3D(grid3D_pointer_rcv_gpu)
 
         ! Defining rcv dimensions ----------------------------------------------
         ! I'm not using grid_handler_rcv%get_dims() because 
@@ -408,7 +408,7 @@ contains
                 do j = 1, dims_rcv(2) 
                     !$acc loop independent
                     do i = 1, dims_rcv(1) 
-                        work_space3D_tmp(i, j, k) =  grid3D_pointer_send(j, i, k)
+                        work_space3D_tmp_gpu(i, j, k) =  grid3D_pointer_send_gpu(j, i, k)
                     end do
                 end do
             end do
@@ -416,10 +416,10 @@ contains
 
             do k = 1, dims_rcv(3) 
                 do j = 1, dims_rcv(2) 
-                    call MPI_Igather(sendbuf   = work_space3D_tmp(:,j, k), &
+                    call MPI_Igather(sendbuf   = work_space3D_tmp_gpu(:,j, k), &
                                     sendcount = send_count, &
                                     sendtype  = MPI_DOUBLE, &
-                                    recvbuf   = grid3D_pointer_rcv(:,rcv_j(j), k), &
+                                    recvbuf   = grid3D_pointer_rcv_gpu(:,rcv_j(j), k), &
                                     recvcount = send_count, &
                                     recvtype  = MPI_DOUBLE, &
                                     root      = root(j), &
@@ -483,21 +483,21 @@ contains
 
         subroutine inner_loop_321()
             k = m+n*grid_handler_send%overhead_factor
-            stencil_send => work_space3D_send(:,m, 1)
+            stencil_send_gpu => work_space3D_send_gpu(:,m, 1)
             
             !$acc kernels
             do j = 1, dims_rcv(2)       
                 do i = 1, dims_rcv(1)  
-                    stencil_send(i) = grid3D_pointer_send(k, j, i)
+                    stencil_send_gpu(i) = grid3D_pointer_send_gpu(k, j, i)
                 end do
             end do
             !$acc end kernels
 
             do j = 1, dims_rcv(2)       
-                call MPI_Igather(SENDBUF   = stencil_send, &
+                call MPI_Igather(SENDBUF   = stencil_send_gpu, &
                                 sendcount = send_count, &
                                 sendtype  = MPI_DOUBLE, &
-                                recvbuf   = grid3D_pointer_rcv(:, j, rcv_j(k)), &
+                                recvbuf   = grid3D_pointer_rcv_gpu(:, j, rcv_j(k)), &
                                 recvcount = send_count, &
                                 recvtype  = MPI_DOUBLE, &
                                 root      = root(k), &
@@ -518,7 +518,7 @@ contains
                 do j = 1, dims_rcv(2) 
                     !$acc loop independent
                     do i = 1, dims_rcv(1) 
-                        work_space3D_tmp(i, j, k) =  grid3D_pointer_send(k, j, i)
+                        work_space3D_tmp_gpu(i, j, k) =  grid3D_pointer_send_gpu(k, j, i)
                     end do
                 end do
             end do
@@ -526,10 +526,10 @@ contains
 
             do k = 1, dims_rcv(3) 
                 do j = 1, dims_rcv(2) 
-                call MPI_Igather(SENDBUF   = work_space3D_tmp(:,j,k), &
+                call MPI_Igather(SENDBUF   = work_space3D_tmp_gpu(:,j,k), &
                                 sendcount = send_count, &
                                 sendtype  = MPI_DOUBLE, &
-                                recvbuf   = grid3D_pointer_rcv(:, j, rcv_j(k)), &
+                                recvbuf   = grid3D_pointer_rcv_gpu(:, j, rcv_j(k)), &
                                 recvcount = send_count, &
                                 recvtype  = MPI_DOUBLE, &
                                 root      = root(k), &
