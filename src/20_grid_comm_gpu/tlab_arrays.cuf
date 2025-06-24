@@ -3,7 +3,8 @@ module TLAB_ARRAYS
     implicit none
     save
 
-    real(wp), allocatable :: x(:, :), y(:, :), z(:, :)     ! Grid and associated arrays
+    real(wp), allocatable, pinned :: x(:, :), y(:, :), z(:, :)     ! Grid and associated arrays
+    real(wp), allocatable, device :: x_d(:, :), y_d(:, :), z_d(:, :)     ! Grid and associated arrays
     real(wp), allocatable :: q(:, :)                       ! Eulerian fields, flow vartiables
     real(wp), allocatable :: s(:, :)                       ! Eulerian fields, scalar variables
     real(wp), allocatable :: txc(:, :)                     ! Temporary space for Eulerian fields
@@ -21,7 +22,8 @@ module TLAB_POINTERS
     use TLAB_CONSTANTS, only: wp
     implicit none
 
-    real(wp), pointer :: u(:) => null()
+    real(wp), pointer:: u(:) => null()
+    real(wp), pointer, device :: u_d(:) => null()
     real(wp), pointer :: v(:) => null()
     real(wp), pointer :: w(:) => null()
     real(wp), pointer :: e(:) => null()

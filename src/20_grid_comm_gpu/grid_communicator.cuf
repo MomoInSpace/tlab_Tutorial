@@ -250,11 +250,13 @@ contains
         integer, dimension(:,:), &
                  allocatable             :: ierr
         real(kind = wp), pointer, &
+                         device, &
                          dimension(:)    :: send_buf_pointer, &
                                             work_space_send, &
                                             work_space_tmp, &
                                             stencil_send
         real(kind = wp), pointer, &
+                         device, &
                          dimension(:,:,:):: work_space3D_send, &
                                             work_space3D_tmp, &
                                             grid3D_pointer_send, &
@@ -399,7 +401,7 @@ contains
 
         subroutine rotate_213()
             ! Body======================================================================
-            !$acc kernels
+            !$acc kernels deviceptr(work_space3D_tmp, grid3D_pointer_send)
             !$acc loop independent
             do k = 1, dims_rcv(3) 
                 !$acc loop independent
@@ -483,11 +485,15 @@ contains
             k = m+n*grid_handler_send%overhead_factor
             stencil_send => work_space3D_send(:,m, 1)
             
+            !$acc kernels
             do j = 1, dims_rcv(2)       
                 do i = 1, dims_rcv(1)  
                     stencil_send(i) = grid3D_pointer_send(k, j, i)
                 end do
+            end do
+            !$acc end kernels
 
+            do j = 1, dims_rcv(2)       
                 call MPI_Igather(SENDBUF   = stencil_send, &
                                 sendcount = send_count, &
                                 sendtype  = MPI_DOUBLE, &
@@ -505,7 +511,7 @@ contains
             ! Body======================================================================
             !deviceptr(x_dev, y_dev, z_dev, my_rank_dev)
 
-            !$acc kernels
+            !$acc kernels deviceptr(work_space3D_tmp, grid3D_pointer_send)
             !$acc loop independent
             do k = 1, dims_rcv(3) 
                 !$acc loop independent

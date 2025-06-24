@@ -28,6 +28,7 @@ implicit none
         !  grid_space and allocated_space
 
         real(kind = wp), pointer, &
+                         device,  &
                          dimension(:):: grid_space, allocated_space
         ! grid_space points to the space of the grid.
         ! allocated_space points to the grid AND the overhead.
@@ -160,7 +161,7 @@ contains
             integer                         :: total_space
             real(kind = wp), intent(inout), &
                              allocatable,   &
-                             asynchronous,  &
+                             device,  &
                              dimension(:),  &
                              target         :: grid_array
             ! Error handling
@@ -183,9 +184,10 @@ contains
         ! Parameters================================================================
         class(Grid3D), intent(inout)          :: self
         real(kind = wp), pointer, &
+                         device, &
                          dimension(:):: grid_space, allocated_space
         real(kind = wp), intent(in),   &
-                         asynchronous, &
+                         device, &
                          dimension(:), &
                          target        :: grid_array 
         integer                        :: total_space
@@ -208,6 +210,7 @@ contains
         class(Grid3D), intent(in)          :: self
         real(kind = wp), intent(inout), &
                          pointer, &
+                         device, &
                          dimension(:,:,:):: grid3D_pointer
         integer, dimension(3)            :: dims
         ! Notes=====================================================================
@@ -231,9 +234,11 @@ contains
         integer,         intent(in), &
            dimension(3)               :: pertubation
         real(kind = wp), intent(out), &
+             device, &
              pointer, &
              dimension(:,:,:)         :: work_space3D, grid_3D_pointer
         real(kind = wp), intent(out), &
+             device, &
              pointer, &
              dimension(:)         :: work_space
 
@@ -270,7 +275,11 @@ contains
         character(len = 3), optional:: state_string
         integer, dimension(3)       :: dims
         real(kind = wp), pointer, &
+                         device, &
                          dimension(:,:,:):: grid3D_pointer 
+        real(kind = wp), allocatable, &
+                         pinned, &
+                         dimension(:,:,:):: grid3D_pointer_pinned
         ! Formating:
         character(len = 100):: fmt
         ! Notes=====================================================================
@@ -288,15 +297,15 @@ contains
 
         write(*,*) "Dims (1, :,:)"
         write(fmt, '(A, I0, A)') '(', dims(2), 'F4.0)'
-        write(*,fmt) grid3D_pointer(1, :,:)
+        !write(*,fmt) grid3D_pointer(1, :,:)
 
         write(*,*) "Dims (:,1, :)"
         write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
-        write(*,fmt) grid3D_pointer(:, 1, :)
+        !write(*,fmt) grid3D_pointer(:, 1, :)
 
         write(*,*) "Dims (:,:,1)"
         write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'
-        write(*,fmt) grid3D_pointer(:, :, 1)
+        !write(*,fmt) grid3D_pointer(:, :, 1)
 
     end subroutine print_state 
 
