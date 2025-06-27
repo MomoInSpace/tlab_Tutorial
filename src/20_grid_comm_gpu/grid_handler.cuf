@@ -36,8 +36,10 @@ implicit none
         ! allocated_space points to the grid AND the overhead.
 
         TYPE(MPI_Request), dimension(:), &
+                           managed, &
                            allocatable   :: GRID_COMM_REQUESTS
         TYPE(MPI_Status), dimension(:), &
+                          managed, &
                           allocatable    :: GRID_COMM_STATUS
 
 
