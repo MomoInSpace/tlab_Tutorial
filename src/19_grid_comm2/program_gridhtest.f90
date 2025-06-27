@@ -103,30 +103,10 @@ program comm_test
     ! Visualize Complete Grid---------------------------------------------------
     call debug_values(grid_handler_A)
 
-    ! Rotation 1----------------------------------------------------------------
-    call grid_comm_handler%rotate_grid_cpu(grid_handler_A, grid_handler_B, [2,1,3], grid_handler_tmp)
-    call grid_handler_B%grid_waitall()
-    !call grid_handler_B%get_pointer_3D(u)
-
-    ! Visualize Complete Grid--------------------------------------------------
-    call debug_values(grid_handler_B)
-
-    ! Rotation 2---------------------------------------------------------------
-    call grid_comm_handler%rotate_grid_cpu(grid_handler_B, grid_handler_A, [3,2,1],grid_handler_tmp)
-    call grid_handler_A%grid_waitall()
-
-    ! Visualize Complete Grid--------------------------------------------------
-    call debug_values(grid_handler_A)
-
-    ! Rotation 3---------------------------------------------------------------
-    call grid_comm_handler%rotate_grid_cpu(grid_handler_A, grid_handler_B, [3,2,1], grid_handler_tmp)
-    call grid_handler_B%grid_waitall()
-
-    call MPI_Barrier(MPI_COMM_WORLD)
-
-    ! ! Rotation 4---------------------------------------------------------------
-    call grid_comm_handler%rotate_grid_cpu(grid_handler_B, grid_handler_A, [2,1,3],grid_handler_tmp)
-    call grid_handler_A%grid_waitall()
+    do i=1, 1
+        if (my_rank == 0) write(*,*) i
+        call cycle()
+    end do
 
     ! ! Visualize Complete Grid--------------------------------------------------
     call debug_values(grid_handler_A)
@@ -157,6 +137,35 @@ program comm_test
         !call calc_checksum(my_rank)
     end subroutine debug_values
 
+    subroutine cycle()
+
+        ! Rotation 1----------------------------------------------------------------
+        call grid_comm_handler%rotate_grid_cpu(grid_handler_A, grid_handler_B, [2,1,3], grid_handler_tmp)
+        call grid_handler_B%grid_waitall()
+        !call grid_handler_B%get_pointer_3D(u_d)
+
+        ! Visualize Complete Grid--------------------------------------------------
+        !x = x_d
+        call debug_values(grid_handler_B)
+
+
+        ! Rotation 2---------------------------------------------------------------
+        call grid_comm_handler%rotate_grid_cpu(grid_handler_B, grid_handler_A, [3,2,1],grid_handler_tmp)
+        call grid_handler_A%grid_waitall()
+
+        ! Visualize Complete Grid--------------------------------------------------
+        !x = x_d
+        call debug_values(grid_handler_A)
+
+        ! Rotation 3---------------------------------------------------------------
+        call grid_comm_handler%rotate_grid_cpu(grid_handler_A, grid_handler_B, [3,2,1], grid_handler_tmp)
+        call grid_handler_B%grid_waitall()
+
+        ! ! Rotation 4---------------------------------------------------------------
+        call grid_comm_handler%rotate_grid_cpu(grid_handler_B, grid_handler_A, [2,1,3],grid_handler_tmp)
+        call grid_handler_A%grid_waitall()
+
+    end subroutine cycle
 
 end program comm_test
 
