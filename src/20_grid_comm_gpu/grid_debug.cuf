@@ -535,10 +535,10 @@ contains
       call MPI_Gather(my_value, 1, MPI_INTEGER, gathered_values, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
 
       ! Only the root will print the gathered values
-      if (rank == root) then
-        print *, "Gathered values from all tasks:"
-        print *, gathered_values(1:wsize)  ! Print only filled elements
-      end if
+      !if (rank == root) then
+        !print *, "Gathered values from all tasks:"
+        !print *, gathered_values(1:wsize)  ! Print only filled elements
+      !end if
         
       if (allocated(gathered_values)) deallocate(gathered_values, stat = ierr)
       if (ierr /= 0) print *, "array: Deallocation request denied"
