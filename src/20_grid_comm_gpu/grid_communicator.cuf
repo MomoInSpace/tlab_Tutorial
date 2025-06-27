@@ -222,8 +222,7 @@ contains
         type(Grid3D_cpu), target, & 
                           intent(inout)    :: grid_handler_send, grid_handler_rcv
         type(Grid3D_cpu), target, &
-                          intent(inout), &
-                          optional         :: grid_handler_tmp
+                          intent(inout) :: grid_handler_tmp
         integer, dimension(3), intent(in)  :: pertubation
         ! Parameters================================================================
         integer                          :: comm_dim, &
@@ -249,6 +248,8 @@ contains
                                             m_max
         integer, dimension(:,:), &
                  allocatable             :: ierr
+        
+        ! Cuda aware parameters
         real(kind = wp), pointer, &
                          device, &
                          dimension(:)    :: send_buf_pointer_gpu, &
@@ -264,8 +265,10 @@ contains
                                             grid3D_pointer_tmp_gpu
         ! MPI_PARAMS                                
         TYPE(MPI_Request), dimension(:), &
+                           device, &
                            pointer :: GRID_COMM_REQUESTS_tmp
         TYPE(MPI_Status), dimension(:), &
+                          device, &
                           pointer  :: GRID_COMM_STATUS_tmp
 
         !character(len = 100):: fmt  ! Debug
@@ -287,8 +290,8 @@ contains
                 work_space_send_gpu, & ! Could Be Empty TODO
                 grid3D_pointer_send_gpu, &
                 pertubation)
-
-        if (present(grid_handler_tmp)) then
+            
+        !if (present(grid_handler_tmp)) then
 
             ! Clean Copy of State
             grid_handler_tmp%state_xyz = grid_handler_send%state_xyz
@@ -299,7 +302,7 @@ contains
                     work_space_tmp_gpu, &
                     grid3D_pointer_tmp_gpu, &
                     pertubation)
-        end if
+        !end if
 
         if (pertubation(1) == 2) comm_dim = self%row_size
         if (pertubation(1) == 3) comm_dim = self%column_size
@@ -379,15 +382,15 @@ contains
         ! Communication loop----------------------------------------------------
         ierr = 0
         if (pertubation(1) == 2) call rotate_213()
-        if (pertubation(1) == 3) then
-            if (present(grid_handler_tmp)) then
-                !write(*,*) "TMP"
-                call rotate_321_tmp() 
-            else
-                !write(*,*) "no TMP"
-                call rotate_321()
-            end if
-        end if
+        if (pertubation(1) == 3) call rotate_321_tmp()
+        !    if (present(grid_handler_tmp)) then
+        !        !write(*,*) "TMP"
+        !        call rotate_321_tmp() 
+        !    else
+        !        !write(*,*) "no TMP"
+        !        !call rotate_321()
+        !    end if
+        !end if
 
         ! Cleanup--------------------------------------------------------------
         if (any(ierr /= MPI_SUCCESS)) error stop "ERROR in MPI_Igather" 
@@ -399,120 +402,12 @@ contains
 
         contains
 
-        subroutine rotate_213()
-            ! Body======================================================================
-            !$acc kernels deviceptr(work_space3D_tmp_gpu, grid3D_pointer_send_gpu)
-            !$acc loop independent
-            do k = 1, dims_rcv(3) 
-                !$acc loop independent
-                do j = 1, dims_rcv(2) 
-                    !$acc loop independent
-                    do i = 1, dims_rcv(1) 
-                        work_space3D_tmp_gpu(i, j, k) =  grid3D_pointer_send_gpu(j, i, k)
-                    end do
-                end do
-            end do
-            !$acc end kernels 
-
-            do k = 1, dims_rcv(3) 
-                do j = 1, dims_rcv(2) 
-                    call MPI_Igather(sendbuf   = work_space3D_tmp_gpu(:,j, k), &
-                                    sendcount = send_count, &
-                                    sendtype  = MPI_DOUBLE, &
-                                    recvbuf   = grid3D_pointer_rcv_gpu(:,rcv_j(j), k), &
-                                    recvcount = send_count, &
-                                    recvtype  = MPI_DOUBLE, &
-                                    root      = root(j), &
-                                    comm      = self%MPI_Comm_Row, &
-                                    !request   = request(j, k), &
-                                    request   = grid_handler_rcv%GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
-                                    ierror    = ierr(j,k))
-                                    !request(dims_rcv(2), dims_rcv(3)) => GRID_COMM_REQUESTS
-                end do
-            end do
-
-            !request(dims_rcv(2), dims_rcv(3)) => GRID_COMM_REQUESTS
-            ! Deallocation of request is done in MPI_WaitAll
-            !do k = 1, dims_rcv(3)
-            !    call MPI_WaitAll(dims_rcv(2), request(:,k), comm_status(:,k), ierr0)
-            !end do
-            !ierr0 = 0
-            !call MPI_WaitAll(dims_rcv(2)*dims_rcv(3), GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr0)
-            !if (ierr0 /= MPI_SUCCESS) error stop "Grid Row 213 Failed"
-            
-            !call MPI_Comm_rank(MPI_COMM_WORLD, ierr0)
-            !if (ierr0 ==0) then
-                !write(*,*) "rotate 213", dims_rcv(1), dims_rcv(2), dims_rcv(3)
-            !    dims_rcv = grid_handler_rcv%get_dims()
-                !write(*,*) "detdims 213", dims_rcv(1), dims_rcv(2), dims_rcv(3)
-            !end if 
-
-            !call MPI_Barrier(MPI_Comm_World, ierr0)
-            !call self%grid_waitall(grid_handler_rcv)
-            !call MPI_Barrier(MPI_Comm_World, ierr0)
-
-        end subroutine rotate_213
-
-        subroutine rotate_321()
-            ! Body======================================================================
-            if (dims_send(1) < grid_handler_send%overhead_factor) error stop &
-                "Use a smaller overhead factor, the stencils go over multiple surfaces, which is not supported."
-
-            do n = 0, dims_rcv(3)/grid_handler_send%overhead_factor-1
-                do m = 1, grid_handler_send%overhead_factor
-                    call inner_loop_321()
-                end do
-                call MPI_WaitAll(dims_rcv(2), &
-                    grid_handler_rcv%GRID_COMM_REQUESTS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), & !request(:,m)
-                    grid_handler_rcv%GRID_COMM_STATUS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), &   !comm_status(:,m)
-                    ierr0)
-                    if (ierr0 /= MPI_SUCCESS) error stop "Grid Col 321 Failed in rotate_321"
-            end do
-            
-            do m = 1, modulo(dims_rcv(3), grid_handler_send%overhead_factor)
-                call inner_loop_321()
-            end do
-            call MPI_WaitAll(dims_rcv(2), &
-                    grid_handler_rcv%GRID_COMM_REQUESTS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), & !request(:,m)
-                    grid_handler_rcv%GRID_COMM_STATUS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), &   !comm_status(:,m)
-                    ierr0)
-
-            if (ierr0 /= MPI_SUCCESS) error stop "Grid Col 321 Failed in rotate_321"
-
-        end subroutine rotate_321
-
-        subroutine inner_loop_321()
-            k = m+n*grid_handler_send%overhead_factor
-            stencil_send_gpu => work_space3D_send_gpu(:,m, 1)
-            
-            !$acc kernels
-            do j = 1, dims_rcv(2)       
-                do i = 1, dims_rcv(1)  
-                    stencil_send_gpu(i) = grid3D_pointer_send_gpu(k, j, i)
-                end do
-            end do
-            !$acc end kernels
-
-            do j = 1, dims_rcv(2)       
-                call MPI_Igather(SENDBUF   = stencil_send_gpu, &
-                                sendcount = send_count, &
-                                sendtype  = MPI_DOUBLE, &
-                                recvbuf   = grid3D_pointer_rcv_gpu(:, j, rcv_j(k)), &
-                                recvcount = send_count, &
-                                recvtype  = MPI_DOUBLE, &
-                                root      = root(k), &
-                                comm      = self%MPI_Comm_Column, &
-                                request   = grid_handler_rcv%GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
-                                ierror    = ierr(j,k))
-            end do
-        end subroutine inner_loop_321
-
         subroutine rotate_321_tmp()
             ! Body======================================================================
             !deviceptr(x_dev, y_dev, z_dev, my_rank_dev)
 
-            !$acc kernels deviceptr(work_space3D_tmp_gpu, grid3D_pointer_send_gpu)
-            !$acc loop independent
+            !$acc data deviceptr(work_space3D_tmp_gpu, grid3D_pointer_send_gpu)
+            !$acc parallel loop async
             do k = 1, dims_rcv(3) 
                 !$acc loop independent
                 do j = 1, dims_rcv(2) 
@@ -520,9 +415,22 @@ contains
                     do i = 1, dims_rcv(1) 
                         work_space3D_tmp_gpu(i, j, k) =  grid3D_pointer_send_gpu(k, j, i)
                     end do
+
+                    !call MPI_Igather(SENDBUF   = work_space3D_tmp_gpu(:,j,k), &
+                    !                sendcount = send_count, &
+                    !                sendtype  = MPI_DOUBLE, &
+                    !                recvbuf   = grid3D_pointer_rcv_gpu(:, j, rcv_j(k)), &
+                    !                recvcount = send_count, &
+                    !                recvtype  = MPI_DOUBLE, &
+                    !                root      = root(k), &
+                    !                comm      = self%MPI_Comm_Column, &
+                    !                request   = grid_handler_rcv%GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
+                    !                ierror    = ierr(j,k))
                 end do
             end do
-            !$acc end kernels
+            !$acc end parallel
+            !$acc wait 
+            !$acc end data 
 
             do k = 1, dims_rcv(3) 
                 do j = 1, dims_rcv(2) 
@@ -556,7 +464,146 @@ contains
 
         end subroutine rotate_321_tmp
 
+
+        subroutine rotate_213()
+            ! Body======================================================================
+            !call system_clocK(m)
+            
+            !$acc data deviceptr(work_space3D_tmp_gpu, grid3D_pointer_send_gpu)
+            !$acc parallel loop async
+            do k = 1, dims_rcv(3) 
+                !$acc loop independent
+                do j = 1, dims_rcv(2) 
+                    !$acc loop independent
+                    do i = 1, dims_rcv(1) 
+                        work_space3D_tmp_gpu(i,j, k) =  grid3D_pointer_send_gpu(j, i, k)
+                    end do
+                    
+                    !call MPI_Igather(sendbuf   = work_space3D_tmp_gpu(:,j, k), &
+                    !                sendcount = send_count, &
+                    !                sendtype  = MPI_DOUBLE, &
+                    !                recvbuf   = grid3D_pointer_rcv_gpu(:,rcv_j(j), k), &
+                    !                recvcount = send_count, &
+                    !                recvtype  = MPI_DOUBLE, &
+                    !                root      = root(j), &
+                    !                comm      = self%MPI_Comm_Row, &
+                    !                !request   = request(j, k), &
+                    !                request   = grid_handler_rcv%GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
+                    !                ierror    = ierr(j,k))
+                    !                !request(dims_rcv(2), dims_rcv(3)) => GRID_COMM_REQUESTS
+
+                end do
+            end do
+            !$acc end parallel
+            !$acc wait 
+            !$acc end data 
+            
+            !call system_clocK(n)
+            !if (my_rank == 0) write(*,*) "213", "Send Time Calc:",  (n-m)
+
+            if (my_rank == 0) write(*,*) "rcv_j", rcv_j
+            if (my_rank == 0) write(*,*) "root", root
+
+            do k = 1, dims_rcv(3) 
+                do j = 1, dims_rcv(2) 
+                    call MPI_Igather(sendbuf   = work_space3D_tmp_gpu(:,j, k), &
+                                    sendcount = send_count, &
+                                    sendtype  = MPI_DOUBLE, &
+                                    recvbuf   = grid3D_pointer_rcv_gpu(:,rcv_j(j), k), &
+                                    recvcount = send_count, &
+                                    recvtype  = MPI_DOUBLE, &
+                                    root      = root(j), &
+                                    comm      = self%MPI_Comm_Row, &
+                                    !request   = request(j, k), &
+                                    request   = grid_handler_rcv%GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
+                                    ierror    = ierr(j,k))
+                                    !request(dims_rcv(2), dims_rcv(3)) => GRID_COMM_REQUESTS
+                end do
+            end do
+
+            !call system_clocK(n)
+            !if (my_rank == 0) write(*,*) "213", "Send Time:",  (n-m)
+
+            !request(dims_rcv(2), dims_rcv(3)) => GRID_COMM_REQUESTS
+            ! Deallocation of request is done in MPI_WaitAll
+            !do k = 1, dims_rcv(3)
+            !    call MPI_WaitAll(dims_rcv(2), request(:,k), comm_status(:,k), ierr0)
+            !end do
+            !ierr0 = 0
+            !call MPI_WaitAll(dims_rcv(2)*dims_rcv(3), GRID_COMM_REQUESTS, GRID_COMM_STATUS, ierr0)
+            !if (ierr0 /= MPI_SUCCESS) error stop "Grid Row 213 Failed"
+            
+            !call MPI_Comm_rank(MPI_COMM_WORLD, ierr0)
+            !if (ierr0 ==0) then
+                !write(*,*) "rotate 213", dims_rcv(1), dims_rcv(2), dims_rcv(3)
+            !    dims_rcv = grid_handler_rcv%get_dims()
+                !write(*,*) "detdims 213", dims_rcv(1), dims_rcv(2), dims_rcv(3)
+            !end if 
+
+            !call MPI_Barrier(MPI_Comm_World, ierr0)
+            !call self%grid_waitall(grid_handler_rcv)
+            !call MPI_Barrier(MPI_Comm_World, ierr0)
+
+        end subroutine rotate_213
+
+        !subroutine rotate_321()
+        !    ! Body======================================================================
+        !    if (dims_send(1) < grid_handler_send%overhead_factor) error stop &
+        !        "Use a smaller overhead factor, the stencils go over multiple surfaces, which is not supported."
+
+        !    do n = 0, dims_rcv(3)/grid_handler_send%overhead_factor-1
+        !        do m = 1, grid_handler_send%overhead_factor
+        !            call inner_loop_321()
+        !        end do
+        !        call MPI_WaitAll(dims_rcv(2), &
+        !            grid_handler_rcv%GRID_COMM_REQUESTS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), & !request(:,m)
+        !            grid_handler_rcv%GRID_COMM_STATUS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), &   !comm_status(:,m)
+        !            ierr0)
+        !            if (ierr0 /= MPI_SUCCESS) error stop "Grid Col 321 Failed in rotate_321"
+        !    end do
+        !    
+        !    do m = 1, modulo(dims_rcv(3), grid_handler_send%overhead_factor)
+        !        call inner_loop_321()
+        !    end do
+        !    call MPI_WaitAll(dims_rcv(2), &
+        !            grid_handler_rcv%GRID_COMM_REQUESTS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), & !request(:,m)
+        !            grid_handler_rcv%GRID_COMM_STATUS(1+dims_rcv(2)*(m-1):dims_rcv(2)*m), &   !comm_status(:,m)
+        !            ierr0)
+
+        !    if (ierr0 /= MPI_SUCCESS) error stop "Grid Col 321 Failed in rotate_321"
+
+        !end subroutine rotate_321
+
+        !subroutine inner_loop_321()
+        !    k = m+n*grid_handler_send%overhead_factor
+        !    stencil_send_gpu => work_space3D_send_gpu(:,m, 1)
+        !    
+        !    !$acc kernels
+        !    !$acc loop independent
+        !    do j = 1, dims_rcv(2)       
+        !        !$acc loop independent
+        !        do i = 1, dims_rcv(1)  
+        !            stencil_send_gpu(i) = grid3D_pointer_send_gpu(k, j, i)
+        !        end do
+        !    end do
+        !    !$acc end kernels
+
+        !    do j = 1, dims_rcv(2)       
+        !        call MPI_Igather(SENDBUF   = stencil_send_gpu, &
+        !                        sendcount = send_count, &
+        !                        sendtype  = MPI_DOUBLE, &
+        !                        recvbuf   = grid3D_pointer_rcv_gpu(:, j, rcv_j(k)), &
+        !                        recvcount = send_count, &
+        !                        recvtype  = MPI_DOUBLE, &
+        !                        root      = root(k), &
+        !                        comm      = self%MPI_Comm_Column, &
+        !                        request   = grid_handler_rcv%GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
+        !                        ierror    = ierr(j,k))
+        !    end do
+        !end subroutine inner_loop_321
+
     end subroutine rotate_grid_cpu
+
 
     !subroutine grid_waitall(self, grid_handler_rcv)
     !    class(Grid3D_Comm_Handler)         :: self
