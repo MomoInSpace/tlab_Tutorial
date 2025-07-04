@@ -79,6 +79,72 @@ contains
 
     end subroutine matmul_gpu_acc_kernels
 
+    subroutine matmul_gpu_acc_kernels_noCopy(x_mat, y_mat, z_mat, Mnum)
+        real(wp), dimension(:,:),intent(in)  :: x_mat
+        real(wp), dimension(:,:),intent(in)  :: y_mat
+        real(wp), dimension(:,:),intent(out) :: z_mat
+        real(wp) :: sum_value
+        integer :: n, m, k, i, j, Mnum, iMnum
+
+        ! Check if shapes match:
+        call check_shapes(x_mat, y_mat, z_mat)
+        ! Set values in z_mat to zero:
+        ! z_mat = 0.
+
+        ! Matrix Multiplication:
+        n=size(y_mat,dim=2)
+        m=size(x_mat,dim=1)
+
+        !$acc data
+        do iMnum = 1, Mnum
+        !$acc kernels
+        do j=1,n
+            do i=1,m
+                sum_value = 0
+                do k=1,size(x_mat,dim=2)
+                    sum_value = sum_value + x_mat(i,k)*y_mat(k,j)
+                end do      
+                z_mat(i,j)= sum_value 
+            end do
+        end do
+        !$acc end kernels
+        end do
+        !$acc end data 
+
+    end subroutine matmul_gpu_acc_kernels_noCopy
+
+    subroutine matmul_gpu_acc_kernels_noData(x_mat, y_mat, z_mat, Mnum)
+        real(wp), dimension(:,:),intent(in)  :: x_mat
+        real(wp), dimension(:,:),intent(in)  :: y_mat
+        real(wp), dimension(:,:),intent(out) :: z_mat
+        real(wp) :: sum_value
+        integer :: n, m, k, i, j, Mnum, iMnum
+
+        ! Check if shapes match:
+        call check_shapes(x_mat, y_mat, z_mat)
+        ! Set values in z_mat to zero:
+        ! z_mat = 0.
+
+        ! Matrix Multiplication:
+        n=size(y_mat,dim=2)
+        m=size(x_mat,dim=1)
+
+        do iMnum = 1, Mnum
+        !$acc kernels copyout(z_mat,x_mat,y_mat) copyin(z_mat,x_mat,y_mat)
+        do j=1,n
+            do i=1,m
+                sum_value = 0
+                do k=1,size(x_mat,dim=2)
+                    sum_value = sum_value + x_mat(i,k)*y_mat(k,j)
+                end do      
+                z_mat(i,j)= sum_value 
+            end do
+        end do
+        !$acc end kernels
+        end do
+
+    end subroutine matmul_gpu_acc_kernels_noData
+
     subroutine matmul_gpu_acc_loop(x_mat, y_mat, z_mat, Mnum)
         real(wp), dimension(:,:),intent(in)  :: x_mat
         real(wp), dimension(:,:),intent(in)  :: y_mat
@@ -111,6 +177,36 @@ contains
         !$acc end data
 
     end subroutine matmul_gpu_acc_loop
+
+    subroutine matmul_omp(x_mat, y_mat, z_mat, Mnum)
+        real(wp), dimension(:,:),intent(in)  :: x_mat
+        real(wp), dimension(:,:),intent(in)  :: y_mat
+        real(wp), dimension(:,:),intent(out) :: z_mat
+        integer :: n, m, k, i, j, Mnum, iMnum
+
+        ! Check if shapes match:
+        call check_shapes(x_mat, y_mat, z_mat)
+        ! Set values in z_mat to zero:
+        ! z_mat = 0.
+
+        ! Matrix Multiplication:
+        n=size(y_mat,dim=2)
+        m=size(x_mat,dim=1)
+
+        do iMnum = 1, Mnum
+        !$omp parallel do 
+            do j=1,n
+            !$omp parallel do 
+                do i=1,m
+                    do k=1,size(x_mat,dim=2)
+                        z_mat(i,j)= z_mat(i,j)+x_mat(i,k)*y_mat(k,j)
+                    end do      
+                end do
+                !No nested $acc end parallel loop
+            end do
+        end do
+
+    end subroutine matmul_omp 
 
     subroutine matmul_cpu_dotmix(x_mat, y_mat, z_mat, Mnum)
         real(wp), dimension(:,:),intent(in)  :: x_mat

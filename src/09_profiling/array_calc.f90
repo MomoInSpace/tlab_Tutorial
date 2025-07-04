@@ -16,13 +16,15 @@ program matrix_multi_test
     integer :: index1, index2, index3
 
     ! Time measurement:
-    integer, parameter :: maxsize = 1500
-    integer, parameter :: step    = 100
+    integer, parameter :: maxsize = 2000
+    integer, parameter :: step    = 200
     integer, parameter :: timesteps = maxsize/step 
-    integer :: count, rate, multi_num = 1
+    integer :: count, rate, multi_num = 8
     real(wp)    :: timeAtStart, timeAtEnd
-    real(wp)    :: time(7,timesteps)
+    real(wp)    :: time(10,timesteps)
 
+    ! Clear Data
+    time = 0
 
     do index3 = step,maxsize,step
         dim1 = index3
@@ -40,12 +42,11 @@ program matrix_multi_test
         ! call write_out_matrixform(x)
         ! call write_out_matrixform(y)
 
-        !$acc data
         ! Matmul_cpu_slow--------------------------------------
         call time_matmul_calc(2,time(2,index3/step))
 
         ! Matmul_cpu_dotmix--------------------------------------
-        call time_matmul_calc(3,time(3,index3/step))
+        !call time_matmul_calc(3,time(3,index3/step))
 
         ! Matmul_cpu_intrinsic--------------------------------------
         call time_matmul_calc(4,time(4,index3/step))
@@ -54,11 +55,19 @@ program matrix_multi_test
         call time_matmul_calc(5,time(5,index3/step))
 
         ! Matmul_gpu_acc_loop--------------------------------------
-        call time_matmul_calc(6,time(6,index3/step))
+        !call time_matmul_calc(6,time(6,index3/step))
 
         !gpu dotmix-------------------------------------------------
-        call time_matmul_calc(7,time(7,index3/step))
-        !$acc end data
+        !call time_matmul_calc(7,time(7,index3/step))
+
+        !gpu open_mp-------------------------------------------------
+        call time_matmul_calc(8,time(8,index3/step))
+
+        !gpu noCopy-------------------------------------------------
+        call time_matmul_calc(9,time(9,index3/step))
+        
+        !gpu noData-------------------------------------------------
+        call time_matmul_calc(10,time(10,index3/step))
 
         !gpu intrinsic ---------------------------------------------
         ! call time_matmul_calc(8,time(8,index3/step))
@@ -71,7 +80,7 @@ program matrix_multi_test
 
     ! Save time:
     !call write_out_matrixform(time)
-    call save_matrix(time,"time_1n.csv")
+    call save_matrix(time,"time_omp_node_gpuImpls.csv")
 
     contains
 
@@ -114,8 +123,12 @@ program matrix_multi_test
             call matmul_gpu_acc_loop(x,y,z, multi_num)
         case (7) !gpu dotmix
             call matmul_gpu_dotmix(x,y,z, multi_num)
-        ! case (8) !gpu intrinsic
-        !     call matmul_gpu_intrinsic(x,y,z)
+         case (8) !open_mp
+             call matmul_omp(x,y,z,multi_num)
+         case (9) !noCopy
+             call matmul_gpu_acc_kernels_noCopy(x,y,z,multi_num)
+         case (10) !noData
+             call matmul_gpu_acc_kernels_noData(x,y,z,multi_num)
         end select
 
         ! Clock Stop:
