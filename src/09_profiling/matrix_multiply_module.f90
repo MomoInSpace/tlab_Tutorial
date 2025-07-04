@@ -18,11 +18,11 @@ contains
         
     end subroutine check_shapes
 
-    subroutine matmul_cpu_slow(x_mat, y_mat, z_mat)
+    subroutine matmul_cpu_slow(x_mat, y_mat, z_mat, Mnum)
         real(wp), dimension(:,:),intent(in)  :: x_mat
         real(wp), dimension(:,:),intent(in)  :: y_mat
         real(wp), dimension(:,:),intent(out) :: z_mat
-        integer :: n, m, k, i, j
+        integer :: n, m, k, i, j, Mnum, iMnum
 
         ! Check if shapes match:
         call check_shapes(x_mat, y_mat, z_mat)
@@ -33,22 +33,24 @@ contains
         n=size(y_mat,dim=2)
         m=size(x_mat,dim=1)
 
-        do j=1,n
-            do i=1,m
-                do k=1,size(x_mat,dim=2)
-                    z_mat(i,j)=z_mat(i,j)+ x_mat(i,k)*y_mat(k,j)
-                end do      
+        do iMnum = 1, Mnum
+            do j=1,n
+                do i=1,m
+                    do k=1,size(x_mat,dim=2)
+                        z_mat(i,j)=z_mat(i,j)+ x_mat(i,k)*y_mat(k,j)
+                    end do      
+                end do
             end do
         end do
 
     end subroutine matmul_cpu_slow
 
-    subroutine matmul_cpu_acc_kernels(x_mat, y_mat, z_mat)
+    subroutine matmul_gpu_acc_kernels(x_mat, y_mat, z_mat, Mnum)
         real(wp), dimension(:,:),intent(in)  :: x_mat
         real(wp), dimension(:,:),intent(in)  :: y_mat
         real(wp), dimension(:,:),intent(out) :: z_mat
         real(wp) :: sum_value
-        integer :: n, m, k, i, j
+        integer :: n, m, k, i, j, Mnum, iMnum
 
         ! Check if shapes match:
         call check_shapes(x_mat, y_mat, z_mat)
@@ -59,6 +61,8 @@ contains
         n=size(y_mat,dim=2)
         m=size(x_mat,dim=1)
 
+        !$acc data copyin(x_mat,y_mat) copyout(z_mat)
+        do iMnum = 1, Mnum
         !$acc kernels
         do j=1,n
             do i=1,m
@@ -70,14 +74,16 @@ contains
             end do
         end do
         !$acc end kernels
+        end do
+        !$acc end data 
 
-    end subroutine matmul_cpu_acc_kernels
+    end subroutine matmul_gpu_acc_kernels
 
-    subroutine matmul_cpu_acc_loop(x_mat, y_mat, z_mat)
+    subroutine matmul_gpu_acc_loop(x_mat, y_mat, z_mat, Mnum)
         real(wp), dimension(:,:),intent(in)  :: x_mat
         real(wp), dimension(:,:),intent(in)  :: y_mat
         real(wp), dimension(:,:),intent(out) :: z_mat
-        integer :: n, m, k, i, j
+        integer :: n, m, k, i, j, Mnum, iMnum
 
         ! Check if shapes match:
         call check_shapes(x_mat, y_mat, z_mat)
@@ -88,25 +94,29 @@ contains
         n=size(y_mat,dim=2)
         m=size(x_mat,dim=1)
 
-        !$acc parallel loop
-        do j=1,n
-            !$acc loop
-            do i=1,m
-                do k=1,size(x_mat,dim=2)
-                    z_mat(i,j)= z_mat(i,j)+x_mat(i,k)*y_mat(k,j)
-                end do      
+        !$acc data copyin(x_mat,y_mat) copyout(z_mat)
+        do iMnum = 1, Mnum
+            !$acc parallel loop
+            do j=1,n
+                !$acc loop
+                do i=1,m
+                    do k=1,size(x_mat,dim=2)
+                        z_mat(i,j)= z_mat(i,j)+x_mat(i,k)*y_mat(k,j)
+                    end do      
+                end do
+                !No nested $acc end parallel loop
             end do
-            !No nested $acc end parallel loop
+            !$acc end parallel loop
         end do
-        !$acc end parallel loop
+        !$acc end data
 
-    end subroutine matmul_cpu_acc_loop
+    end subroutine matmul_gpu_acc_loop
 
-    subroutine matmul_cpu_dotmix(x_mat, y_mat, z_mat)
+    subroutine matmul_cpu_dotmix(x_mat, y_mat, z_mat, Mnum)
         real(wp), dimension(:,:),intent(in)  :: x_mat
         real(wp), dimension(:,:),intent(in)  :: y_mat
         real(wp), dimension(:,:),intent(out) :: z_mat
-        integer :: n, m, i, j
+        integer :: n, m, k, i, j, Mnum, iMnum
 
         ! Check if shapes match:
         call check_shapes(x_mat, y_mat, z_mat)
@@ -117,19 +127,21 @@ contains
         n=size(y_mat,dim=2)
         m=size(x_mat,dim=1)
 
-        do j=1,n
-            do i=1,m
-                    z_mat(i,j)=dot_product(x_mat(i,:),y_mat(:,j))
+        do iMnum = 1, Mnum
+            do j=1,n
+                do i=1,m
+                        z_mat(i,j)=dot_product(x_mat(i,:),y_mat(:,j))
+                end do
             end do
         end do
 
     end subroutine matmul_cpu_dotmix
 
-    subroutine matmul_gpu_dotmix(x_mat, y_mat, z_mat)
+    subroutine matmul_gpu_dotmix(x_mat, y_mat, z_mat, Mnum)
         real(wp), dimension(:,:),intent(in)  :: x_mat
         real(wp), dimension(:,:),intent(in)  :: y_mat
         real(wp), dimension(:,:),intent(out) :: z_mat
-        integer :: n, m, i, j
+        integer :: n, m, k, i, j, Mnum, iMnum
 
         ! Check if shapes match:
         call check_shapes(x_mat, y_mat, z_mat)
@@ -140,29 +152,37 @@ contains
         n=size(y_mat,dim=2)
         m=size(x_mat,dim=1)
 
-        !$acc parallel loop
-        do j=1,n
-            !$acc loop
-            do i=1,m
-                    z_mat(i,j)=dot_product(x_mat(i,:),y_mat(:,j))
+        !$acc data copyin(x_mat,y_mat) copyout(z_mat)
+        do iMnum = 1, Mnum
+            !$acc parallel loop
+            do j=1,n
+                !$acc loop
+                do i=1,m
+                        z_mat(i,j)=dot_product(x_mat(i,:),y_mat(:,j))
+                end do
+                !lll $acc end parallel loop
             end do
-            !lll $acc end parallel loop
+            !$acc end parallel loop
         end do
-        !$acc end parallel loop
+        !$acc end data
 
     end subroutine matmul_gpu_dotmix
 
-    subroutine matmul_cpu_intrinsic(x_mat, y_mat, z_mat)
+    subroutine matmul_cpu_intrinsic(x_mat, y_mat, z_mat, Mnum)
         real(wp), dimension(:,:),intent(in)  :: x_mat
         real(wp), dimension(:,:),intent(in)  :: y_mat
         real(wp), dimension(:,:),intent(out) :: z_mat
+        integer :: Mnum, iMnum
 
         ! Check if shapes match:
         call check_shapes(x_mat, y_mat, z_mat)
         ! Set values in z_mat to zero:
         ! z_mat = 0.
         ! Matrix multiplication
-        z_mat = matmul(x_mat,y_mat)
+        
+        do iMnum = 1, Mnum
+            z_mat = matmul(x_mat,y_mat)
+        end do
 
     end subroutine matmul_cpu_intrinsic
 

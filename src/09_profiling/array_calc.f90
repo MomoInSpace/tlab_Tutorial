@@ -19,7 +19,7 @@ program matrix_multi_test
     integer, parameter :: maxsize = 1500
     integer, parameter :: step    = 100
     integer, parameter :: timesteps = maxsize/step 
-    integer :: count, rate
+    integer :: count, rate, multi_num = 1
     real(wp)    :: timeAtStart, timeAtEnd
     real(wp)    :: time(7,timesteps)
 
@@ -71,7 +71,7 @@ program matrix_multi_test
 
     ! Save time:
     !call write_out_matrixform(time)
-    call save_matrix(time,"time.csv")
+    call save_matrix(time,"time_1n.csv")
 
     contains
 
@@ -103,17 +103,17 @@ program matrix_multi_test
         case default
             print *, "No Case Selected! ERROR!"
         case (2) !matmul slow
-            call matmul_cpu_slow(x,y,z)
+            call matmul_cpu_slow(x,y,z, multi_num)
         case (3) !cpu dotmix
-            call matmul_cpu_dotmix(x,y,z)
+            call matmul_cpu_dotmix(x,y,z, multi_num)
         case (4) !cpu intrinsic
-            call matmul_cpu_intrinsic(x,y,z)
+            call matmul_cpu_intrinsic(x,y,z, multi_num)
         case (5) !gpu acc kernels
-            call matmul_cpu_acc_kernels(x,y,z)
+            call matmul_gpu_acc_kernels(x,y,z, multi_num)
         case (6) !gpu acc loop
-            call matmul_cpu_acc_loop(x,y,z)
+            call matmul_gpu_acc_loop(x,y,z, multi_num)
         case (7) !gpu dotmix
-            call matmul_gpu_dotmix(x,y,z)
+            call matmul_gpu_dotmix(x,y,z, multi_num)
         ! case (8) !gpu intrinsic
         !     call matmul_gpu_intrinsic(x,y,z)
         end select
