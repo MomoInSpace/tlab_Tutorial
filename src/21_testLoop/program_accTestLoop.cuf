@@ -1,0 +1,75 @@
+program accTestLoop
+    use mpi_f08
+    implicit none 
+
+    ! Parameters================================================================
+    ! Input Grid Data
+    INTEGER:: i, n,m,k,j, length=2000
+    real, allocatable, &
+                     device, &
+                     dimension(:,:,:):: work_space3D_tmp_gpu, &
+                                        grid3D_pointer_send_gpu
+    real, allocatable, &
+                     pinned, &
+                     dimension(:,:,:):: work_space3D_tmp_cpu, &
+                                        grid3D_pointer_send_cpu
+    ! Body======================================================================
+
+
+    allocate(work_space3D_tmp_gpu(length, length, length))
+    allocate(grid3D_pointer_send_gpu(length, length, length))
+
+    allocate(work_space3D_tmp_cpu(length, length, length))
+    allocate(grid3D_pointer_send_cpu(length, length, length))
+
+
+    write(*,*) "Starting Loop GPU:"
+    call system_clocK(m)
+    !$acc kernels deviceptr(work_space3D_tmp_gpu, grid3D_pointer_send_gpu)
+    !$acc loop independent
+    do k = 1, length
+        !$acc loop independent
+        do j = 1, length
+            !$acc loop independent
+            do i = 1, length
+                work_space3D_tmp_gpu(i, j, k) =  grid3D_pointer_send_gpu(j, i, k)
+            end do
+        end do
+    end do
+    !$acc end kernels
+    call system_clocK(n)
+    write(*,*) n-m
+
+    write(*,*) "Starting Loop GPU Parallel:"
+    call system_clocK(m)
+    !$acc data deviceptr(work_space3D_tmp_gpu, grid3D_pointer_send_gpu)
+    !$acc parallel loop async
+    do k = 1, length
+        !$acc loop independent
+        do j = 1, length
+            !$acc loop independent
+            do i = 1, length
+                work_space3D_tmp_gpu(i, j, k) =  grid3D_pointer_send_gpu(j, i, k)
+            end do
+        end do
+    end do
+    !$acc end parallel
+    !$acc wait 
+    !$acc end data 
+    call system_clocK(n)
+    write(*,*) n-m
+
+
+    write(*,*) "Starting Loop CPU:"
+    call system_clocK(m)
+    do k = 1, length
+        do j = 1, length
+            do i = 1, length
+                work_space3D_tmp_cpu(i, j, k) =  grid3D_pointer_send_cpu(j, i, k)
+            end do
+        end do
+    end do
+    call system_clocK(n)
+    write(*,*) n-m
+
+end program accTestLoop
