@@ -110,16 +110,16 @@ program comm_test
     x_d = x
 
     ! Visualize Complete Grid---------------------------------------------------
-    call debug_values(grid_handler_A)
+    !call debug_values(grid_handler_A)
 
-    do i=1, 1
-        !if (my_rank == 1) write(*,*) i
+    do i=1, 10
+        if (my_rank == 1) write(*,*) i
         call cycle()
     end do
 
     ! ! Visualize Complete Grid--------------------------------------------------
     x = x_d
-    call debug_values(grid_handler_A)
+    !call debug_values(grid_handler_A)
 
     ! Cleanup ==================================================================
     if (allocated(x )) deallocate(x, stat = ierr(1))
@@ -137,6 +137,7 @@ program comm_test
 
     ! Calling 
     call grid_comm_handler%free()
+    call MPI_Finalize()
 
     contains
 

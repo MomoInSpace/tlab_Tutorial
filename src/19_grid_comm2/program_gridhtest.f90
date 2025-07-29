@@ -101,15 +101,15 @@ program comm_test
     ! if (my_rank == 0) write(*,*) x
 
     ! Visualize Complete Grid---------------------------------------------------
-    call debug_values(grid_handler_A)
+    !call debug_values(grid_handler_A)
 
-    do i=1, 1
+    do i=1, 10
         if (my_rank == 0) write(*,*) i
         call cycle()
     end do
 
     ! ! Visualize Complete Grid--------------------------------------------------
-    call debug_values(grid_handler_A)
+    !call debug_values(grid_handler_A)
 
     ! Cleanup ==================================================================
     if (allocated(x )) deallocate(x, stat = ierr(1))
@@ -127,6 +127,7 @@ program comm_test
 
     ! Calling 
     call grid_comm_handler%free()
+    call MPI_Finalize()
 
     contains
 
@@ -146,7 +147,7 @@ program comm_test
 
         ! Visualize Complete Grid--------------------------------------------------
         !x = x_d
-        call debug_values(grid_handler_B)
+        !call debug_values(grid_handler_B)
 
 
         ! Rotation 2---------------------------------------------------------------
@@ -155,7 +156,7 @@ program comm_test
 
         ! Visualize Complete Grid--------------------------------------------------
         !x = x_d
-        call debug_values(grid_handler_A)
+        !call debug_values(grid_handler_A)
 
         ! Rotation 3---------------------------------------------------------------
         call grid_comm_handler%rotate_grid_cpu(grid_handler_A, grid_handler_B, [3,2,1], grid_handler_tmp)

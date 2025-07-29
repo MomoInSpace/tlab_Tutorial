@@ -467,7 +467,7 @@ contains
 
         subroutine rotate_213()
             ! Body======================================================================
-            !call system_clocK(m)
+            call system_clocK(m)
             
             !$acc data deviceptr(work_space3D_tmp_gpu, grid3D_pointer_send_gpu)
             !$acc parallel loop async
@@ -498,12 +498,13 @@ contains
             !$acc wait 
             !$acc end data 
             
-            !call system_clocK(n)
-            !if (my_rank == 0) write(*,*) "213", "Send Time Calc:",  (n-m)
+            call system_clocK(n)
+            if (my_rank == 0) write(*,*) "213", "Send Time Calc:",  (n-m)
 
-            if (my_rank == 0) write(*,*) "rcv_j", rcv_j
-            if (my_rank == 0) write(*,*) "root", root
+            !if (my_rank == 0) write(*,*) "rcv_j", rcv_j
+            !if (my_rank == 0) write(*,*) "root", root
 
+            call system_clocK(m)
             do k = 1, dims_rcv(3) 
                 do j = 1, dims_rcv(2) 
                     call MPI_Igather(sendbuf   = work_space3D_tmp_gpu(:,j, k), &
@@ -521,8 +522,8 @@ contains
                 end do
             end do
 
-            !call system_clocK(n)
-            !if (my_rank == 0) write(*,*) "213", "Send Time:",  (n-m)
+            call system_clocK(n)
+            if (my_rank == 0) write(*,*) "213", "Send Time:",  (n-m)
 
             !request(dims_rcv(2), dims_rcv(3)) => GRID_COMM_REQUESTS
             ! Deallocation of request is done in MPI_WaitAll

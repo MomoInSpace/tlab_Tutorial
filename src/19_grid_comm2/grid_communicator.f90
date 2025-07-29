@@ -399,11 +399,32 @@ contains
 
         subroutine rotate_213()
             ! Body======================================================================
+            call system_clocK(m)
             do k = 1, dims_rcv(3) 
                 do j = 1, dims_rcv(2) 
                     do i = 1, dims_rcv(1) 
                         work_space3D_tmp(i, j, k) =  grid3D_pointer_send(j, i, k)
                     end do
+                    !call MPI_Igather(sendbuf   = work_space3D_tmp(:,j, k), &
+                    !                sendcount = send_count, &
+                    !                sendtype  = MPI_DOUBLE, &
+                    !                recvbuf   = grid3D_pointer_rcv(:,rcv_j(j), k), &
+                    !                recvcount = send_count, &
+                    !                recvtype  = MPI_DOUBLE, &
+                    !                root      = root(j), &
+                    !                comm      = self%MPI_Comm_Row, &
+                    !                !request   = request(j, k), &
+                    !                request   = grid_handler_rcv%GRID_COMM_REQUESTS(j+dims_rcv(2)*(k-1)), &
+                    !                ierror    = ierr(j,k))
+                    !                !request(dims_rcv(2), dims_rcv(3)) => GRID_COMM_REQUESTS
+                end do
+            end do
+            call system_clocK(n)
+            if (my_rank == 0) write(*,*) "213", "Send Time: Calc",  (n-m)
+
+            call system_clocK(m)
+            do k = 1, dims_rcv(3) 
+                do j = 1, dims_rcv(2) 
                     call MPI_Igather(sendbuf   = work_space3D_tmp(:,j, k), &
                                     sendcount = send_count, &
                                     sendtype  = MPI_DOUBLE, &
@@ -418,6 +439,8 @@ contains
                                     !request(dims_rcv(2), dims_rcv(3)) => GRID_COMM_REQUESTS
                 end do
             end do
+            call system_clocK(n)
+            if (my_rank == 0) write(*,*) "213", "Send Time: ",  (n-m)
 
             !request(dims_rcv(2), dims_rcv(3)) => GRID_COMM_REQUESTS
             ! Deallocation of request is done in MPI_WaitAll
