@@ -30,7 +30,7 @@ implicit none
                          dimension(:):: grid_space_cpu, allocated_space_cpu
 
         real(kind = wp), pointer, &
-                         device,  &
+                         managed,  &
                          dimension(:):: grid_space_gpu, allocated_space_gpu
         ! grid_space points to the space of the grid.
         ! allocated_space points to the grid AND the overhead.
@@ -190,7 +190,7 @@ contains
         real(kind = wp), pointer, &
                          dimension(:):: grid_space_cpu, allocated_space_cpu
         real(kind = wp), pointer, &
-                         device, &
+                         managed, &
                          dimension(:):: grid_space_gpu, allocated_space_gpu
         real(kind = wp), intent(in),   &
                          pinned, &
@@ -227,7 +227,7 @@ contains
                          dimension(:,:,:):: grid3D_pointer_cpu
         real(kind = wp), intent(inout), &
                          pointer, &
-                         device, &
+                         managed, &
                          dimension(:,:,:):: grid3D_pointer_gpu
         integer, dimension(3)            :: dims
         ! Notes=====================================================================
@@ -257,11 +257,11 @@ contains
         integer,         intent(in), &
            dimension(3)               :: pertubation
         real(kind = wp), intent(out), &
-             device, &
+             managed, &
              pointer, &
              dimension(:,:,:)         :: work_space3D_gpu, grid_3D_pointer_gpu
         real(kind = wp), intent(out), &
-             device, &
+             managed, &
              pointer, &
              dimension(:)         :: work_space_gpu
 
@@ -298,7 +298,7 @@ contains
         character(len = 3), optional:: state_string
         integer, dimension(3)       :: dims
         real(kind = wp), pointer, &
-                         device, &
+                         managed, &
                          dimension(:,:,:):: grid3D_pointer_gpu 
         real(kind = wp), pointer, &
                          dimension(:,:,:):: grid3D_pointer_cpu 
