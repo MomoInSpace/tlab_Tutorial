@@ -47,7 +47,6 @@ implicit none
         procedure:: init
         procedure:: get_dims
         procedure:: perturb_state
-        procedure:: set_pointer_1D
         procedure:: get_pointer_3D
         !procedure:: allocate_array
         procedure:: get_switch_dims_workspace_gpu
@@ -55,15 +54,18 @@ implicit none
         procedure:: print_state_cpu
         procedure::init_comm_requests
         procedure::grid_waitall
+
+        procedure:: set_pointer_1D
     end type Grid3D
 
   ! Define the Point type
-    type, extends(Grid3D):: Grid3D_cpu 
-    ! contains
+    type, extends(Grid3D):: Grid3D_gpu 
+     contains
+        procedure :: set_pointer_1D => set_pointer_1D_sync
         ! procedure:: set_pointer_1D => set_pointer_1D_cpu
         ! procedure:: get_pointer_3D => get_pointer_3D_cpu
         ! procedure:: allocate_array => allocate_array_cpu
-    end type Grid3D_cpu
+    end type Grid3D_gpu
 
 contains
 
@@ -213,10 +215,35 @@ contains
         self%grid_space_main => grid_array_gpu(self%free_space+1:)  ! INDEXING MIGHT BE WRONG
         self%allocated_space_main => grid_array_gpu
 
+    end subroutine set_pointer_1D
+
+
+    subroutine set_pointer_1D_sync(self, grid_array_cpu, grid_array_gpu)
+        ! Parameters================================================================
+        class(Grid3D_gpu), intent(inout)          :: self
+        real(kind = wp), pointer, &
+                         dimension(:):: grid_space_sync, allocated_space_sync
+        real(kind = wp), pointer, &
+                         managed, &
+                         dimension(:):: grid_space_main, allocated_space_main
+        real(kind = wp), intent(in),   &
+                         pinned, &
+                         dimension(:), &
+                         target        :: grid_array_cpu 
+        real(kind = wp), intent(in),   &
+                         device, &
+                         dimension(:), &
+                         target        :: grid_array_gpu 
+        integer                        :: total_space
+        ! Notes=====================================================================
+        ! Body======================================================================
+
+        call self%Grid3D%set_pointer_1D(grid_array_cpu, grid_array_gpu)
+
         self%grid_space_sync => grid_array_cpu(self%free_space+1:)  ! INDEXING MIGHT BE WRONG
         self%allocated_space_sync => grid_array_cpu
 
-    end subroutine set_pointer_1D
+    end subroutine set_pointer_1D_sync
 
     subroutine get_pointer_3D(self, grid3D_pointer_gpu, grid3D_pointer_cpu)  
         ! Parameters================================================================

@@ -15,7 +15,7 @@ program comm_test
 
     integer                     :: world_size, my_rank 
     type(Grid3D_Comm_Handler)   :: grid_comm_handler
-    type(Grid3D_cpu), target    :: grid_handler_A, grid_handler_B, grid_handler_tmp
+    type(Grid3D_gpu), target    :: grid_handler_A, grid_handler_B, grid_handler_tmp
     type(Complete_grid_debugger):: testgrid_handler
     integer, dimension(3)       :: state_xyz  = [2, 1, 3], &
                                    ! Pertubation of [1, 2, 3]. 
@@ -143,7 +143,7 @@ program comm_test
     contains
 
     subroutine debug_values(current_grid_handler)
-        type(Grid3D_cpu)            :: current_grid_handler
+        type(Grid3D_gpu)            :: current_grid_handler
         call testgrid_handler%gather_compgrid(current_grid_handler, grid_comm_handler, subgrid_xyz_dims, my_rank)
         call testgrid_handler%visualize_grid(my_rank)
         call calc_checksum(my_rank)

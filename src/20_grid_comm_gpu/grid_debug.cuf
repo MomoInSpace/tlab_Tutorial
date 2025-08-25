@@ -449,7 +449,7 @@ contains
                                subgrid_xyz_dims, my_rank)
                                ! testgrid_array  , testbuffer_array, &
 
-        type(Grid3D_cpu)                        :: grid_handler
+        type(Grid3D_gpu)                        :: grid_handler
         type(Grid3D_Comm_Handler)               :: grid_comm_handler
         Class(Complete_grid_debugger)            :: testgrid_handler
         integer, dimension(3)                   :: state_xyz

@@ -219,9 +219,9 @@ contains
     subroutine rotate_grid_cpu(self, grid_handler_send, grid_handler_rcv, pertubation, grid_handler_tmp)
         ! IO =======================================================================
         class(Grid3D_Comm_Handler)         :: self
-        type(Grid3D_cpu), target, & 
+        type(Grid3D_gpu), target, & 
                           intent(inout)    :: grid_handler_send, grid_handler_rcv
-        type(Grid3D_cpu), target, &
+        type(Grid3D_gpu), target, &
                           intent(inout) :: grid_handler_tmp
         integer, dimension(3), intent(in)  :: pertubation
         ! Parameters================================================================
@@ -607,7 +607,7 @@ contains
 
     !subroutine grid_waitall(self, grid_handler_rcv)
     !    class(Grid3D_Comm_Handler)         :: self
-    !    type(Grid3D_cpu), intent(inout)    :: grid_handler_rcv
+    !    type(Grid3D_gpu), intent(inout)    :: grid_handler_rcv
     !    integer, dimension(3)            :: dims
     !    integer                            :: ierr
 
