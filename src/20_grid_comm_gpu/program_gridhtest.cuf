@@ -93,12 +93,12 @@ program comm_test
 
 
     ! Set Values For visualization----------------------------------------------
-    grid_handler_A%grid_space_cpu = my_rank + 1
-    grid_handler_B%grid_space_cpu = 99
+    grid_handler_A%grid_space_sync = my_rank + 1
+    grid_handler_B%grid_space_sync = 99
 
     if (my_rank == 0 ) then
-        do i = 1, size(grid_handler_A%grid_space_cpu)
-            grid_handler_A%grid_space_cpu(i) = i-1
+        do i = 1, size(grid_handler_A%grid_space_sync)
+            grid_handler_A%grid_space_sync(i) = i-1
         end do
     end if 
 
