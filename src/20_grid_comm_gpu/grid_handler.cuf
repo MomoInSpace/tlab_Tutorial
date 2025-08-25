@@ -27,11 +27,11 @@ implicit none
         ! free_space is the differene of indices between 
         !  grid_space and allocated_space
         real(kind = wp), pointer, &
-                         dimension(:):: grid_space_cpu, allocated_space_cpu
+                         dimension(:):: grid_space_sync, allocated_space_sync
 
         real(kind = wp), pointer, &
                          managed,  &
-                         dimension(:):: grid_space_gpu, allocated_space_gpu
+                         dimension(:):: grid_space_main, allocated_space_main
         ! grid_space points to the space of the grid.
         ! allocated_space points to the grid AND the overhead.
 
@@ -188,10 +188,10 @@ contains
         ! Parameters================================================================
         class(Grid3D), intent(inout)          :: self
         real(kind = wp), pointer, &
-                         dimension(:):: grid_space_cpu, allocated_space_cpu
+                         dimension(:):: grid_space_sync, allocated_space_sync
         real(kind = wp), pointer, &
                          managed, &
-                         dimension(:):: grid_space_gpu, allocated_space_gpu
+                         dimension(:):: grid_space_main, allocated_space_main
         real(kind = wp), intent(in),   &
                          pinned, &
                          dimension(:), &
@@ -210,11 +210,11 @@ contains
             error stop 
         end if
 
-        self%grid_space_gpu => grid_array_gpu(self%free_space+1:)  ! INDEXING MIGHT BE WRONG
-        self%allocated_space_gpu => grid_array_gpu
+        self%grid_space_main => grid_array_gpu(self%free_space+1:)  ! INDEXING MIGHT BE WRONG
+        self%allocated_space_main => grid_array_gpu
 
-        self%grid_space_cpu => grid_array_cpu(self%free_space+1:)  ! INDEXING MIGHT BE WRONG
-        self%allocated_space_cpu => grid_array_cpu
+        self%grid_space_sync => grid_array_cpu(self%free_space+1:)  ! INDEXING MIGHT BE WRONG
+        self%allocated_space_sync => grid_array_cpu
 
     end subroutine set_pointer_1D
 
@@ -240,12 +240,12 @@ contains
 
         grid3D_pointer_gpu(1:dims(1), &
                        1:dims(2), &
-                       1:dims(3)) => self%grid_space_gpu
+                       1:dims(3)) => self%grid_space_main
 
         if(present(grid3D_pointer_cpu)) then
             grid3D_pointer_cpu(1:dims(1), &
                            1:dims(2), &
-                           1:dims(3)) => self%grid_space_cpu
+                           1:dims(3)) => self%grid_space_sync
        end if
     end subroutine get_pointer_3D
 
@@ -286,9 +286,9 @@ contains
 
         work_space3D_gpu(1:dims(pertubation(1)), &
                      1:dims(pertubation(2)), &
-                     1:dims(pertubation(3))) => self%allocated_space_gpu
+                     1:dims(pertubation(3))) => self%allocated_space_main
 
-        work_space_gpu(1:prod(dims)) => self%allocated_space_gpu
+        work_space_gpu(1:prod(dims)) => self%allocated_space_main
  
     end subroutine get_switch_dims_workspace_gpu
 
