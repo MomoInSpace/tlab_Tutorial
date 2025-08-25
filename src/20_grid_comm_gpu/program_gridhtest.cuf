@@ -137,6 +137,8 @@ program comm_test
 
     ! Calling 
     call grid_comm_handler%free()
+    call MPI_Finalize()
+
 
     contains
 
@@ -155,8 +157,8 @@ program comm_test
         !call grid_handler_B%get_pointer_3D(u_d)
 
         ! Visualize Complete Grid--------------------------------------------------
-        !x = x_d
-        !call debug_values(grid_handler_B)
+        x = x_d
+        call debug_values(grid_handler_B)
 
 
         ! Rotation 2---------------------------------------------------------------
@@ -164,8 +166,8 @@ program comm_test
         call grid_handler_A%grid_waitall()
 
         ! Visualize Complete Grid--------------------------------------------------
-        !x = x_d
-        !call debug_values(grid_handler_A)
+        x = x_d
+        call debug_values(grid_handler_A)
 
         ! Rotation 3---------------------------------------------------------------
         call grid_comm_handler%rotate_grid_cpu(grid_handler_A, grid_handler_B, [3,2,1], grid_handler_tmp)
