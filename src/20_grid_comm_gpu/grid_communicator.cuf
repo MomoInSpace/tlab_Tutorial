@@ -251,13 +251,13 @@ contains
         
         ! Cuda aware parameters
         real(kind = wp), pointer, &
-                         device, &
+                         managed, &
                          dimension(:)    :: send_buf_pointer_gpu, &
                                             work_space_send_gpu, &
                                             work_space_tmp_gpu, &
                                             stencil_send_gpu
         real(kind = wp), pointer, &
-                         device, &
+                         managed, &
                          dimension(:,:,:):: work_space3D_send_gpu, &
                                             work_space3D_tmp_gpu, &
                                             grid3D_pointer_send_gpu, &
@@ -265,10 +265,10 @@ contains
                                             grid3D_pointer_tmp_gpu
         ! MPI_PARAMS                                
         TYPE(MPI_Request), dimension(:), &
-                           device, &
+                           managed, &
                            pointer :: GRID_COMM_REQUESTS_tmp
         TYPE(MPI_Status), dimension(:), &
-                          device, &
+                          managed, &
                           pointer  :: GRID_COMM_STATUS_tmp
 
         !character(len = 100):: fmt  ! Debug
