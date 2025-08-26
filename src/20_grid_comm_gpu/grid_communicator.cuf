@@ -1,3 +1,48 @@
+module communication_parameter
+    use mpi_f08
+    use TLAB_CONSTANTS, only: wp
+    implicit none
+        integer                          :: comm_dim, &
+                                            send_count, &
+                                            comm_steps, &
+                                            my_rank, &
+                                            ierr0, i, j, k, m, n
+        integer, dimension(3)            :: dims_send, &
+                                            dims_rcv, &
+                                            dims_tmp, &
+                                            ! Pertubation describes how the state
+                                            ! is changed after this subroutine
+                                            ! is executed. [a, b, c] -> [c, b, a]
+                                            subgrid_factors_xyz = [1, 1, 1], &
+                                            subgrid_dividers_xyz = [1, 1, 1]
+                                            ! subgrid_factors and subgrid_dividers
+                                            ! describe how the subgrids are 
+                                            ! squashed and stretched 
+                                            ! in each xyz dimension
+        integer, dimension(:), &
+                 allocatable             :: root, &
+                                            rcv_j, &
+                                            m_max
+        integer, dimension(:,:), &
+                 allocatable             :: ierr
+
+        ! Cuda aware parameters
+        real(kind = wp), pointer, &
+                         managed, &
+                         dimension(:)    :: send_buf_pointer_gpu => null(), &
+                                            work_space_send_gpu => null(), &
+                                            work_space_tmp_gpu => null(), &
+                                            stencil_send_gpu => null()
+        real(kind = wp), pointer, &
+                         managed, &
+                         dimension(:,:,:):: work_space3D_send_gpu, &
+                                            work_space3D_tmp_gpu, &
+                                            grid3D_pointer_send_gpu, &
+                                            grid3D_pointer_rcv_gpu, &
+                                            grid3D_pointer_tmp_gpu
+        
+end module communication_parameter
+
 module grid_comm_module
     use mpi_f08
     use grid_handler
@@ -31,7 +76,8 @@ module grid_comm_module
     contains
         procedure:: init
         procedure:: free
-        procedure:: rotate_grid_cpu
+        procedure:: rotate_grid
+        procedure:: rotate_grid_gpu
         procedure:: calculate_subgrid_dims
         !procedure:: grid_waitall
 
@@ -216,7 +262,9 @@ contains
         enddo
     end function get_factors
 
-    subroutine rotate_grid_cpu(self, grid_handler_send, grid_handler_rcv, pertubation, grid_handler_tmp)
+    subroutine rotate_grid(self, grid_handler_send, grid_handler_rcv, pertubation, grid_handler_tmp)
+        ! Parameters================================================================
+        use communication_parameter
         ! IO =======================================================================
         class(Grid3D_Comm_Handler)         :: self
         type(Grid3D_gpu), target, & 
@@ -224,53 +272,6 @@ contains
         type(Grid3D_gpu), target, &
                           intent(inout) :: grid_handler_tmp
         integer, dimension(3), intent(in)  :: pertubation
-        ! Parameters================================================================
-        integer                          :: comm_dim, &
-                                            send_count, &
-                                            comm_steps, &
-                                            my_rank, &
-                                            ierr0, i, j, k, m, n
-        integer, dimension(3)            :: dims_send, &
-                                            dims_rcv, &
-                                            dims_tmp, &
-                                            ! Pertubation describes how the state
-                                            ! is changed after this subroutine
-                                            ! is executed. [a, b, c] -> [c, b, a]
-                                            subgrid_factors_xyz = [1, 1, 1], &
-                                            subgrid_dividers_xyz = [1, 1, 1]
-                                            ! subgrid_factors and subgrid_dividers
-                                            ! describe how the subgrids are 
-                                            ! squashed and stretched 
-                                            ! in each xyz dimension
-        integer, dimension(:), &
-                 allocatable             :: root, &
-                                            rcv_j, &
-                                            m_max
-        integer, dimension(:,:), &
-                 allocatable             :: ierr
-        
-        ! Cuda aware parameters
-        real(kind = wp), pointer, &
-                         managed, &
-                         dimension(:)    :: send_buf_pointer_gpu, &
-                                            work_space_send_gpu, &
-                                            work_space_tmp_gpu, &
-                                            stencil_send_gpu
-        real(kind = wp), pointer, &
-                         managed, &
-                         dimension(:,:,:):: work_space3D_send_gpu, &
-                                            work_space3D_tmp_gpu, &
-                                            grid3D_pointer_send_gpu, &
-                                            grid3D_pointer_rcv_gpu, &
-                                            grid3D_pointer_tmp_gpu
-        ! MPI_PARAMS                                
-        TYPE(MPI_Request), dimension(:), &
-                           managed, &
-                           pointer :: GRID_COMM_REQUESTS_tmp
-        TYPE(MPI_Status), dimension(:), &
-                          managed, &
-                          pointer  :: GRID_COMM_STATUS_tmp
-
         !character(len = 100):: fmt  ! Debug
         ! Notes=====================================================================
         ! Each process A, B, C has to scatter their data to all other processes in its row:
@@ -379,6 +380,29 @@ contains
             end do
         end do
 
+
+        end subroutine rotate_grid
+
+        subroutine rotate_grid_gpu(self, grid_handler_send, grid_handler_rcv, pertubation, grid_handler_tmp)
+        use communication_parameter
+        ! IO =======================================================================
+        class(Grid3D_Comm_Handler)         :: self
+        type(Grid3D_gpu), target, & 
+                          intent(inout)    :: grid_handler_send, grid_handler_rcv
+        type(Grid3D_gpu), target, &
+                          intent(inout) :: grid_handler_tmp
+        integer, dimension(3), intent(in)  :: pertubation
+        ! Parameters================================================================
+        ! MPI_PARAMS                                
+        TYPE(MPI_Request), dimension(:), &
+                           managed, &
+                           pointer :: GRID_COMM_REQUESTS_tmp
+        TYPE(MPI_Status), dimension(:), &
+                          managed, &
+                          pointer  :: GRID_COMM_STATUS_tmp
+
+        call self%rotate_grid(grid_handler_send, grid_handler_rcv, pertubation, grid_handler_tmp)
+
         ! Communication loop----------------------------------------------------
         ierr = 0
         if (pertubation(1) == 2) call rotate_213()
@@ -399,8 +423,14 @@ contains
 
         if (allocated(rcv_j)) deallocate(rcv_j, stat = ierr0)
         if (ierr0 /= 0) print *, "ierr: Deallocation request denied rotate_grid 3"
+        
+        if (allocated(m_max)) deallocate(m_max, stat = ierr0)
+        if (ierr0 /= 0) print *, "ierr: Deallocation request denied rotate_grid 3"
 
-        contains
+        if (allocated(root)) deallocate(root, stat = ierr0)
+        if (ierr0 /= 0) print *, "ierr: Deallocation request denied rotate_grid 3"
+
+        contains 
 
         subroutine rotate_321_tmp()
             ! Body======================================================================
@@ -602,7 +632,7 @@ contains
         !    end do
         !end subroutine inner_loop_321
 
-    end subroutine rotate_grid_cpu
+    end subroutine rotate_grid_gpu
 
 
     !subroutine grid_waitall(self, grid_handler_rcv)
