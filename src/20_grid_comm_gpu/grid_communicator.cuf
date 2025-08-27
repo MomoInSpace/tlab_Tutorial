@@ -46,6 +46,7 @@ end module communication_parameter
 module grid_comm_module
     use mpi_f08
     use grid_handler
+    use grid_handler_gpu
     implicit none
 
     private:: get_factors
@@ -285,7 +286,7 @@ contains
         ! Body======================================================================
         call MPI_Comm_rank(self%MPI_COMM_CART, my_rank)
 
-        call grid_handler_send%get_switch_dims_workspace_gpu( &
+        call grid_handler_send%get_switch_dims_workspace( &
                 dims_send, &
                 work_space3D_send_gpu, &
                 work_space_send_gpu, & ! Could Be Empty TODO
@@ -297,7 +298,7 @@ contains
             ! Clean Copy of State
             grid_handler_tmp%state_xyz = grid_handler_send%state_xyz
             grid_handler_tmp%grid_xyz_dims =  grid_handler_send%grid_xyz_dims
-            call grid_handler_tmp%get_switch_dims_workspace_gpu( &
+            call grid_handler_tmp%get_switch_dims_workspace( &
                     dims_tmp, &
                     work_space3D_tmp_gpu, &
                     work_space_tmp_gpu, &

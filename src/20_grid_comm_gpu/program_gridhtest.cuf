@@ -4,6 +4,7 @@ program comm_test
     use TLAB_ARRAYS 
     use TLAB_POINTERS_3D
     use grid_handler
+    use grid_handler_gpu
     use grid_comm_module
     use grid_debug
     implicit none 
@@ -71,9 +72,9 @@ program comm_test
 
     ! Init grid_handler derived types-------------------------------------------
     overhead_factor = 3
-    call grid_handler_A%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
-    call grid_handler_B%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
-    call grid_handler_tmp%init(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
+    grid_handler_A = Grid3D_gpu(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
+    grid_handler_B = Grid3D_gpu(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
+    grid_handler_tmp = Grid3D_gpu(state_xyz, subgrid_xyz_dims, overhead_factor, grid_comm_handler%MPI_Cart_Dims)
 
     allocate(x(grid_handler_A%total_space, 3), stat = ierr(1), pinned = pinnedFlag)
     if (ierr(1) /= 0) print *, "q(1, grid_handler%total_space), : Allocation request denied"
@@ -84,9 +85,9 @@ program comm_test
     ! allocate(q(grid_handler%total_space, 1), stat = ierr(1))
     ! if (ierr(1) /= 0) print *, "q(1, grid_handler%total_space), : Allocation request denied"
 
-    call grid_handler_A%set_pointer_1D(x(:,1), x_d(:,1))
-    call grid_handler_B%set_pointer_1D(x(:,2), x_d(:,2))
-    call grid_handler_tmp%set_pointer_1D(x(:,3), x_d(:,3))
+    call grid_handler_A%set_pointer_1D(x_d(:,1), x(:,1))
+    call grid_handler_B%set_pointer_1D(x_d(:,2), x(:,2))
+    call grid_handler_tmp%set_pointer_1D(x_d(:,3), x(:,3))
 
     ! Example: For later use
     !call grid_handler_A%get_pointer_3D(u)
