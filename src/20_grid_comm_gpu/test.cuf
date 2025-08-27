@@ -1,0 +1,24 @@
+program test
+    use grid_handler
+    use grid_handler_cpu
+    use grid_handler_gpu
+    implicit none
+
+    integer, dimension(3)   :: state_xyz = [1,2,3], grid_xyz_dims = [1,2,3]
+    !integer, dimension(3)  :: subgrid_factors
+    integer, dimension(2)   :: MPI_Cart_Dims = [2,4]
+    integer                 :: overhead_factor = 2
+    integer                 :: max_area = 2
+
+    type(Grid3D_cpu) :: cpu_grid
+    type(Grid3D_gpu) :: gpu_grid
+
+    cpu_grid = Grid3D_cpu(state_xyz, grid_xyz_dims, & 
+                          overhead_factor, MPI_Cart_Dims)
+
+    gpu_grid = Grid3D_gpu(state_xyz, grid_xyz_dims, & 
+                          overhead_factor, MPI_Cart_Dims)
+
+    write(*,*) "hehyo"
+    write(*,*) cpu_grid%state_xyz
+end program

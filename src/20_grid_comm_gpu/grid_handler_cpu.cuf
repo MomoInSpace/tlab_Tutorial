@@ -1,0 +1,143 @@
+module grid_handler_cpu
+
+    use TLAB_CONSTANTS, only: wp
+    use mpi_f08
+    use grid_handler
+
+    implicit none
+
+    type, extends(Grid3D):: Grid3D_cpu
+        ! grid_space points to the space of the grid.
+        ! allocated_space points to the grid AND the overhead.
+        real(kind = wp), pointer, & 
+                         dimension(:):: grid_space_main, &
+                                        allocated_space_main
+        contains 
+        procedure :: set_pointer_1D => set_pointer_1D
+        procedure :: get_pointer_3D => get_pointer_3D
+        procedure :: get_switch_dims_workspace => get_switch_dims_workspace
+    end type Grid3D_cpu
+
+    interface Grid3D_cpu
+       module procedure :: createGrid3D_cpu
+    end interface
+    
+    contains
+
+    pure type(Grid3D_cpu) function createGrid3D_cpu(state_xyz, grid_xyz_dims, & 
+                          overhead_factor, MPI_Cart_Dims) result(self)
+        ! Parameters================================================================
+        class(Grid3D_cpu) :: self
+        integer, intent(in), &
+                 dimension(3)   :: state_xyz, grid_xyz_dims
+        !integer, dimension(3)   :: subgrid_factors
+        integer, intent(in), &
+                 dimension(2)   :: MPI_Cart_Dims
+        integer, intent(in)     :: overhead_factor 
+        integer                 :: max_area
+
+        self%Grid3D = Grid3D(state_xyz, grid_xyz_dims, & 
+                    overhead_factor, MPI_Cart_Dims)
+    end function
+
+    subroutine set_pointer_1D(self, grid_array_main, grid_array_sync)
+        ! Parameters================================================================
+        class(Grid3D_cpu), intent(inout)          :: self
+        real(kind = wp), pointer, &
+                         dimension(:):: grid_space_sync, allocated_space_sync
+        real(kind = wp), pointer, &
+                         managed, &
+                         dimension(:):: grid_space_main, allocated_space_main
+        real(kind = wp), intent(in),   &
+                         pinned, &
+                         dimension(:), &
+                         target        :: grid_array_main 
+        real(kind = wp), intent(in),   &
+                         optional, &
+                         device, &
+                         dimension(:), &
+                         target        :: grid_array_sync 
+        integer                        :: total_space
+        ! Notes=====================================================================
+        ! Body======================================================================
+
+        total_space = self%free_space+prod(self%grid_xyz_dims)
+        if (size(grid_array_main) < total_space) then 
+            write(*,*) "Array is too small for grid", size(grid_array_main), "< ",total_space
+            error stop 
+        end if
+
+        self%grid_space_main => grid_array_main(self%free_space+1:)  ! INDEXING MIGHT BE WRONG
+        self%allocated_space_main => grid_array_main
+
+    end subroutine set_pointer_1D
+
+
+    subroutine get_pointer_3D(self, grid3D_pointer_main, grid3D_pointer_sync)  
+        ! Parameters================================================================
+        class(Grid3D_cpu), intent(in)          :: self
+        real(kind = wp), intent(inout), &
+                         pointer, &
+                         dimension(:,:,:):: grid3D_pointer_main
+        real(kind = wp), intent(inout), &
+                         optional, &
+                         pointer, &
+                         dimension(:,:,:):: grid3D_pointer_sync
+        integer, dimension(3)            :: dims
+        ! Notes=====================================================================
+        ! In each state, the cuboids have the same volume. This is why we can
+        !   retrieve the 3D pointer by just using get_dims(), whithout needing
+        !   to adjust self%grid_space
+        ! Body======================================================================
+
+        dims = self%get_dims()
+
+        grid3D_pointer_main(1:dims(1), &
+                       1:dims(2), &
+                       1:dims(3)) => self%grid_space_main
+    end subroutine get_pointer_3D
+
+
+    subroutine get_switch_dims_workspace(self, dims, work_space3D_main, work_space_main, grid_3D_pointer_main, pertubation)
+        ! Parameters================================================================
+        class(Grid3D_cpu),   intent(in)   :: self
+        integer,         intent(out), &
+           dimension(3)               :: dims
+        integer,         intent(in), &
+           dimension(3)               :: pertubation
+        real(kind = wp), intent(out), &
+             pointer, &
+             dimension(:,:,:)         :: work_space3D_main, grid_3D_pointer_main
+        real(kind = wp), intent(out), &
+             pointer, &
+             dimension(:)         :: work_space_main
+
+        ! Notes=====================================================================
+        ! The base assumption when initializing our subgrids with the grid_handler
+        !   is, that we have 'overhead_factor's of free layers of (:,:,1) with no 
+        !   data and then grid-data below it. The workspace is then one layer 
+        !   higher, i.e:
+        !   Grid data: grid_array(:,:,overhead_factor:)
+        !   Grid data: grid_array(:,:,overhead_factor-1:)
+        ! 
+        !   grid_3D_pointer       work_space:
+        !   0 0 0                 0 0 0    The 0 marks unused allocated space, the 
+        !   0 0 0                 x x x        x marks used space.
+        !   x x x    ------>      x x x 
+        !   x x x                 0 0 0 
+        !
+        ! We also switch the dimensions 1 and 2.
+        ! Body======================================================================
+        dims = self%get_dims()
+        call self%get_pointer_3D(grid_3D_pointer_main)
+
+        work_space3D_main(1:dims(pertubation(1)), &
+                     1:dims(pertubation(2)), &
+                     1:dims(pertubation(3))) => self%allocated_space_main
+
+        work_space_main(1:prod(dims)) => self%allocated_space_main
+ 
+    end subroutine get_switch_dims_workspace
+
+
+end module grid_handler_cpu
