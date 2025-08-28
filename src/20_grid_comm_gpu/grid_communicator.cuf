@@ -76,10 +76,10 @@ module grid_comm_module
 
     contains
         procedure:: init
-        procedure:: free
         procedure:: rotate_grid
         procedure:: rotate_grid_gpu
         procedure:: calculate_subgrid_dims
+        final    :: free
         !procedure:: grid_waitall
 
     end type Grid3D_Comm_Handler
@@ -194,10 +194,6 @@ contains
                 error stop "block_multiplication_xyz_state has invalid values"
             end select
         end do
-        !write(*,*) self%subgrid_xyz_dims
-
-
-
     end subroutine
 
     ! TODO: Change to function
@@ -333,7 +329,7 @@ contains
         send_count = dims_rcv(1)  ! surface area/self%row_size
         comm_steps = dims_rcv(2)*dims_rcv(3)
 
-        call MPI_BARRIER(MPI_COMM_WORLD)
+        !call MPI_BARRIER(MPI_COMM_WORLD)
         ! Allocating ierr, comm_status and GRID_COMM_REQUESTS-------------------
         ! ierr
         allocate(ierr(dims_rcv(2),&
