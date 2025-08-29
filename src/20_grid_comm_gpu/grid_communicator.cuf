@@ -38,7 +38,7 @@ module grid_comm_module
     private:: get_task_dims
 
 
-    type :: Grid3D_Comm_Handler
+    type, abstract :: Grid3D_Comm_Handler
         ! Grid3D_Communicator  handles the communication of the 3D grid.
 
         TYPE(MPI_Comm):: MPI_Comm_Row, MPI_Comm_Column, MPI_COMM_CART
@@ -61,6 +61,7 @@ module grid_comm_module
 
     contains
         !procedure:: createGrid3D_Comm_Handler
+        procedure(iface_rotate_grid), deferred:: rotate_grid
         procedure:: rotate_grid_setup
         procedure:: calculate_subgrid_dims
         procedure :: free ! make this final?
@@ -71,6 +72,20 @@ module grid_comm_module
     interface Grid3D_Comm_Handler
         module procedure :: createGrid3D_Comm_Handler
     end interface
+
+    interface
+      subroutine iface_rotate_grid(self, grid_handler_send, grid_handler_rcv, pertubation, grid_handler_tmp)
+        import Grid3D_Comm_Handler
+        import Grid3D
+        implicit none
+        class(Grid3D_Comm_Handler)         :: self
+        type(Grid3D),     target, & 
+                          intent(inout)    :: grid_handler_send, grid_handler_rcv
+        type(Grid3D), target, &
+                      intent(inout) :: grid_handler_tmp
+        integer, dimension(3), intent(in)  :: pertubation
+         end subroutine iface_rotate_grid
+     end interface
 
 
 contains
@@ -279,9 +294,9 @@ contains
         !         allocatable             :: ierr
         ! IO =======================================================================
         class(Grid3D_Comm_Handler)         :: self
-        type(Grid3D_gpu), target, & 
+        class(Grid3D), target, & 
                           intent(inout)    :: grid_handler_send, grid_handler_rcv
-        type(Grid3D_gpu), target, &
+        class(Grid3D), target, &
                           intent(inout) :: grid_handler_tmp
         integer, dimension(3), intent(in)  :: pertubation
         !character(len = 100):: fmt  ! Debug
