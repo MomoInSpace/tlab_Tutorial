@@ -64,7 +64,7 @@ program comm_test
 
     !Init grid_comm_handler-----------------------------------------------------
     ! Four possible states: [0, 1, 2, 12].
-    call grid_comm_handler%init(world_size, &
+    grid_comm_handler = Grid3D_Comm_Handler(world_size, &
             block_xyz_dims, &
             block_multiplication_xyz_state, &
             column_upper_limit)
@@ -137,10 +137,7 @@ program comm_test
     !if (ierr(1) /= 0) print *, "array: Deallocation request denied"
 
     ! Calling 
-    call grid_comm_handler%free()
     call MPI_Finalize()
-
-
     contains
 
     subroutine debug_values(current_grid_handler)

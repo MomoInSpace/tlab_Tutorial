@@ -26,21 +26,6 @@ module communication_parameter
         integer, dimension(:,:), &
                  allocatable             :: ierr
 
-        ! Cuda aware parameters
-        real(kind = wp), pointer, &
-                         managed, &
-                         dimension(:)    :: send_buf_pointer_gpu => null(), &
-                                            work_space_send_gpu => null(), &
-                                            work_space_tmp_gpu => null(), &
-                                            stencil_send_gpu => null()
-        real(kind = wp), pointer, &
-                         managed, &
-                         dimension(:,:,:):: work_space3D_send_gpu, &
-                                            work_space3D_tmp_gpu, &
-                                            grid3D_pointer_send_gpu, &
-                                            grid3D_pointer_rcv_gpu, &
-                                            grid3D_pointer_tmp_gpu
-        
 end module communication_parameter
 
 module grid_comm_module
@@ -75,38 +60,46 @@ module grid_comm_module
         ! grid_xyz_dims saves the length of each dimension x, y and z
 
     contains
-        procedure:: init
+        !procedure:: createGrid3D_Comm_Handler
         procedure:: rotate_grid
         procedure:: rotate_grid_gpu
         procedure:: calculate_subgrid_dims
-        final    :: free
+        procedure :: free ! make this final?
         !procedure:: grid_waitall
 
     end type Grid3D_Comm_Handler
 
+    interface Grid3D_Comm_Handler
+        module procedure :: createGrid3D_Comm_Handler
+    end interface
+
 
 contains
 
-    subroutine init(self, world_size,     &
+    class(Grid3D_Comm_Handler) &
+         function createGrid3D_Comm_Handler( world_size,     &
                           block_xyz_dims, &
                           block_multiplication_xyz_state, &
-                          column_upper_limit) 
+                          column_upper_limit) result(self)
 
         ! Parameters============================================================
         class(Grid3D_Comm_Handler):: self
-        integer              :: world_size, rank, vertical_dimension, max_area
+        integer, intent(in)       :: world_size
+        integer                   ::  rank, vertical_dimension, max_area
         integer, dimension(2):: task_dims  
-        integer, dimension(3):: block_xyz_dims, &
+        INTEGER, intent(in), &
+                 dimension(3) :: block_xyz_dims, &
                                 ! Describes the size of the smallest grid_unit.
-                                block_multiplication_xyz_state, &
+                                block_multiplication_xyz_state
                                 ! The block_xyz_dims get multiplied by the 
                                 ! threads as indicated by this state.
                                 ! Depending on the communication algorithm used, 
                                 ! the programm needs different states!
-                                subgrid_xyz_dims
+
+    INTEGER,       dimension(3) ::  subgrid_xyz_dims
                                 ! The size of the subgrid for each thread as 
                                 ! indicated by block_multiplication_xyz_state
-        integer              :: column_upper_limit
+        integer, intent(in)  :: column_upper_limit
         logical, dimension(2):: periods = [.false., .false.]
         ! Error integer:
         integer, dimension(100):: ierr  = 0
@@ -148,11 +141,11 @@ contains
         ! Calculate Grid Structure------------------------------------
         call calculate_subgrid_dims(self)
 
-    end subroutine init
+    end function createGrid3D_Comm_Handler 
 
-    subroutine free(self)
+    subroutine free(self) 
         ! Parameters============================================================
-        class(Grid3D_Comm_Handler):: self
+        class(Grid3D_Comm_Handler), intent(inout):: self
         integer                   :: ierr
 
         ! Body =================================================================
@@ -262,6 +255,29 @@ contains
     subroutine rotate_grid(self, grid_handler_send, grid_handler_rcv, pertubation, grid_handler_tmp)
         ! Parameters================================================================
         use communication_parameter
+        !integer                          :: comm_dim, &
+        !                                    send_count, &
+        !                                    comm_steps, &
+        !                                    my_rank, &
+        !                                    ierr0, i, j, k, m, n
+        !integer, dimension(3)            :: dims_send, &
+        !                                    dims_rcv, &
+        !                                    dims_tmp, &
+        !                                    ! Pertubation describes how the state
+        !                                    ! is changed after this subroutine
+        !                                    ! is executed. [a, b, c] -> [c, b, a]
+        !                                    subgrid_factors_xyz = [1, 1, 1], &
+        !                                    subgrid_dividers_xyz = [1, 1, 1]
+        !                                    ! subgrid_factors and subgrid_dividers
+        !                                    ! describe how the subgrids are 
+        !                                    ! squashed and stretched 
+        !                                    ! in each xyz dimension
+        !integer, dimension(:), &
+        !         allocatable             :: root, &
+        !                                    rcv_j, &
+        !                                    m_max
+        !integer, dimension(:,:), &
+        !         allocatable             :: ierr
         ! IO =======================================================================
         class(Grid3D_Comm_Handler)         :: self
         type(Grid3D_gpu), target, & 
@@ -282,24 +298,14 @@ contains
         ! Body======================================================================
         call MPI_Comm_rank(self%MPI_COMM_CART, my_rank)
 
-        call grid_handler_send%get_switch_dims_workspace( &
-                dims_send, &
-                work_space3D_send_gpu, &
-                work_space_send_gpu, & ! Could Be Empty TODO
-                grid3D_pointer_send_gpu, &
-                pertubation)
+        dims_send = grid_handler_send%get_dims()
             
         !if (present(grid_handler_tmp)) then
 
             ! Clean Copy of State
             grid_handler_tmp%state_xyz = grid_handler_send%state_xyz
             grid_handler_tmp%grid_xyz_dims =  grid_handler_send%grid_xyz_dims
-            call grid_handler_tmp%get_switch_dims_workspace( &
-                    dims_tmp, &
-                    work_space3D_tmp_gpu, &
-                    work_space_tmp_gpu, &
-                    grid3D_pointer_tmp_gpu, &
-                    pertubation)
+            dims_tmp = grid_handler_tmp%get_dims()
         !end if
 
         if (pertubation(1) == 2) comm_dim = self%row_size
@@ -317,8 +323,6 @@ contains
             subgrid_factors_xyz  = subgrid_factors_xyz, &
             subgrid_dividers_xyz = subgrid_dividers_xyz, &
             perturbation_xyz     = pertubation) 
-
-        call grid_handler_rcv%get_pointer_3D(grid3D_pointer_rcv_gpu)
 
         ! Defining rcv dimensions ----------------------------------------------
         ! I'm not using grid_handler_rcv%get_dims() because 
@@ -338,22 +342,6 @@ contains
 
         ! comm_status
         call grid_handler_rcv%init_comm_requests(comm_steps)
-        !if (allocated(grid_handler_rcv%GRID_COMM_STATUS)) deallocate(grid_handler_rcv%GRID_COMM_STATUS, stat = ierr0)
-        !if (ierr0 /= 0) print *, "ierr: Deallocation request denied GRID_COMM_STATUS"
-        !
-        !allocate(grid_handler_rcv%GRID_COMM_STATUS(dims_rcv(2)*&
-        !                          dims_rcv(3)), stat = ierr0)
-        !if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
-
-        !!GRID_COMM_STATUS_tmp(dims_rcv(2)*dims_rcv(3)) => grid_handler_rcv%GRID_COMM_STATUS
-
-        !! GRID_COMM_REQUESTS
-        !allocate(grid_handler_rcv%GRID_COMM_REQUESTS(dims_rcv(2)*&
-        !                     dims_rcv(3)), stat = ierr0)
-        !if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
-
-        ! request pointer
-        !GRID_COMM_REQUESTS_tmp(dims_rcv(2)*dims_rcv(3)) => grid_handler_rcv%GRID_COMM_REQUESTS
 
         ! Defining root and rcv_j and ierr for the communication later---------
         ! root
@@ -390,6 +378,21 @@ contains
                           intent(inout) :: grid_handler_tmp
         integer, dimension(3), intent(in)  :: pertubation
         ! Parameters================================================================
+        ! Cuda aware parameters
+        real(kind = wp), pointer, &
+                         device, &
+                         dimension(:)    :: send_buf_pointer_gpu => null(), &
+                                            work_space_send_gpu => null(), &
+                                            work_space_tmp_gpu => null(), &
+                                            stencil_send_gpu => null()
+        real(kind = wp), pointer, &
+                         device, &
+                         dimension(:,:,:):: work_space3D_send_gpu, &
+                                            work_space3D_tmp_gpu, &
+                                            grid3D_pointer_send_gpu, &
+                                            grid3D_pointer_rcv_gpu, &
+                                            grid3D_pointer_tmp_gpu
+
         ! MPI_PARAMS                                
         TYPE(MPI_Request), dimension(:), &
                            managed, &
@@ -401,6 +404,25 @@ contains
         call self%rotate_grid(grid_handler_send, grid_handler_rcv, pertubation, grid_handler_tmp)
 
         ! Communication loop----------------------------------------------------
+
+        call grid_handler_send%get_switch_dims_workspace( &
+                dims_send, &
+                work_space3D_send_gpu, &
+                work_space_send_gpu, & ! Could Be Empty TODO
+                grid3D_pointer_send_gpu, &
+                pertubation)
+
+        call grid_handler_tmp%get_switch_dims_workspace( &
+                dims_tmp, &
+                work_space3D_tmp_gpu, &
+                work_space_tmp_gpu, &
+                grid3D_pointer_tmp_gpu, &
+                pertubation)
+
+        call grid_handler_rcv%get_pointer_3D(grid3D_pointer_rcv_gpu)
+
+        
+
         ierr = 0
         if (pertubation(1) == 2) call rotate_213()
         if (pertubation(1) == 3) call rotate_321_tmp()
