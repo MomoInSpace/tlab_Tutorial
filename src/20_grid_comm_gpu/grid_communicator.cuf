@@ -185,7 +185,7 @@ contains
         integer:: i
         ! Body =================================================================
 
-        !write(*,*) self%block_xyz_dims
+        !write(*,*) self%block_xyz_dims, self%column_size, self%row_size
         do i = 1, 3
             select case (self%block_multiplication_xyz_state(i))
             case(0)
@@ -201,6 +201,7 @@ contains
                 error stop "block_multiplication_xyz_state has invalid values"
             end select
         end do
+        !write(*,*) self%subgrid_xyz_dims
     end subroutine
 
     ! TODO: Change to function
@@ -367,6 +368,9 @@ contains
         if (ierr0 /= 0) print *, "ierr(dim(3)): Allocation request denied"
 
         ! TODO:Rmove k and n in loop, not needed here.
+
+        !write(*,*) dims_send, comm_dim
+
         k = 0
         j = dims_send(1)/comm_dim
         do i = 1, dims_send(1), j
