@@ -1,0 +1,13 @@
+program permute_3d_cuda_fortran
+  use cudafor
+  use cutensor_v2
+  implicit none
+
+! Parameters
+  integer, parameter :: Di=8, Dj=8, Dk=8
+  integer :: n = Di*Dj*Dk
+
+  write(*,*) "What ya looking at"
+
+
+end program
