@@ -24,7 +24,7 @@ program comm_test
                                    ! Describes the orientation of our array/grid. 
                                    block_xyz_dims, &
                                    ! Describes the size of the smallest grid_unit.
-                                   block_multiplication_xyz_state = [12, 1, 2], &
+                                   block_multiplication_xyz_state = [1, 1, 0], &
                                    ! The block_xyz_dims get multiplied by the 
                                    ! threads as indicated by this state.
                                    ! Depending on the communication algorithm used, 
