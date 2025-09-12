@@ -182,9 +182,10 @@ module grid_handler_gpu
             do j=1, dims(2)
                 !$acc loop independent
                 do i = 2, dims(1)-1
-                    grid3D_diff_pointer(i,j,k) = grid3D_diff_pointer(i,j,k) + &
-                    (grid3D_pointer_main(i+1,j,k)-grid3D_pointer_main(i-1,j,k))&
-                                 /(2*h)
+                    grid3D_diff_pointer(i,j,k) = grid3D_pointer_main(i,j,k)
+                    !grid3D_diff_pointer(i,j,k) = grid3D_diff_pointer(i,j,k) + &
+                    !(grid3D_pointer_main(i+1,j,k)-grid3D_pointer_main(i-1,j,k))&
+                    !             /(2*h)
                 end do
                 !grid3D_pointer_main(1,j,k) = 0
                 !grid3D_pointer_main(-1,j,k) = 0
