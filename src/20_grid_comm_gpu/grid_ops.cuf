@@ -45,9 +45,9 @@ module grid_ops
         do k = 1, dims(3)
             z_val = (real(k)/real(dims(3)))
             do j=1, dims(2)
-                x_val = 0!(real(j)/real(dims(2)))
+                x_val = (real(j)/real(dims(2)))
                 do i = 1, dims(1)
-                    y_val = (-1. + 2.*real(i)/real(dims(1)))
+                    y_val = (-1. + 1.*real(i)/real(dims(1)))+0.5
 
                     u(i,j,k) = func(y_val,x_val,z_val)
                 end do
@@ -70,14 +70,15 @@ module grid_ops
         mi = grid_comm_handler%MPI_Cart_Coords(1)
         ni = grid_comm_handler%MPI_Cart_Coords(2)
         m = grid_comm_handler%MPI_Cart_Dims(1)
-        m = grid_comm_handler%MPI_Cart_Dims(2)
+        n = grid_comm_handler%MPI_Cart_Dims(2)
+        !write(*,*) mi,ni,m,n
 
         do k = 1, dims(3)
             z = 1/real(m)*(real(mi) + real(k)/real(dims(3)))
             do j=1, dims(2)
-                x = 0!1/real(n)*(real(ni) + real(j)/real(dims(2)))
+                x = 1/real(n)*(real(ni) + real(j)/real(dims(2)))
                 do i = 1, dims(1)
-                    y = -1. + 2.*real(i)/real(dims(1)) 
+                    y = -1. + 1.*real(i)/real(dims(1)) + 0.5
                     u(i,j,k) = u(i,j,k) + func(y,x,z)
                 end do
             end do
@@ -85,7 +86,7 @@ module grid_ops
 
     end subroutine fill_subgrid
 
-    real(wp) function grid_func(x,y,z) result(f)
+    real(wp) function grid_func(y,x,z) result(f)
         real(wp), intent(in)  :: x,y,z
         f = x**2+y**2+z**2
     end function

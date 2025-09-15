@@ -155,7 +155,7 @@ module grid_handler_cpu
         call self%get_pointer_3D(grid3D_pointer_main)  
 
 
-        h = 2/real(dims(1))
+        h = 1/real(dims(1))
         do k=1, dims(3)
             do j=1, dims(2)
                 do i = 2, dims(1)-1
@@ -167,7 +167,6 @@ module grid_handler_cpu
                 !grid3D_pointer_main(-1,j,k) = 0
             end do
         end do
-
 
     
 
