@@ -19,7 +19,11 @@ cd build
 
 #mpifort $gpu_profile/tlab_constants.cuf $gpu_profile/tlab_arrays.cuf $gpu_profile/grid_handler.cuf $gpu_profile/grid_handler_gpu.cuf $gpu_profile/grid_handler_cpu.cuf $gpu_profile/grid_communicator.cuf $gpu_profile/grid_communicator_gpu.cuf $gpu_profile/grid_communicator_cpu.cuf $gpu_profile/grid_debug.cuf  $gpu_profile/program_gridhtest.f90 -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -Minfo=accel,inline -o comm_test_cpu.run
 
-mpifort $gpu_profile/tlab_constants.cuf $gpu_profile/tlab_arrays.cuf $gpu_profile/grid_handler.cuf $gpu_profile/grid_handler_gpu.cuf $gpu_profile/grid_handler_cpu.cuf $gpu_profile/grid_communicator.cuf $gpu_profile/grid_communicator_gpu.cuf $gpu_profile/grid_communicator_cpu.cuf $gpu_profile/grid_debug.cuf  $gpu_profile/program_simple_nabla.cuf -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -Minfo=accel,inline -o comm_snabla.run
+# Snabla GPU
+#mpifort $gpu_profile/tlab_constants.cuf $gpu_profile/tlab_arrays.cuf $gpu_profile/grid_handler.cuf $gpu_profile/grid_handler_gpu.cuf $gpu_profile/grid_handler_cpu.cuf $gpu_profile/grid_communicator.cuf $gpu_profile/grid_communicator_gpu.cuf $gpu_profile/grid_communicator_cpu.cuf $gpu_profile/grid_debug.cuf  $gpu_profile/program_simple_nabla.cuf -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -Minfo=accel,inline -o comm_snabla.run
+
+# Snabla CPU
+mpifort $gpu_profile/tlab_constants.cuf $gpu_profile/tlab_arrays.cuf $gpu_profile/grid_handler.cuf $gpu_profile/grid_handler_gpu.cuf $gpu_profile/grid_handler_cpu.cuf $gpu_profile/grid_communicator.cuf $gpu_profile/grid_communicator_gpu.cuf $gpu_profile/grid_communicator_cpu.cuf $gpu_profile/grid_debug.cuf  $gpu_profile/program_simple_nabla_cpu.cuf -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -Minfo=accel,inline -o comm_snabla_cpu.run
 
 #mpifort $gpu_profile/program_gridhtest.f90 -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -Minfo=accel,inline -o comm_test_cpu.run
 

@@ -415,7 +415,7 @@ contains
             ! write(*,*) "Dims2:"
 
             write(*,*) "Dims (1, :,:)"
-            write(fmt, '(A, I0, A)') '(', dims(2), 'F4.1)'
+            write(fmt, '(A, I0, A)') '(', dims(2), 'F4.0)'
             write(*,fmt) self%grid_pointer_3d(1, :,:)
 
             !write(*,*) "Dims (:,1, :)"
@@ -487,10 +487,10 @@ contains
 
         ! Allocate testgrid and testbuffer . . . . . . . . . . . . . . . . . . . . 
         if (allocated(testgrid_array)) deallocate(testgrid_array, stat = err)
-        if (err /= 0) print *, "array: Deallocation request denied"
+        !if (err /= 0) print *, "array: Deallocation request denied, debug"
 
         if (allocated(testbuffer_array)) deallocate(testbuffer_array, stat = err)
-        if (err /= 0) print *, "array: Deallocation request denied"
+        !if (err /= 0) print *, "array: Deallocation request denied, debug"
 
         call testgrid_handler%allocate_arrays_wbuffer(testgrid_array, testbuffer_array)
 
@@ -557,7 +557,7 @@ contains
       !end if
         
       if (allocated(gathered_values)) deallocate(gathered_values, stat = ierr)
-      if (ierr /= 0) print *, "array: Deallocation request denied"
+      !if (ierr /= 0) print *, "array: Deallocation request denied, debug"
 
 
 

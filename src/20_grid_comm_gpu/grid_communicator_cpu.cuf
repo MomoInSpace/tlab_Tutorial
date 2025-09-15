@@ -141,7 +141,7 @@ module grid_comm_cpu_module
                     do i = 1, dims_rcv(1) 
                         work_space3D_tmp(i, j, k) =  grid3D_pointer_send(j, i, k)
                     end do
-                    call MPI_Igather(sendbuf   = work_space3D_tmp(:,j, k), &
+                    call MPI_iGather(sendbuf   = work_space3D_tmp(:,j, k), &
                                     sendcount = send_count, &
                                     sendtype  = MPI_DOUBLE, &
                                     recvbuf   = grid3D_pointer_rcv(:,rcv_j(j), k), &
