@@ -2,6 +2,7 @@ module grid_ops
     use TLAB_CONSTANTS
     use TLAB_ARRAYS 
     use TLAB_POINTERS_3D
+    use grid_comm_module
     implicit none
 
 
@@ -27,10 +28,10 @@ module grid_ops
         
     end subroutine get_supergrid
 
-    subroutine create_supergrid(u,dims, func)
+    subroutine create_supergrid(dims, func)
         real(wp), pointer :: u(:, :, :) 
         integer, dimension(3)       :: dims
-        INTEGER:: i, j, k, m, n, ierr
+        INTEGER:: i, j, k, ierr
         procedure(Ifunc), pointer :: func
         !real(wp), allocatable, pinned :: y(:,:)
         real(wp)  :: x_val,y_val,z_val
@@ -44,18 +45,11 @@ module grid_ops
         do k = 1, dims(3)
             z_val = (real(k)/real(dims(3)))
             do j=1, dims(2)
-                x_val = (real(j)/real(dims(2)))
+                x_val = 0!(real(j)/real(dims(2)))
                 do i = 1, dims(1)
                     y_val = (-1. + 2.*real(i)/real(dims(1)))
-                    !v(i,j,k) = Sin(-1. + 2.*real(i)/real(dims(1)*pi_wp)) + &
-                    !           real(j)/real(dims(2)) + &
-                    !           real(k)/real(dims(3))**2
-                    !v(i,j,k) = Sin((-1. + 2.*real(i)/real(dims(1)))*pi_wp) + &
-                    !           real(j)/real(dims(2)) + &
-                    !           (real(k)/real(dims(3)))**2
+
                     u(i,j,k) = func(y_val,x_val,z_val)
-                                
-                               
                 end do
             end do
         end do
@@ -65,17 +59,23 @@ module grid_ops
 
     end subroutine create_supergrid
 
-    subroutine fill_subgrid(u,dims, func)
+    subroutine fill_subgrid(u,dims, func, grid_comm_handler)
         real(wp), pointer :: u(:, :, :) 
         procedure(Ifunc), pointer :: func
         integer, dimension(3)       :: dims
         INTEGER:: i, j, k, m, n, mi,ni
         real(wp)  :: x,y,z
+        class(Grid3D_Comm_Handler)   :: grid_comm_handler
+
+        mi = grid_comm_handler%MPI_Cart_Coords(1)
+        ni = grid_comm_handler%MPI_Cart_Coords(2)
+        m = grid_comm_handler%MPI_Cart_Dims(1)
+        m = grid_comm_handler%MPI_Cart_Dims(2)
 
         do k = 1, dims(3)
             z = 1/real(m)*(real(mi) + real(k)/real(dims(3)))
             do j=1, dims(2)
-                x = 1/real(n)*(real(ni) + real(j)/real(dims(2)))
+                x = 0!1/real(n)*(real(ni) + real(j)/real(dims(2)))
                 do i = 1, dims(1)
                     y = -1. + 2.*real(i)/real(dims(1)) 
                     u(i,j,k) = u(i,j,k) + func(y,x,z)

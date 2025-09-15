@@ -107,18 +107,18 @@ program comm_test
     rank_coords = grid_comm_handler%MPI_Cart_Dims
     m = rank_coords(1)
     n = rank_coords(2)
-
+    func => grid_func
 
     ! Check Local Diff ---------------------------------------------------------
     call grid_handler_B%get_pointer_3D(v)
     v = 0 
     func => grid_func_dy
-    call fill_subgrid(v, grid_handler_B%get_dims(), func)
+    call fill_subgrid(v, grid_handler_B%get_dims(), func,grid_comm_handler)
 
     call grid_handler_A%get_pointer_3D(u)
     u = 0
     func => grid_func
-    call fill_subgrid(u, grid_handler_A%get_dims(), func)
+    call fill_subgrid(u, grid_handler_A%get_dims(), func,grid_comm_handler)
     call grid_handler_C%get_pointer_3D(w)
     call grid_handler_A%diff_central1(w)
 
@@ -126,21 +126,26 @@ program comm_test
     call check_diff(v,w,dims, "Local Diff")
 
     ! Check gather ------------------------------------------------------------
-    ! WORKING HERE
+    ! Create subgrid
     call grid_handler_A%get_pointer_3D(u)
     func => grid_func
     u = 0
-    call fill_subgrid(u,grid_handler_A%get_dims(), func)
+    call fill_subgrid(u,grid_handler_A%get_dims(), func,grid_comm_handler)
+    ! Comm Supergrid
     call debug_values(grid_handler_A)
-    call testgrid_handler%get_dims(dims)
     u => testgrid_handler%grid_pointer_3d
-    call create_supergrid(v,dims, func) ! Create Supergrid Only has to be called once
+
+    ! Generate Theory Supergrid
+    call testgrid_handler%get_dims(dims)
+    call create_supergrid(dims, func) ! Create Supergrid Only has to be called once
     call get_supergrid(v,dims)
+
+
     call check_diff(u,v,dims, "Check Gather")
 
     !Check Gather+Diff ---------------------------------------------------------
     call grid_handler_A%get_pointer_3D(u)
-    call fill_subgrid(u, grid_handler_A%get_dims(), func)
+    call fill_subgrid(u, grid_handler_A%get_dims(), func,grid_comm_handler)
     u = u**3
     grid_handler_B%grid_space_main = 99
     grid_handler_C%grid_space_main= 0
