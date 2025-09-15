@@ -1,0 +1,113 @@
+module grid_ops
+    use TLAB_CONSTANTS
+    use TLAB_ARRAYS 
+    use TLAB_POINTERS_3D
+    implicit none
+
+
+    abstract interface
+        function Ifunc(x_val, y_val, z_val) &
+            result(f_val)
+        import :: wp
+        implicit none
+        real(wp), intent(in)  :: x_val,y_val,z_val
+        real(wp) :: f_val
+      end function Ifunc
+   end interface
+
+    contains
+
+    subroutine get_supergrid(u, dims)
+        real(wp), pointer :: u(:, :, :) 
+        integer, dimension(3)       :: dims
+        !real(wp), allocatable, pinned :: y(:,:)
+
+        y(:,2) = y(:,1)
+        u(1:dims(1), 1:dims(2), 1:dims(3)) => y(:,2)
+        
+    end subroutine get_supergrid
+
+    subroutine create_supergrid(u,dims, func)
+        real(wp), pointer :: u(:, :, :) 
+        integer, dimension(3)       :: dims
+        INTEGER:: i, j, k, m, n, ierr
+        procedure(Ifunc), pointer :: func
+        !real(wp), allocatable, pinned :: y(:,:)
+        real(wp)  :: x_val,y_val,z_val
+
+        ! Create v(:,:,:) pointer --------------------------------------------------
+        allocate(y(dims(1)*dims(2)*dims(3), 3), stat = ierr)
+        if (ierr /= 0) print *, "q(1, grid_handler%total_space), : Allocation request denied"
+        u(1:dims(1), 1:dims(2), 1:dims(3)) => y(:,1)
+
+
+        do k = 1, dims(3)
+            z_val = (real(k)/real(dims(3)))
+            do j=1, dims(2)
+                x_val = (real(j)/real(dims(2)))
+                do i = 1, dims(1)
+                    y_val = (-1. + 2.*real(i)/real(dims(1)))
+                    !v(i,j,k) = Sin(-1. + 2.*real(i)/real(dims(1)*pi_wp)) + &
+                    !           real(j)/real(dims(2)) + &
+                    !           real(k)/real(dims(3))**2
+                    !v(i,j,k) = Sin((-1. + 2.*real(i)/real(dims(1)))*pi_wp) + &
+                    !           real(j)/real(dims(2)) + &
+                    !           (real(k)/real(dims(3)))**2
+                    u(i,j,k) = func(y_val,x_val,z_val)
+                                
+                               
+                end do
+            end do
+        end do
+
+        y(:,2) = y(:,1)
+        u(1:dims(1), 1:dims(2), 1:dims(3)) => y(:,2)
+
+    end subroutine create_supergrid
+
+    subroutine fill_subgrid(u,dims, func)
+        real(wp), pointer :: u(:, :, :) 
+        procedure(Ifunc), pointer :: func
+        integer, dimension(3)       :: dims
+        INTEGER:: i, j, k, m, n, mi,ni
+        real(wp)  :: x,y,z
+
+        do k = 1, dims(3)
+            z = 1/real(m)*(real(mi) + real(k)/real(dims(3)))
+            do j=1, dims(2)
+                x = 1/real(n)*(real(ni) + real(j)/real(dims(2)))
+                do i = 1, dims(1)
+                    y = -1. + 2.*real(i)/real(dims(1)) 
+                    u(i,j,k) = u(i,j,k) + func(y,x,z)
+                end do
+            end do
+        end do
+
+    end subroutine fill_subgrid
+
+    real(wp) function grid_func(x,y,z) result(f)
+        real(wp), intent(in)  :: x,y,z
+        f = x**2+y**2+z**2
+    end function
+
+    real(wp) function grid_func_dx(y,x,z) result(f)
+        real(wp), intent(in)  :: x,y,z
+        f = 2*x
+    end function
+
+    real(wp) function grid_func_dy(y,x,z) result(f)
+        real(wp), intent(in)  :: x,y,z
+        f = 2*y
+    end function
+
+    real(wp) function grid_func_dz(y,x,z) result(f)
+        real(wp), intent(in)  :: x,y,z
+        f = 2*z
+    end function
+
+    real(wp) function grid_func_dt(y,x,z) result(f)
+        real(wp), intent(in)  :: x,y,z
+        f = 2*x + 2*y + 2*z
+    end function
+
+end module grid_ops
