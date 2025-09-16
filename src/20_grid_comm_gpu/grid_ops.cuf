@@ -88,27 +88,35 @@ module grid_ops
 
     real(wp) function grid_func(y,x,z) result(f)
         real(wp), intent(in)  :: x,y,z
-        f = x**2+y**2+z**2
+        !f = x**3+y**3+z**3
+        !f = x**2*Sin(y)+z**3 
+        f = Sin(x*y*z)
     end function
 
     real(wp) function grid_func_dx(y,x,z) result(f)
         real(wp), intent(in)  :: x,y,z
-        f = 2*x
+        !f = 3*x**2
+        !f = 2*x*Sin(y)
+        f = Cos(x*y*z)*y*z
     end function
 
     real(wp) function grid_func_dy(y,x,z) result(f)
         real(wp), intent(in)  :: x,y,z
-        f = 2*y
+        !f = 3*y**2
+        !f = x**2*Cos(y)
+        f = Cos(x*y*z)*x*z
     end function
 
     real(wp) function grid_func_dz(y,x,z) result(f)
         real(wp), intent(in)  :: x,y,z
-        f = 2*z
+        !f = 3*z**2
+        !f = 3*z**2
+        f = Cos(x*y*z)*x*y
     end function
 
     real(wp) function grid_func_dt(y,x,z) result(f)
         real(wp), intent(in)  :: x,y,z
-        f = 2*x + 2*y + 2*z
+        f = grid_func_dx(y,x,z)+grid_func_dy(y,x,z)+ grid_func_dz(y,x,z)
     end function
 
 end module grid_ops

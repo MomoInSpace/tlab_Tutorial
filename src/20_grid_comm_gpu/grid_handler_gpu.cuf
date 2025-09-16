@@ -175,7 +175,7 @@ module grid_handler_gpu
 
         !$acc data deviceptr(h,grid3D_pointer_main,grid3D_diff_pointer)
         !$acc kernels
-        h = 2/real(dims(1))
+        h = 1/real(dims(1))
         !$acc loop independent
         do k=1, dims(3)
             !$acc loop independent
