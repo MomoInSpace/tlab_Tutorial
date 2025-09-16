@@ -168,7 +168,7 @@ program comm_test
     call testgrid_handler%get_dims(dims)
 
 
-    func => grid_func_dx
+    func => grid_func_dt
     call create_supergrid(dims, func) ! Create Supergrid Only has to be called once
     call get_supergrid(u,dims)
 
@@ -176,26 +176,30 @@ program comm_test
     call check_diff(u,v,dims, "Theory - CommNum")
 
     ! Calculate theoretical Solution
+    func => grid_func
+    call create_supergrid(dims, func) ! Create Supergrid Only has to be called once
     call get_supergrid(u,dims)
     w(1:dims(1), 1:dims(2), 1:dims(3)) => y(:,3)
     
     do k=2, dims(3)-1
         do j=2, dims(2)-1
             do i = 2, dims(1)-1
-                w(i,j,k) =  (u(i+1,j,k)-u(i-1,j,k))/( 2*(2/real(dims(1))) ) !+&
-                            !(u(i,j+1,k)-u(i,j-1,k))/( 2*(2/real(dims(2))) ) +&
-                            !(u(i,j,k+1)-u(i,j,k-1))/( 2*(2/real(dims(3))) )
+                w(i,j,k) =  (u(i+1,j,k)-u(i-1,j,k))/( 2/real(dims(1))) +&
+                            (u(i,j+1,k)-u(i,j-1,k))/( 2/real(dims(2))) +&
+                            (u(i,j,k+1)-u(i,j,k-1))/( 2/real(dims(3))) 
             end do
             !grid3D_pointer_main(1,j,k) = 0
             !grid3D_pointer_main(-1,j,k) = 0
         end do
     end do
+    func => grid_func_dt
+    call create_supergrid(dims, func) ! Create Supergrid Only has to be called once
     call get_supergrid(u,dims)
 
     ! Check difference of u and v
-    call check_diff(w,u,dims, "Theory - Num")
+    call check_diff(u,w,dims, "Theory - Num")
 
-    call check_diff(v,u,dims, "Num - CommNum")
+    call check_diff(w,v,dims, "Num - CommNum")
 
     if (my_rank == 0) then
     write(*,*) "theory abs"
@@ -233,89 +237,42 @@ program comm_test
 
     subroutine cycle()
 
-        !call grid_handler_C%get_pointer_3D(u_d, u)
-        !call grid_handler_A%diff_central1(u_d)
-
-        !if (my_rank == 0) then 
-        !    ! Print out numeric Solution
-        !    write(*,*) dims
-        !    write(*,*) "Dims (:, 1,:)"
-        !    write(fmt, '(A, I0, A)') '(', dims(1), 'F4.1)'
-        !    write(*,fmt) u(:, 1,:)
-        !end if
-
-        !x = x_d
-        !call MPI_Barrier(MPI_COMM_WORLD)
-        !call grid_handler_A%get_pointer_3D(u)
-        !call grid_handler_C%get_pointer_3D(v)
-        !v = 0
-        !call grid_handler_A%diff_central1(v)
-        !call MPI_Barrier(MPI_COMM_WORLD)
-
+        ! Calc d/dy
+        call grid_handler_A%get_pointer_3D(u)
+        call grid_handler_C%get_pointer_3D(v)
+        v = 0
+        call grid_handler_A%diff_central1(v)
         ! Rotation 1----------------------------------------------------------------
         call grid_comm_handler%rotate_grid(grid_handler_A, grid_handler_B, [2,1,3], grid_handler_tmp)
         call grid_handler_B%grid_waitall()
-        call MPI_Barrier(MPI_COMM_WORLD)
         call grid_comm_handler%rotate_grid(grid_handler_C, grid_handler_D, [2,1,3], grid_handler_tmp)
         call grid_handler_D%grid_waitall()
-        call MPI_Barrier(MPI_COMM_WORLD)
-        !call grid_handler_B%get_pointer_3D(u_d)
 
-        !call MPI_Barrier(MPI_COMM_WORLD)
-        !call grid_handler_D%get_pointer_3D(u_d, u)
-        !call grid_handler_B%diff_central1(u_d)
-        !x = x_d
-        !call MPI_Barrier(MPI_COMM_WORLD)
-
-        !call MPI_Barrier(MPI_COMM_WORLD)
-        !call grid_handler_B%get_pointer_3D(u)
-        !call grid_handler_D%get_pointer_3D(v)
-        !call grid_handler_B%diff_central1(v)
-        !call MPI_Barrier(MPI_COMM_WORLD)
-        call MPI_Barrier(MPI_COMM_WORLD)
+        ! Calc d/dx
         call grid_handler_B%get_pointer_3D(u)
         call grid_handler_D%get_pointer_3D(v)
-        v = 0
         call grid_handler_B%diff_central1(v)
-        call MPI_Barrier(MPI_COMM_WORLD)
-
         ! Rotation 2---------------------------------------------------------------
         call grid_comm_handler%rotate_grid(grid_handler_B, grid_handler_A, [3,2,1], grid_handler_tmp)
         call grid_handler_A%grid_waitall()
-        call MPI_Barrier(MPI_COMM_WORLD)
         call grid_comm_handler%rotate_grid(grid_handler_D, grid_handler_C, [3,2,1],grid_handler_tmp)
         call grid_handler_C%grid_waitall()
-        call MPI_Barrier(MPI_COMM_WORLD)
 
-        !call MPI_Barrier(MPI_COMM_WORLD)
-        !call grid_handler_A%get_pointer_3D(u)
-        !call grid_handler_C%get_pointer_3D(v)
-        !call grid_handler_A%diff_central1(v)
-        !call MPI_Barrier(MPI_COMM_WORLD)
+        ! Calculate d/dz
+        call grid_handler_A%get_pointer_3D(u)
+        call grid_handler_C%get_pointer_3D(v)
+        call grid_handler_A%diff_central1(v)
         ! Rotation 3---------------------------------------------------------------
         call grid_comm_handler%rotate_grid(grid_handler_A, grid_handler_B, [3,2,1], grid_handler_tmp)
         call grid_handler_B%grid_waitall()
-        call MPI_Barrier(MPI_COMM_WORLD)
         call grid_comm_handler%rotate_grid(grid_handler_C, grid_handler_D, [3,2,1], grid_handler_tmp)
         call grid_handler_D%grid_waitall()
-        call MPI_Barrier(MPI_COMM_WORLD)
 
         ! Rotation 4---------------------------------------------------------------
         call grid_comm_handler%rotate_grid(grid_handler_B, grid_handler_A, [2,1,3], grid_handler_tmp)
         call grid_handler_A%grid_waitall()
-        call MPI_Barrier(MPI_COMM_WORLD)
         call grid_comm_handler%rotate_grid(grid_handler_D, grid_handler_C, [2,1,3],grid_handler_tmp)
         call grid_handler_C%grid_waitall()
-        call MPI_Barrier(MPI_COMM_WORLD)
-
-        !if (my_rank == 0) then 
-        !    ! Print out numeric Solution
-        !    write(*,*) dims
-        !    write(*,*) "Dims (:, 1,:)"
-        !    write(fmt, '(A, I0, A)') '(', dims(1), 'F4.1)'
-        !    write(*,fmt) u(:, 1,:)
-        !end if
-
 
     end subroutine cycle
 
