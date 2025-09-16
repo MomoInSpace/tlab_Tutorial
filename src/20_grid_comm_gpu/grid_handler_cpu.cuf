@@ -15,6 +15,7 @@ module grid_handler_cpu
         contains 
         procedure :: set_pointer_1D => set_pointer_1D
         procedure :: get_pointer_3D => get_pointer_3D
+        procedure :: diff_central1 => diff_central1
         procedure :: get_switch_dims_workspace => get_switch_dims_workspace
     end type Grid3D_cpu
 
@@ -138,6 +139,38 @@ module grid_handler_cpu
         work_space_main(1:prod(dims)) => self%allocated_space_main
  
     end subroutine get_switch_dims_workspace
+
+    subroutine diff_central1(self, grid3D_diff_pointer)
+        ! Parameters================================================================
+        class(Grid3D_cpu),   intent(inout):: self
+        integer          , dimension(3)   :: dims
+        real(kind = wp), pointer, &
+                         dimension(:,:,:):: grid3D_pointer_main
+        real(kind = wp), pointer, &
+                         dimension(:,:,:):: grid3D_diff_pointer
+        integer :: i,j,k
+        real(kind=wp), device :: x1,x2, x3,h, a,e
+
+        dims = self%get_dims()
+        call self%get_pointer_3D(grid3D_pointer_main)  
+
+
+        h = 1/real(dims(1))
+        do k=1, dims(3)
+            do j=1, dims(2)
+                do i = 2, dims(1)-1
+                    grid3D_diff_pointer(i,j,k) = grid3D_diff_pointer(i,j,k) + &
+                    (grid3D_pointer_main(i+1,j,k)-grid3D_pointer_main(i-1,j,k))&
+                                 /(2*h)
+                end do
+                !grid3D_pointer_main(1,j,k) = 0
+                !grid3D_pointer_main(-1,j,k) = 0
+            end do
+        end do
+
+    
+
+    end subroutine diff_central1
 
 
 end module grid_handler_cpu

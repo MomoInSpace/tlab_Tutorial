@@ -40,6 +40,7 @@ implicit none
         procedure(iface_get_pointer_3D), deferred:: get_pointer_3D
         procedure(iface_get_switch_dims_workspace), &
                   deferred :: get_switch_dims_workspace
+        procedure(iface_diff_central1), deferred:: diff_central1
         !procedure:: allocate_array
         !procedure:: print_state_cpu
         procedure::init_comm_requests
@@ -92,6 +93,14 @@ implicit none
         real, intent(out), &
              pointer, &
              dimension(:)         :: work_space_main
+     end subroutine
+
+     subroutine iface_diff_central1(self, grid3D_diff_pointer)
+        import Grid3D
+        class(Grid3D),   intent(inout)   :: self
+        real, intent(inout),&
+                         pointer, &
+                         dimension(:,:,:):: grid3D_diff_pointer
      end subroutine
 
     end interface

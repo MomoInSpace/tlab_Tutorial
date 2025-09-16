@@ -22,10 +22,12 @@ module TLAB_POINTERS
     use TLAB_CONSTANTS, only: wp
     implicit none
 
-    real(wp), pointer:: u(:) => null()
+    real(wp), pointer :: u(:) => null()
     real(wp), pointer, device :: u_d(:) => null()
     real(wp), pointer :: v(:) => null()
+    real(wp), pointer, device :: v_d(:) => null()
     real(wp), pointer :: w(:) => null()
+    real(wp), pointer, device :: w_d(:) => null()
     real(wp), pointer :: e(:) => null()
     real(wp), pointer :: rho(:) => null()
     real(wp), pointer :: p(:) => null()
@@ -49,8 +51,14 @@ module TLAB_POINTERS_3D
     implicit none
 
     real(wp), pointer :: u(:, :, :) => null()
+    real(wp), pointer &
+            , device  :: u_d(:, :, :) => null()
     real(wp), pointer :: v(:, :, :) => null()
+    real(wp), pointer &
+            , device  :: v_d(:, :, :) => null()
     real(wp), pointer :: w(:, :, :) => null()
+    real(wp), pointer &
+            , device  :: w_d(:, :, :) => null()
     real(wp), pointer :: e(:, :, :) => null()
     real(wp), pointer :: rho(:, :, :) => null()
     real(wp), pointer :: p(:, :, :) => null()
