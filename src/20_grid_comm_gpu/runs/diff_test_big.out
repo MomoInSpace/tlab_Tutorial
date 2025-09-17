@@ -1,0 +1,217 @@
+N16 CPU Run
+ ==========================================================
+ State:               2            1            3
+ Subgrid:            16           32            8
+ Dims:               16           64           64
+ Dims (1, :,:)
+ Check Gather
+    0.000000000000000     
+ Local Diff
+   1.0138162154570088E-008
+ Theory - CommNum
+   4.0288089271257871E-005
+ Theory - Num
+   4.0288089271257871E-005
+ Num - CommNum
+    0.000000000000000     
+ theory abs
+   0.3290839868456523     
+
+real	0m5.613s
+user	0m1.630s
+sys	0m5.754s
+N16 GPU Run
+ ==========================================================
+ State:               2            1            3
+ Subgrid:            16           32            8
+ Dims:               16           64           64
+ Dims (1, :,:)
+ Check Gather
+    0.000000000000000     
+ Local Diff
+   1.0138162154570088E-008
+ Theory - CommNum
+   4.0288089271257871E-005
+ Theory - Num
+   4.0288089271257871E-005
+ Num - CommNum
+    0.000000000000000     
+ theory abs
+   0.3290839868456523     
+
+real	0m3.949s
+user	0m1.277s
+sys	0m5.011s
+N16 CPU Run
+ ==========================================================
+ State:               2            1            3
+ Subgrid:            16           32           16
+ Dims:               16          128           64
+ Dims (1, :,:)
+ Check Gather
+    0.000000000000000     
+ Local Diff
+   9.9876068037005201E-009
+ Theory - CommNum
+   4.0221373018143961E-005
+ Theory - Num
+   4.0221373018143961E-005
+ Num - CommNum
+    0.000000000000000     
+ theory abs
+   0.3275297799137732     
+
+real	0m4.197s
+user	0m2.013s
+sys	0m5.162s
+N16 GPU Run
+ ==========================================================
+ State:               2            1            3
+ Subgrid:            16           32           16
+ Dims:               16          128           64
+ Dims (1, :,:)
+ Check Gather
+    0.000000000000000     
+ Local Diff
+   9.9876068037005201E-009
+ Theory - CommNum
+   4.0221373018143961E-005
+ Theory - Num
+   4.0221373018143961E-005
+ Num - CommNum
+    0.000000000000000     
+ theory abs
+   0.3275297799137732     
+
+real	0m7.650s
+user	0m15.293s
+sys	0m5.449s
+N16 CPU Run
+ ==========================================================
+ State:               2            1            3
+ Subgrid:            32           64           32
+ Dims:               32          256          128
+ Dims (1, :,:)
+ Check Gather
+    0.000000000000000     
+ Local Diff
+   2.4865784872892704E-009
+ Theory - CommNum
+   1.0027213944023192E-005
+ Theory - Num
+   1.0027213944023192E-005
+ Num - CommNum
+    0.000000000000000     
+ theory abs
+   0.3247601172484508     
+
+real	0m7.943s
+user	0m11.941s
+sys	0m5.302s
+N16 GPU Run
+ ==========================================================
+ State:               2            1            3
+ Subgrid:            32           64           32
+ Dims:               32          256          128
+ Dims (1, :,:)
+ Check Gather
+    0.000000000000000     
+ Local Diff
+   2.4865784872892704E-009
+ Theory - CommNum
+   1.0027213944023192E-005
+ Theory - Num
+   1.0027213944023192E-005
+ Num - CommNum
+    0.000000000000000     
+ theory abs
+   0.3247601172484508     
+
+real	0m18.955s
+user	1m0.427s
+sys	0m5.289s
+N16 CPU Run
+ ==========================================================
+ State:               2            1            3
+ Subgrid:            64          128           64
+ Dims:               64          512          256
+ Dims (1, :,:)
+ Check Gather
+    0.000000000000000     
+ Local Diff
+   6.2103532608658685E-010
+ Theory - CommNum
+   2.5030400497819922E-006
+ Theory - Num
+   2.5030400497819922E-006
+ Num - CommNum
+    0.000000000000000     
+ theory abs
+   0.3242761544080307     
+
+real	0m29.094s
+user	1m39.311s
+sys	0m6.461s
+N16 GPU Run
+ ==========================================================
+ State:               2            1            3
+ Subgrid:            64          128           64
+ Dims:               64          512          256
+ Dims (1, :,:)
+ Check Gather
+    0.000000000000000     
+ Local Diff
+   6.2103532608658685E-010
+ Theory - CommNum
+   2.5030400497819922E-006
+ Theory - Num
+   2.5030400497819922E-006
+ Num - CommNum
+    0.000000000000000     
+ theory abs
+   0.3242761544080307     
+
+real	1m5.597s
+user	4m4.824s
+sys	0m6.712s
+
+********************************************************************************
+*                                                                              *
+*  This is the automated job summary provided by DKRZ.                         *
+*  If you encounter problems, need assistance or have any suggestion, please   *
+*  write an email to                                                           *
+*                                                                              *
+*  --  support@dkrz.de --                                                      *
+*                                                                              *
+*                       We hope you enjoyed the DKRZ supercomputer LEVANTE ... *
+*
+* JobID            : 19610234
+* JobName          : diff_test_huge.sh                                 
+* Account          : bb1153_gpu
+* User             : m300912 (40075), mpiaes (1900)                    
+* Partition        : gpu
+* QOS              : normal
+* Nodelist         : l[50003,50012,50036,50124] (4)                            
+* Submit date      : 2025-09-17T16:18:07
+* Start time       : 2025-09-17T16:18:37
+* End time         : 2025-09-17T16:21:01
+* Elapsed time     : 00:02:24 (Timelimit=01:00:00)                     
+* Command          : /home/m/m300912/fortran_projs/tlab_Tutorial/src/
+*                    20_grid_comm_gpu/runs/diff_test_huge.sh
+* WorkDir          : /home/m/m300912/fortran_projs/tlab_Tutorial/src/
+*                    20_grid_comm_gpu/runs
+*
+* StepID | JobName      NodeHours    MaxRSS [Byte] (@task)
+* ------------------------------------------------------------------------------
+* 0      | orted           0.0078                4048K (0)
+* 1      | orted            0.012                4048K (2)
+* 2      | orted            0.017                4104K (1)
+* 3      | orted            0.026                4048K (2)
+* 4      | orted            0.034                4048K (0)
+* 5      | orted            0.054             1979224K (2)
+* 6      | orted            0.088             2416000K (2)
+* 7      | orted             0.16             3115228K (2)
+* batch  | batch             0.16
+* extern | extern            0.16                3824K (2)
+* ------------------------------------------------------------------------------
+
