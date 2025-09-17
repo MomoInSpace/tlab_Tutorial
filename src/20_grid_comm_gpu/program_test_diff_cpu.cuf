@@ -109,6 +109,26 @@ program comm_test
     n = rank_coords(2)
     func => grid_func
 
+    ! Check gather ------------------------------------------------------------
+    ! Create subgrid
+    call grid_handler_A%get_pointer_3D(u)
+    func => grid_func
+    u = 0
+    call fill_subgrid(u,grid_handler_A%get_dims(), func,grid_comm_handler)
+    ! Comm Supergrid
+    call debug_values(grid_handler_A)
+    call testgrid_handler%visualize_grid(my_rank, .false.)
+    u => testgrid_handler%grid_pointer_3d
+
+    ! Generate Theory Supergrid
+    call testgrid_handler%get_dims(dims)
+    call create_supergrid(dims, func) ! Create Supergrid Only has to be called once
+    call get_supergrid(v,dims)
+
+
+    call check_diff(u,v,dims, "Check Gather")
+
+
     ! Check Local Diff ---------------------------------------------------------
     call grid_handler_B%get_pointer_3D(v)
     v = 0 
@@ -126,24 +146,6 @@ program comm_test
 
     dims = grid_handler_A%get_dims()
     call check_diff(v,w,dims, "Local Diff")
-
-    ! Check gather ------------------------------------------------------------
-    ! Create subgrid
-    call grid_handler_A%get_pointer_3D(u)
-    func => grid_func
-    u = 0
-    call fill_subgrid(u,grid_handler_A%get_dims(), func,grid_comm_handler)
-    ! Comm Supergrid
-    call debug_values(grid_handler_A)
-    u => testgrid_handler%grid_pointer_3d
-
-    ! Generate Theory Supergrid
-    call testgrid_handler%get_dims(dims)
-    call create_supergrid(dims, func) ! Create Supergrid Only has to be called once
-    call get_supergrid(v,dims)
-
-
-    call check_diff(u,v,dims, "Check Gather")
 
     !Check Gather+Diff ---------------------------------------------------------
     call grid_handler_A%get_pointer_3D(u)

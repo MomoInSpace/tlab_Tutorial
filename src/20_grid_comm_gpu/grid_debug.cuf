@@ -389,7 +389,7 @@ contains
 
     end subroutine reorder_gatherv
 
-    subroutine visualize_grid(self, my_rank)!, dims_tasks_2d, grid_xyz_dims)!, state, grid_array, buffer_array)
+    subroutine visualize_grid(self, my_rank, show_grid)!, dims_tasks_2d, grid_xyz_dims)!, state, grid_array, buffer_array)
         class(Complete_Grid_debugger), intent(in)          :: self
         integer, dimension(3)           :: dims
         integer:: i, j, k, m, n, p, n_max, m_max
@@ -398,6 +398,7 @@ contains
         integer, dimension(2)               :: ierr
         character(len = 100):: fmt
         integer                                 ::  my_rank
+        logical, optional :: show_grid
         
         p = 1
         n_max = self%task_dims(self%task_state(1))
@@ -416,7 +417,9 @@ contains
 
             write(*,*) "Dims (1, :,:)"
             write(fmt, '(A, I0, A)') '(', dims(2), 'F4.0)'
-            write(*,fmt) self%grid_pointer_3d(1, :,:)
+            if(present(show_grid)) then
+                if(show_grid) write(*,fmt) self%grid_pointer_3d(1, :,:)
+            end if
 
             !write(*,*) "Dims (:,1, :)"
             !write(fmt, '(A, I0, A)') '(', dims(1), 'F4.0)'

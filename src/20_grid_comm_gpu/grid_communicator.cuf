@@ -240,7 +240,7 @@ contains
     if (my_rank == 0) then
         !if (n_num /= column_upper_limit) print *, &
                 !"Note: n_num not divisible by column_upper_limit. n_num <= column_upper_limit. Try to bring n_num and m_num as close to each other as possible. To reduce communication delay."
-        if (n_num /= column_upper_limit) print *, "column_upper_limit: ", column_upper_limit, "n_num: ", n_num,  ', m_num', m_num
+        !if (n_num /= column_upper_limit) print *, "column_upper_limit: ", column_upper_limit, "n_num: ", n_num,  ', m_num', m_num
     end if
     
     if (n_num == 1 .or. m_num == 1) error stop &
