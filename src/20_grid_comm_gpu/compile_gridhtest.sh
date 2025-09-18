@@ -36,10 +36,10 @@ mpifort -c $gpu_profile/grid_ops.cuf
 
 
 #Gridh Test CPU
-mpifort  tlab_constants.o  tlab_arrays.o  grid_handler.o  $gpu_profile/grid_handler_gpu.cuf  grid_handler_cpu.o  grid_communicator.o  $gpu_profile/grid_communicator_gpu.cuf  grid_communicator_cpu.o  grid_debug.o   grid_ops.o  $gpu_profile/program_gridhtest.f90 -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -Minfo=accel,inline -o gridh_test_cpu.run
+#mpifort  tlab_constants.o  tlab_arrays.o  grid_handler.o  $gpu_profile/grid_handler_gpu.cuf  grid_handler_cpu.o  grid_communicator.o  $gpu_profile/grid_communicator_gpu.cuf  grid_communicator_cpu.o  grid_debug.o   grid_ops.o  $gpu_profile/program_gridhtest.f90 -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -Minfo=accel,inline -o gridh_test_cpu.run
 
 #Gridh Test GPU
-mpifort  tlab_constants.o  tlab_arrays.o  grid_handler.o  $gpu_profile/grid_handler_gpu.cuf  grid_handler_cpu.o  grid_communicator.o  $gpu_profile/grid_communicator_gpu.cuf  grid_communicator_cpu.o  grid_debug.o   grid_ops.o  $gpu_profile/program_gridhtest.cuf -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -Minfo=accel,inline -o gridh_test_gpu.run
+#mpifort  tlab_constants.o  tlab_arrays.o  grid_handler.o  $gpu_profile/grid_handler_gpu.cuf  grid_handler_cpu.o  grid_communicator.o  $gpu_profile/grid_communicator_gpu.cuf  grid_communicator_cpu.o  grid_debug.o   grid_ops.o  $gpu_profile/program_gridhtest.cuf -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -Minfo=accel,inline -o gridh_test_gpu.run
 
 # Snabla CPU
 mpifort  tlab_constants.o  tlab_arrays.o  grid_handler.o  $gpu_profile/grid_handler_gpu.cuf  grid_handler_cpu.o  grid_communicator.o  $gpu_profile/grid_communicator_gpu.cuf  grid_communicator_cpu.o  grid_debug.o   grid_ops.o  $gpu_profile/program_test_diff_cpu.cuf -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -Minfo=accel,inline -o diff_test_cpu.run
