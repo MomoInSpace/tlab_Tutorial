@@ -4,180 +4,180 @@ N4 CPU Run
  Subgrid:            16           32           32
  Dims:               16           64           64
  Dims (1, :,:)
- CheckGather = [
+ CheckGather = {
  "MeanSum" :     776.2023175083309      ,
  "MeanDiff" :    0.000000000000000      ,
- "RelDiff" :    0.000000000000000      ]
- LocalDiff = [
+ "RelDiff" :    0.000000000000000      }
+ LocalDiff = {
  "MeanSum" :     343.7739073416093      ,
  "MeanDiff" :    3.852204157982682      ,
- "RelDiff" :   1.1205632759541430E-002 ]
- Theory_CommNum =[
+ "RelDiff" :   1.1205632759541430E-002 }
+ Theory_CommNum = {
  "MeanSum" :     3863.264939067300      ,
  "MeanDiff" :    4.386641993101183      ,
- "RelDiff" :   1.1354753200437362E-003 ]
- Theory_Num = [
+ "RelDiff" :   1.1354753200437362E-003 }
+ Theory_Num = {
  "MeanSum" :     3863.264939067300      ,
  "MeanDiff" :    4.386641993101183      ,
- "RelDiff" :   1.1354753200437362E-003 ]
- Num_CommNum  = [ 
+ "RelDiff" :   1.1354753200437362E-003 }
+ Num_CommNum = {
  "MeanSum" :     3865.458260063842      ,
  "MeanDiff" :    0.000000000000000      ,
- "RelDiff" :    0.000000000000000      ]
- TheoryAbs = [
+ "RelDiff" :    0.000000000000000      }
+ TheoryAbs = {
  "MeanSum" :     1930.535809035375      ,
  "MeanDiff" :    3861.071618070750      ,
- "RelDiff" :    2.000000000000000      ]
+ "RelDiff" :    2.000000000000000      }
 N4 GPU Run
  ==========================================================
  State:               2            1            3
  Subgrid:            16           32           32
  Dims:               16           64           64
  Dims (1, :,:)
- CheckGather = [
+ CheckGather = {
  "MeanSum" :     776.2023175083309      ,
  "MeanDiff" :    0.000000000000000      ,
- "RelDiff" :    0.000000000000000      ]
- LocalDiff = [
+ "RelDiff" :    0.000000000000000      }
+ LocalDiff = {
  "MeanSum" :     343.7739073416093      ,
  "MeanDiff" :    3.852204157982682      ,
- "RelDiff" :   1.1205632759541430E-002 ]
- Theory_CommNum =[
+ "RelDiff" :   1.1205632759541430E-002 }
+ Theory_CommNum = {
  "MeanSum" :     3863.264939067300      ,
  "MeanDiff" :    4.386641993101183      ,
- "RelDiff" :   1.1354753200437362E-003 ]
- Theory_Num = [
+ "RelDiff" :   1.1354753200437362E-003 }
+ Theory_Num = {
  "MeanSum" :     3863.264939067300      ,
  "MeanDiff" :    4.386641993101183      ,
- "RelDiff" :   1.1354753200437362E-003 ]
- Num_CommNum  = [ 
+ "RelDiff" :   1.1354753200437362E-003 }
+ Num_CommNum = {
  "MeanSum" :     3865.458260063842      ,
  "MeanDiff" :    0.000000000000000      ,
- "RelDiff" :    0.000000000000000      ]
- TheoryAbs = [
+ "RelDiff" :    0.000000000000000      }
+ TheoryAbs = {
  "MeanSum" :     1930.535809035375      ,
  "MeanDiff" :    3861.071618070750      ,
- "RelDiff" :    2.000000000000000      ]
+ "RelDiff" :    2.000000000000000      }
 N8 CPU Run
  ==========================================================
  State:               2            1            3
  Subgrid:            16           16           32
  Dims:               16           64           64
  Dims (1, :,:)
- CheckGather = [
+ CheckGather = {
  "MeanSum" :     776.2023175083309      ,
  "MeanDiff" :    0.000000000000000      ,
- "RelDiff" :    0.000000000000000      ]
- LocalDiff = [
+ "RelDiff" :    0.000000000000000      }
+ LocalDiff = {
  "MeanSum" :     250.4593522653621      ,
  "MeanDiff" :    3.892554976463856      ,
- "RelDiff" :   1.5541663512487600E-002 ]
- Theory_CommNum =[
+ "RelDiff" :   1.5541663512487600E-002 }
+ Theory_CommNum = {
  "MeanSum" :     3863.264939067300      ,
  "MeanDiff" :    4.386641993101183      ,
- "RelDiff" :   1.1354753200437362E-003 ]
- Theory_Num = [
+ "RelDiff" :   1.1354753200437362E-003 }
+ Theory_Num = {
  "MeanSum" :     3863.264939067300      ,
  "MeanDiff" :    4.386641993101183      ,
- "RelDiff" :   1.1354753200437362E-003 ]
- Num_CommNum  = [ 
+ "RelDiff" :   1.1354753200437362E-003 }
+ Num_CommNum = {
  "MeanSum" :     3865.458260063842      ,
  "MeanDiff" :    0.000000000000000      ,
- "RelDiff" :    0.000000000000000      ]
- TheoryAbs = [
+ "RelDiff" :    0.000000000000000      }
+ TheoryAbs = {
  "MeanSum" :     1930.535809035375      ,
  "MeanDiff" :    3861.071618070750      ,
- "RelDiff" :    2.000000000000000      ]
+ "RelDiff" :    2.000000000000000      }
 N8 GPU Run
  ==========================================================
  State:               2            1            3
  Subgrid:            16           16           32
  Dims:               16           64           64
  Dims (1, :,:)
- CheckGather = [
+ CheckGather = {
  "MeanSum" :     776.2023175083309      ,
  "MeanDiff" :    0.000000000000000      ,
- "RelDiff" :    0.000000000000000      ]
- LocalDiff = [
+ "RelDiff" :    0.000000000000000      }
+ LocalDiff = {
  "MeanSum" :     250.4593522653621      ,
  "MeanDiff" :    3.892554976463856      ,
- "RelDiff" :   1.5541663512487600E-002 ]
- Theory_CommNum =[
+ "RelDiff" :   1.5541663512487600E-002 }
+ Theory_CommNum = {
  "MeanSum" :     3863.264939067300      ,
  "MeanDiff" :    4.386641993101183      ,
- "RelDiff" :   1.1354753200437362E-003 ]
- Theory_Num = [
+ "RelDiff" :   1.1354753200437362E-003 }
+ Theory_Num = {
  "MeanSum" :     3863.264939067300      ,
  "MeanDiff" :    4.386641993101183      ,
- "RelDiff" :   1.1354753200437362E-003 ]
- Num_CommNum  = [ 
+ "RelDiff" :   1.1354753200437362E-003 }
+ Num_CommNum = {
  "MeanSum" :     3865.458260063842      ,
  "MeanDiff" :    0.000000000000000      ,
- "RelDiff" :    0.000000000000000      ]
- TheoryAbs = [
+ "RelDiff" :    0.000000000000000      }
+ TheoryAbs = {
  "MeanSum" :     1930.535809035375      ,
  "MeanDiff" :    3861.071618070750      ,
- "RelDiff" :    2.000000000000000      ]
+ "RelDiff" :    2.000000000000000      }
 N16 CPU Run
  ==========================================================
  State:               2            1            3
  Subgrid:            16           32            8
  Dims:               16           64           64
  Dims (1, :,:)
- CheckGather = [
+ CheckGather = {
  "MeanSum" :     776.2023175083309      ,
  "MeanDiff" :    0.000000000000000      ,
- "RelDiff" :    0.000000000000000      ]
- LocalDiff = [
+ "RelDiff" :    0.000000000000000      }
+ LocalDiff = {
  "MeanSum" :     295.4654035012788      ,
  "MeanDiff" :    3.852830584991662      ,
- "RelDiff" :   1.3039870452971598E-002 ]
- Theory_CommNum =[
+ "RelDiff" :   1.3039870452971598E-002 }
+ Theory_CommNum = {
  "MeanSum" :     3863.264939067300      ,
  "MeanDiff" :    4.386641993101183      ,
- "RelDiff" :   1.1354753200437362E-003 ]
- Theory_Num = [
+ "RelDiff" :   1.1354753200437362E-003 }
+ Theory_Num = {
  "MeanSum" :     3863.264939067300      ,
  "MeanDiff" :    4.386641993101183      ,
- "RelDiff" :   1.1354753200437362E-003 ]
- Num_CommNum  = [ 
+ "RelDiff" :   1.1354753200437362E-003 }
+ Num_CommNum = {
  "MeanSum" :     3865.458260063842      ,
  "MeanDiff" :    0.000000000000000      ,
- "RelDiff" :    0.000000000000000      ]
- TheoryAbs = [
+ "RelDiff" :    0.000000000000000      }
+ TheoryAbs = {
  "MeanSum" :     1930.535809035375      ,
  "MeanDiff" :    3861.071618070750      ,
- "RelDiff" :    2.000000000000000      ]
+ "RelDiff" :    2.000000000000000      }
 N16 GPU Run
  ==========================================================
  State:               2            1            3
  Subgrid:            16           32            8
  Dims:               16           64           64
  Dims (1, :,:)
- CheckGather = [
+ CheckGather = {
  "MeanSum" :     776.2023175083309      ,
  "MeanDiff" :    0.000000000000000      ,
- "RelDiff" :    0.000000000000000      ]
- LocalDiff = [
+ "RelDiff" :    0.000000000000000      }
+ LocalDiff = {
  "MeanSum" :     295.4654035012788      ,
  "MeanDiff" :    3.852830584991662      ,
- "RelDiff" :   1.3039870452971598E-002 ]
- Theory_CommNum =[
+ "RelDiff" :   1.3039870452971598E-002 }
+ Theory_CommNum = {
  "MeanSum" :     3863.264939067300      ,
  "MeanDiff" :    4.386641993101183      ,
- "RelDiff" :   1.1354753200437362E-003 ]
- Theory_Num = [
+ "RelDiff" :   1.1354753200437362E-003 }
+ Theory_Num = {
  "MeanSum" :     3863.264939067300      ,
  "MeanDiff" :    4.386641993101183      ,
- "RelDiff" :   1.1354753200437362E-003 ]
- Num_CommNum  = [ 
+ "RelDiff" :   1.1354753200437362E-003 }
+ Num_CommNum = {
  "MeanSum" :     3865.458260063842      ,
  "MeanDiff" :    0.000000000000000      ,
- "RelDiff" :    0.000000000000000      ]
- TheoryAbs = [
+ "RelDiff" :    0.000000000000000      }
+ TheoryAbs = {
  "MeanSum" :     1930.535809035375      ,
  "MeanDiff" :    3861.071618070750      ,
- "RelDiff" :    2.000000000000000      ]
+ "RelDiff" :    2.000000000000000      }
 
 ********************************************************************************
 *                                                                              *
@@ -189,17 +189,17 @@ N16 GPU Run
 *                                                                              *
 *                       We hope you enjoyed the DKRZ supercomputer LEVANTE ... *
 *
-* JobID            : 19622736
+* JobID            : 19623347
 * JobName          : diff_test_same_size.sh                            
 * Account          : bb1153_gpu
 * User             : m300912 (40075), mpiaes (1900)                    
 * Partition        : gpu
 * QOS              : normal
-* Nodelist         : l[50024,50027,50030,50109] (4)                            
-* Submit date      : 2025-09-18T12:57:21
-* Start time       : 2025-09-18T12:58:26
-* End time         : 2025-09-18T12:59:05
-* Elapsed time     : 00:00:39 (Timelimit=01:00:00)                     
+* Nodelist         : l[50024,50027,50054,50178] (4)                            
+* Submit date      : 2025-09-18T13:05:43
+* Start time       : 2025-09-18T13:06:12
+* End time         : 2025-09-18T13:06:53
+* Elapsed time     : 00:00:41 (Timelimit=01:00:00)                     
 * Command          : /home/m/m300912/fortran_projs/tlab_Tutorial/src/
 *                    20_grid_comm_gpu/runs/diff_test_same_size.sh
 * WorkDir          : /home/m/m300912/fortran_projs/tlab_Tutorial/src/
@@ -208,12 +208,12 @@ N16 GPU Run
 * StepID | JobName      NodeHours    MaxRSS [Byte] (@task)
 * ------------------------------------------------------------------------------
 * 0      | orted           0.0089                4044K (2)
-* 1      | orted            0.018                4044K (2)
-* 2      | orted            0.023                4048K (0)
-* 3      | orted            0.031                4044K (0)
-* 4      | orted            0.037                4044K (0)
-* 5      | orted            0.042                4044K (1)
-* batch  | batch            0.043
-* extern | extern           0.043                3824K (1)
+* 1      | orted            0.021                4044K (0)
+* 2      | orted            0.024                4044K (1)
+* 3      | orted            0.033                4048K (2)
+* 4      | orted            0.038                4044K (2)
+* 5      | orted            0.044                4044K (1)
+* batch  | batch            0.046
+* extern | extern           0.046                3824K (1)
 * ------------------------------------------------------------------------------
 

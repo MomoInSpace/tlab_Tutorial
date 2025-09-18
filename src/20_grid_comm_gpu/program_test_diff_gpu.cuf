@@ -126,7 +126,7 @@ program comm_test
     call get_supergrid(v,dims)
 
 
-    call check_diff(u,v,dims, "CheckGather = [")
+    call check_diff(u,v,dims, "CheckGather")
 
     ! Check Local Diff ---------------------------------------------------------
     call grid_handler_B%get_pointer_3D(v_d, v)
@@ -146,7 +146,7 @@ program comm_test
     x = x_d
 
     dims = grid_handler_A%get_dims()
-    call check_diff(v,w,dims, "LocalDiff = [")
+    call check_diff(v,w,dims, "LocalDiff")
 
     !Check Gather+Diff ---------------------------------------------------------
     call grid_handler_A%get_pointer_3D(u_d, u)
@@ -177,7 +177,7 @@ program comm_test
     call get_supergrid(u,dims)
 
     ! Check difference of u and v
-    call check_diff(u,v,dims, "Theory_CommNum =[")
+    call check_diff(u,v,dims, "Theory_CommNum")
 
     ! Calculate theoretical Solution
     func => grid_func
@@ -209,15 +209,15 @@ program comm_test
     call get_supergrid(u,dims)
 
     ! Check difference of u and v
-    call check_diff(u,w,dims, "Theory_Num = [")
+    call check_diff(u,w,dims, "Theory_Num")
 
 
     call debug_values(grid_handler_C)
     v => testgrid_handler%grid_pointer_3d
-    call check_diff(w,v,dims, "Num_CommNum  = [ ")
+    call check_diff(w,v,dims, "Num_CommNum")
 
     w = 0
-    call check_diff(u,w,dims, "TheoryAbs = [")
+    call check_diff(u,w,dims, "TheoryAbs")
     
 
 
@@ -295,7 +295,7 @@ program comm_test
         logical, optional :: show_matrices
 
         if (my_rank == 0) then 
-            if(present(title)) write(*,*) title
+            if(present(title)) write(*,*) title, " = {"
             
             write(*,*) '"MeanSum" : ', sum(abs(u(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1))+abs(v(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1)))/2/&
             (dims(1)-2)/(dims(2)-2)/(dims(3)-2), ','
@@ -305,7 +305,7 @@ program comm_test
 
             write(*,*) '"RelDiff" :', sum(abs(u(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1)-v(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1)))/&
             (sum(abs(u(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1)))+&
-            sum(abs(-v(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1))))*2, "]"
+            sum(abs(-v(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1))))*2, "}"
 
             if(present(show_matrices)) then 
                 if(show_matrices) then 
