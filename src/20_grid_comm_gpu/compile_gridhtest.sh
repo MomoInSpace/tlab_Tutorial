@@ -46,7 +46,6 @@ mpifort  tlab_constants.o  tlab_arrays.o  grid_handler.o  $gpu_profile/grid_hand
 
 # Snabla GPU
 mpifort  tlab_constants.o  tlab_arrays.o  grid_handler.o  $gpu_profile/grid_handler_gpu.cuf  grid_handler_cpu.o  grid_communicator.o  $gpu_profile/grid_communicator_gpu.cuf  grid_communicator_cpu.o  grid_debug.o   grid_ops.o  $gpu_profile/program_test_diff_gpu.cuf -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -Minfo=accel,inline -o diff_test_gpu.run
-#mpifort $gpu_profile/tlab_constants.cuf $gpu_profile/tlab_arrays.cuf $gpu_profile/grid_handler.cuf $gpu_profile/grid_handler_gpu.cuf $gpu_profile/grid_handler_cpu.cuf $gpu_profile/grid_communicator.cuf $gpu_profile/grid_communicator_gpu.cuf $gpu_profile/grid_communicator_cpu.cuf $gpu_profile/grid_debug.cuf  $gpu_profile/grid_ops.cuf $gpu_profile/program_simple_nabla_gpu.cuf  -acc=gpu -target=gpu -gpu=lineinfo,cc80 -cpp -g -O0 -Minfo=accel,inline -o comm_snabla_gpu.run
 
 # Test
 #echo "N4 CPU Run"
