@@ -444,13 +444,17 @@ contains
             end if
             call MPI_Barrier(MPI_COMM_WORLD)
         end do
+
+        call MPI_Barrier(MPI_COMM_WORLD)
         
         if(my_rank == 0) then
             
             if(present(show_grid)) then
-                write(*,*) "# Dims (1, :,:)"
-                write(fmt, '(A, I0, A)') '(', dims(2), 'F4.0)'
-                if(show_grid) write(*,fmt) self%grid_pointer_3d(1, :,:)
+                if(show_grid) then 
+                    write(*,*) "# Dims (1, :,:)"
+                    write(fmt, '(A, I0, A)') '(', dims(2), 'F4.0)'
+                    write(*,fmt) self%grid_pointer_3d(1, :,:)
+                end if
             end if
 
             !write(*,*) "Dims (:,1, :)"

@@ -122,17 +122,17 @@ module grid_ops
         if (my_rank == 0) then 
             if(present(title)) write(*,*) title, " = {"
             
-            write(*,*) '"MeanSum" : ', sum(abs(u(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1))+abs(v(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1)))/2/&
+            print*, '"MeanSum" : ', sum(abs(u(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1))+abs(v(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1)))/2/&
             (dims(1)-2)/(dims(2)-2)/(dims(3)-2), ','
 
-            write(*,*) '"MeanDiff" :', sum(abs(u(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1)-v(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1)))/&
+            print*, '"MeanDiff" :', sum(abs(u(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1)-v(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1)))/&
             (dims(1)-2)/(dims(2)-2)/(dims(3)-2), ','
 
-            write(*,*) '"RelDiff" :', sum(abs(u(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1)-v(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1)))/&
+            print*, '"RelDiff" :', sum(abs(u(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1)-v(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1)))/&
             (sum(abs(u(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1)))+&
-            sum(abs(-v(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1))))*2, "}"
+            sum(abs(-v(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1))))*2, ","
 
-            write(*,*) '"Linf" :', maxval(abs(u(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1)-v(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1))) 
+            print*, '"Linf" :', maxval(abs(u(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1)-v(2:dims(1)-1, 2:dims(2)-1,2:dims(3)-1))), "}"
 
             if(present(show_matrices)) then 
                 if(show_matrices) then 
