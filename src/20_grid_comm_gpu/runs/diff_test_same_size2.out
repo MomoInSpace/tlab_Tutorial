@@ -1,0 +1,341 @@
+N4 CPU Run
+ # ==========================================================
+ # State:               2            1            3
+ # Subgrid:            16           32           32
+ # Dims:               16           64           64
+ # rank 0 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 1 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 2 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # Dims (1, :,:)
+ # rank 3 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ CheckGather = {
+ "MeanSum" :     7.762023175083285      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+ LocalDiff = {
+ "MeanSum" :     3.437739073416096      ,
+ "MeanDiff" :   3.8522041579827096E-002 ,
+ "RelDiff" :   1.1205632759541456E-002 }
+ "Linf" :   3.9056742110336273E-002
+ Theory_CommNum = {
+ "MeanSum" :     38.63264939067289      ,
+ "MeanDiff" :   4.3866419931011931E-002 ,
+ "RelDiff" :   1.1354753200437445E-003 }
+ "Linf" :   4.6401081133254252E-002
+ Theory_Num = {
+ "MeanSum" :     38.63264939067289      ,
+ "MeanDiff" :   4.3866419931011931E-002 ,
+ "RelDiff" :   1.1354753200437445E-003 }
+ "Linf" :   4.6401081133254252E-002
+ Num_CommNum = {
+ "MeanSum" :     38.65458260063831      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+ TheoryAbs = {
+ "MeanSum" :     19.30535809035361      ,
+ "MeanDiff" :    38.61071618070722      ,
+ "RelDiff" :    2.000000000000000      }
+ "Linf" :    126.7530411258980     
+ Num_CommNum_Rand = {
+ "MeanSum" :     15.11779085836794      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+N4 GPU Run
+ # ==========================================================
+ # State:               2            1            3
+ # Subgrid:            16           32           32
+ # Dims:               16           64           64
+ # rank 0 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 1 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 2 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # Dims (1, :,:)
+ # rank 3 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ CheckGather = {
+ "MeanSum" :     7.762023175083285      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+ LocalDiff = {
+ "MeanSum" :     3.437739073416096      ,
+ "MeanDiff" :   3.8522041579827096E-002 ,
+ "RelDiff" :   1.1205632759541456E-002 }
+ "Linf" :   3.9056742110336273E-002
+ Theory_CommNum = {
+ "MeanSum" :     38.63264939067289      ,
+ "MeanDiff" :   4.3866419931011931E-002 ,
+ "RelDiff" :   1.1354753200437445E-003 }
+ "Linf" :   4.6401081133254252E-002
+ Theory_Num = {
+ "MeanSum" :     38.63264939067289      ,
+ "MeanDiff" :   4.3866419931011931E-002 ,
+ "RelDiff" :   1.1354753200437445E-003 }
+ "Linf" :   4.6401081133254252E-002
+ Num_CommNum = {
+ "MeanSum" :     38.65458260063831      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+ TheoryAbs = {
+ "MeanSum" :     19.30535809035361      ,
+ "MeanDiff" :    38.61071618070722      ,
+ "RelDiff" :    2.000000000000000      }
+ "Linf" :    126.7530411258980     
+ Num_CommNum_Rand = {
+ "MeanSum" :     15.11779085836794      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+N8 CPU Run
+ # ==========================================================
+ # State:               2            1            3
+ # Subgrid:            16           16           32
+ # Dims:               16           64           64
+ # rank 0 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 1 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 2 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 3 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 4 on l50133.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 5 on l50133.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 6 on l50133.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # Dims (1, :,:)
+ # rank 7 on l50133.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ CheckGather = {
+ "MeanSum" :     7.762023175083285      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+ LocalDiff = {
+ "MeanSum" :     2.504593522653609      ,
+ "MeanDiff" :   3.8925549764638669E-002 ,
+ "RelDiff" :   1.5541663512487649E-002 }
+ "Linf" :   3.9056742110336273E-002
+ Theory_CommNum = {
+ "MeanSum" :     38.63264939067289      ,
+ "MeanDiff" :   4.3866419931011931E-002 ,
+ "RelDiff" :   1.1354753200437445E-003 }
+ "Linf" :   4.6401081133254252E-002
+ Theory_Num = {
+ "MeanSum" :     38.63264939067289      ,
+ "MeanDiff" :   4.3866419931011931E-002 ,
+ "RelDiff" :   1.1354753200437445E-003 }
+ "Linf" :   4.6401081133254252E-002
+ Num_CommNum = {
+ "MeanSum" :     38.65458260063831      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+ TheoryAbs = {
+ "MeanSum" :     19.30535809035361      ,
+ "MeanDiff" :    38.61071618070722      ,
+ "RelDiff" :    2.000000000000000      }
+ "Linf" :    126.7530411258980     
+ Num_CommNum_Rand = {
+ "MeanSum" :     15.24231562359379      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+N8 GPU Run
+ # ==========================================================
+ # State:               2            1            3
+ # Subgrid:            16           16           32
+ # Dims:               16           64           64
+ # rank 0 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 1 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 2 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 3 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 4 on l50133.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 5 on l50133.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 6 on l50133.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # Dims (1, :,:)
+ # rank 7 on l50133.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ CheckGather = {
+ "MeanSum" :     7.762023175083285      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+ LocalDiff = {
+ "MeanSum" :     2.504593522653609      ,
+ "MeanDiff" :   3.8925549764638669E-002 ,
+ "RelDiff" :   1.5541663512487649E-002 }
+ "Linf" :   3.9056742110336273E-002
+ Theory_CommNum = {
+ "MeanSum" :     38.63264939067289      ,
+ "MeanDiff" :   4.3866419931011931E-002 ,
+ "RelDiff" :   1.1354753200437445E-003 }
+ "Linf" :   4.6401081133254252E-002
+ Theory_Num = {
+ "MeanSum" :     38.63264939067289      ,
+ "MeanDiff" :   4.3866419931011931E-002 ,
+ "RelDiff" :   1.1354753200437445E-003 }
+ "Linf" :   4.6401081133254252E-002
+ Num_CommNum = {
+ "MeanSum" :     38.65458260063831      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+ TheoryAbs = {
+ "MeanSum" :     19.30535809035361      ,
+ "MeanDiff" :    38.61071618070722      ,
+ "RelDiff" :    2.000000000000000      }
+ "Linf" :    126.7530411258980     
+ Num_CommNum_Rand = {
+ "MeanSum" :     15.24231562359379      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+N16 CPU Run
+ # ==========================================================
+ # State:               2            1            3
+ # Subgrid:            16           32            8
+ # Dims:               16           64           64
+ # rank 0 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 1 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 2 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 3 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 4 on l50133.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 5 on l50133.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 6 on l50133.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 7 on l50133.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 8 on l50148.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 9 on l50148.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 10 on l50148.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 11 on l50148.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 12 on l50151.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 13 on l50151.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 14 on l50151.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # Dims (1, :,:)
+ # rank 15 on l50151.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ CheckGather = {
+ "MeanSum" :     7.762023175083285      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+ LocalDiff = {
+ "MeanSum" :     2.954654035012792      ,
+ "MeanDiff" :   3.8528305849916671E-002 ,
+ "RelDiff" :   1.3039870452971614E-002 }
+ "Linf" :   3.9056742110336273E-002
+ Theory_CommNum = {
+ "MeanSum" :     38.63264939067289      ,
+ "MeanDiff" :   4.3866419931011931E-002 ,
+ "RelDiff" :   1.1354753200437445E-003 }
+ "Linf" :   4.6401081133254252E-002
+ Theory_Num = {
+ "MeanSum" :     38.63264939067289      ,
+ "MeanDiff" :   4.3866419931011931E-002 ,
+ "RelDiff" :   1.1354753200437445E-003 }
+ "Linf" :   4.6401081133254252E-002
+ Num_CommNum = {
+ "MeanSum" :     38.65458260063831      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+ TheoryAbs = {
+ "MeanSum" :     19.30535809035361      ,
+ "MeanDiff" :    38.61071618070722      ,
+ "RelDiff" :    2.000000000000000      }
+ "Linf" :    126.7530411258980     
+ Num_CommNum_Rand = {
+ "MeanSum" :     15.13191098423315      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+N16 GPU Run
+ # ==========================================================
+ # State:               2            1            3
+ # Subgrid:            16           32            8
+ # Dims:               16           64           64
+ # rank 0 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 1 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 2 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 3 on l50121.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 4 on l50133.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 5 on l50133.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 6 on l50133.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 7 on l50133.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 8 on l50148.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 9 on l50148.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 10 on l50148.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 11 on l50148.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 12 on l50151.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 13 on l50151.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # rank 14 on l50151.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ # Dims (1, :,:)
+ # rank 15 on l50151.lvt.dkrz.de with 0 NVIDIA A100-SXM4-80GB
+ CheckGather = {
+ "MeanSum" :     7.762023175083285      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+ LocalDiff = {
+ "MeanSum" :     2.954654035012792      ,
+ "MeanDiff" :   3.8528305849916671E-002 ,
+ "RelDiff" :   1.3039870452971614E-002 }
+ "Linf" :   3.9056742110336273E-002
+ Theory_CommNum = {
+ "MeanSum" :     38.63264939067289      ,
+ "MeanDiff" :   4.3866419931011931E-002 ,
+ "RelDiff" :   1.1354753200437445E-003 }
+ "Linf" :   4.6401081133254252E-002
+ Theory_Num = {
+ "MeanSum" :     38.63264939067289      ,
+ "MeanDiff" :   4.3866419931011931E-002 ,
+ "RelDiff" :   1.1354753200437445E-003 }
+ "Linf" :   4.6401081133254252E-002
+ Num_CommNum = {
+ "MeanSum" :     38.65458260063831      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+ TheoryAbs = {
+ "MeanSum" :     19.30535809035361      ,
+ "MeanDiff" :    38.61071618070722      ,
+ "RelDiff" :    2.000000000000000      }
+ "Linf" :    126.7530411258980     
+ Num_CommNum_Rand = {
+ "MeanSum" :     15.13191098423315      ,
+ "MeanDiff" :    0.000000000000000      ,
+ "RelDiff" :    0.000000000000000      }
+ "Linf" :    0.000000000000000     
+
+********************************************************************************
+*                                                                              *
+*  This is the automated job summary provided by DKRZ.                         *
+*  If you encounter problems, need assistance or have any suggestion, please   *
+*  write an email to                                                           *
+*                                                                              *
+*  --  support@dkrz.de --                                                      *
+*                                                                              *
+*                       We hope you enjoyed the DKRZ supercomputer LEVANTE ... *
+*
+* JobID            : 19637987
+* JobName          : diff_test_same_size2.sh                           
+* Account          : bb1153_gpu
+* User             : m300912 (40075), mpiaes (1900)                    
+* Partition        : gpu
+* QOS              : normal
+* Nodelist         : l[50121,50133,50148,50151] (4)                            
+* Submit date      : 2025-09-19T13:01:20
+* Start time       : 2025-09-19T13:01:31
+* End time         : 2025-09-19T13:02:28
+* Elapsed time     : 00:00:57 (Timelimit=01:00:00)                     
+* Command          : /home/m/m300912/fortran_projs/tlab_Tutorial/src/
+*                    20_grid_comm_gpu/runs/diff_test_same_size2.sh
+* WorkDir          : /home/m/m300912/fortran_projs/tlab_Tutorial/src/
+*                    20_grid_comm_gpu/runs
+*
+* StepID | JobName      NodeHours    MaxRSS [Byte] (@task)
+* ------------------------------------------------------------------------------
+* 0      | orted           0.0089                4044K (0)
+* 1      | orted            0.023               15252K (0)
+* 2      | orted             0.03                4044K (2)
+* 3      | orted            0.043              966480K (0)
+* 4      | orted            0.049                4044K (2)
+* 5      | orted            0.063               25224K (0)
+* batch  | batch            0.063
+* extern | extern           0.063                3824K (3)
+* ------------------------------------------------------------------------------
+
