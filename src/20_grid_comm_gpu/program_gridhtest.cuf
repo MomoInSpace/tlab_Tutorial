@@ -144,7 +144,7 @@ program comm_test
     subroutine debug_values(current_grid_handler)
         class(Grid3D)            :: current_grid_handler
         call testgrid_handler%gather_compgrid(current_grid_handler, grid_comm_handler, subgrid_xyz_dims, my_rank)
-        call testgrid_handler%visualize_grid(my_rank)
+        call testgrid_handler%visualize_grid(my_rank, .true.)
         call calc_checksum(my_rank)
     end subroutine debug_values
 

@@ -390,6 +390,7 @@ contains
     end subroutine reorder_gatherv
 
     subroutine visualize_grid(self, my_rank, show_grid)!, dims_tasks_2d, grid_xyz_dims)!, state, grid_array, buffer_array)
+        use cudafor
         class(Complete_Grid_debugger), intent(in)          :: self
         integer, dimension(3)           :: dims
         integer:: i, j, k, m, n, p, n_max, m_max
@@ -397,28 +398,63 @@ contains
         ! integer, dimension(3):: grid_xyz_dims
         integer, dimension(2)               :: ierr
         character(len = 100):: fmt
-        integer                                 ::  my_rank
+        integer                                 ::  my_rank, world_size
         logical, optional :: show_grid
+
+        CHARACTER(LEN=MPI_MAX_PROCESSOR_NAME):: name, name_gpu
+        character(len = 3) :: rankchar
+        INTEGER :: resultlen, device_id
+        type(cudaDeviceProp) :: props
         
         p = 1
         n_max = self%task_dims(self%task_state(1))
         m_max = self%task_dims(self%task_state(2))
         call self%get_sub_dims(dims)
 
+
         if (my_rank == 0) then
             ! write(*,*) "topmost xz-surface of total grid, with shape:"
-            write(*,*) "=========================================================="
-            write(*,*) "State:   ", self%state_xyz
+            write(*,*) "# =========================================================="
+            write(*,*) "# State:   ", self%state_xyz
             call self%get_sub_dims(dims)
-            write(*,*) "Subgrid: ", dims
+            write(*,*) "# Subgrid: ", dims
             call self%get_dims(dims)
-            write(*,*) "Dims:    ", dims
+            write(*,*) "# Dims:    ", dims
             ! write(*,*) "Dims2:"
+        end if
 
-            write(*,*) "Dims (1, :,:)"
-            write(fmt, '(A, I0, A)') '(', dims(2), 'F4.0)'
+        call MPI_Barrier(MPI_COMM_WORLD)
+        call MPI_Comm_size(MPI_COMM_WORLD, world_size)
+        do i = 0, world_size
+            if (my_rank == i) then
+                call MPI_Get_processor_name(name, resultlen)
+                !write(*,*, advance = 'no') name
+                ierr(0) = cudaGetDevice(device_id)
+                ierr(0) = cudaGetDeviceProperties(props, device_id)
+                name_gpu = props%name
+                !write(*,*) name_gpu
+                write(*,'(A)', advance ="no") " # rank "
+                write(*,'(I0)', advance = 'no') my_rank
+                write(*,'(A)', advance = 'no') " on node"
+                write(*,'(A)', advance = 'no') trim(name)
+                write(*,'(A)', advance = 'no') ' with device id'
+                write(*,'(I0)', advance = 'no') device_id
+                write(*,'(A)', advance = 'no') ' on gpu '
+                write(*,'(A)', advance = 'yes')  trim(name_gpu)
+            end if
+            call MPI_Barrier(MPI_COMM_WORLD)
+        end do
+
+        call MPI_Barrier(MPI_COMM_WORLD)
+        
+        if(my_rank == 0) then
+            
             if(present(show_grid)) then
-                if(show_grid) write(*,fmt) self%grid_pointer_3d(1, :,:)
+                if(show_grid) then 
+                    write(*,*) "# Dims (1, :,:)"
+                    write(fmt, '(A, I0, A)') '(', dims(2), 'F4.0)'
+                    write(*,fmt) self%grid_pointer_3d(1, :,:)
+                end if
             end if
 
             !write(*,*) "Dims (:,1, :)"
